@@ -1,0 +1,24 @@
+{
+  "name": "causality",
+  "version": "1.0.0",
+  "description": "A library for reactive programming based on Javascript proxies.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/erobwen/causality.git"
+  },
+  "keywords": [
+    "Javascript",
+    "Proxy",
+    "Reactive"
+  ],
+  "author": "Robert Renbris",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/erobwen/causality/issues"
+  },
+  "homepage": "https://github.com/erobwen/causality#readme"
+}

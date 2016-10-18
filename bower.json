@@ -1,0 +1,22 @@
+{
+  "name": "causality",
+  "description": "A library for reactive programming based on Javascript proxies.",
+  "main": "index.js",
+  "authors": [
+    "Robert Renbris"
+  ],
+  "license": "ISC",
+  "keywords": [
+    "Javascript",
+    "Proxy",
+    "Reactive"
+  ],
+  "homepage": "https://github.com/erobwen/causality",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
