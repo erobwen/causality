@@ -1,4 +1,4 @@
-
+console.log({});
 
 
 function create(object) {
@@ -15,46 +15,79 @@ function create(object) {
         }
         return observers[key];
     }
-    
+
+
     return new Proxy(object, {
-        get: function (oTarget, sKey) {
-            registerAnyChangeObserver(getSet(oTarget._propertyObservers, sKey));
-            return oTarget[sKey]; //  || undefined;
+        getPrototypeOf : function(target) {
+            return Object.getPrototypeOf(target);
         },
-        set: function (oTarget, sKey, vValue) {
-            oTarget[sKey] = vValue;
-            notifyChangeObservers(getSet(oTarget._propertyObservers, sKey));
+
+        setPrototypeOf : function(target, prototype) {
+            Object.setPrototypeOf(target, prototype);
+        },
+
+        isExtensible : function() {},
+
+        preventExtensions : function() {},
+
+        apply : function() {
+            // if (typeof(target) === 'Array') {
+            //
+            // }
+        },
+
+        construct : function() {},
+
+        get: function (target, key) {
+            registerAnyChangeObserver(getSet(target._propertyObservers, key));
+            return target[key]; //  || undefined;
+        },
+
+        set: function (target, key, value) {
+            target[key] = value;
+            // console.log('Set key: ' + key);
+            notifyChangeObservers(getSet(target._propertyObservers, key));
             return true;
         },
-        deleteProperty: function (oTarget, sKey) {
-            if (!(sKey in oTarget)) {
+
+        deleteProperty: function (target, key) {
+            if (!(key in target)) {
                 return false;
             } else {
-                delete oTarget[sKey];
-                notifyChangeObservers(oTarget._enumerateObservers);
+                delete target[key];
+                notifyChangeObservers(target._enumerateObservers);
                 return true;
             }
         },
-        ownKeys: function (oTarget, sKey) {
-            registerAnyChangeObserver(oTarget._enumerateObservers);
-            return Object.keys(oTarget);
+
+        ownKeys: function (target, key) { // Not inherited?
+            registerAnyChangeObserver(target._enumerateObservers);
+            var keys = Object.keys(target);
+            keys.push('length');
+            return keys;
         },
-        has: function (oTarget, sKey) {
-            registerAnyChangeObserver(oTarget._enumerateObservers);
-            return sKey in oTarget;
+
+        has: function (target, key) {
+            // TODO: Check against key starts with "_¤"
+            registerAnyChangeObserver(target._enumerateObservers);
+            return key in target;
         },
-        defineProperty: function (oTarget, sKey, oDesc) {
-            notifyChangeObservers(oTarget._enumerateObservers);
-            // if (oDesc && "value" in oDesc) { oTarget.setItem(sKey, oDesc.value); }
-            return oTarget;
+
+        defineProperty: function (target, key, oDesc) {
+            notifyChangeObservers(target._enumerateObservers);
+            // if (oDesc && "value" in oDesc) { target.setItem(key, oDesc.value); }
+            return target;
         },
-        getOwnPropertyDescriptor: function (oTarget, sKey) {
-            return undefined;
+
+        getOwnPropertyDescriptor: function (target, key) {
+            registerAnyChangeObserver(target._enumerateObservers);
+            return Object.getOwnPropertyDescriptor(target, key);
         }
     });
 }
 
-
+var watch = create;
+var c = create;
 
 /**********************************
  *  Dependency recording
@@ -312,8 +345,6 @@ function refreshAllDirtyRepeaters() {
 }
 
 
-
-
 /**********************************
  *  Testing
  *
@@ -331,12 +362,13 @@ uponChangeDo(function(){
     z = 'invalid';
 });
 console.log(z == 22);
-
 console.log("Run tests...")
 y.propC = 10;
 console.log(z == 22);
 y.propB = 2;
 console.log(z == 'invalid');
+
+
 
 console.log("");
 console.log("Test repeatOnChange:");
@@ -346,13 +378,76 @@ repeatOnChange(function(){
     z = x.propA + y.propB;
 });
 console.log(z == 22);
-
 console.log("Run tests...")
 y.propC = 100;
 console.log(z == 22);
-
 y.propB = 2;
 console.log(z == 13);
-
 x.propA = 2;
 console.log(z == 4);
+
+
+
+console.log("");
+console.log("Testing a heap structure:");
+console.log("Setup...");
+function buildHeap(value) {
+    var childrenStartValue = value - 5;
+    var childrenCount = 0;
+    var children = c([]);
+    while(childrenCount <= 3) {
+        var childValue = childrenStartValue--;
+        if (childValue > 0) {
+            children.push(buildHeap(childValue));
+        }
+        childrenCount++;
+    }
+   return c({
+       value : value,
+       children : children
+   });
+}
+function getLastChild(heap) {
+    if (heap.children.length === 0) {
+        return heap;
+    } else {
+        return getLastChild(heap.children[heap.children.length - 1]);
+    }
+}
+function summarize(heap) {
+    var childSum = 0;
+    heap.children.forEach(function(child) {
+        childSum += summarize(child);
+    });
+    return heap.value + childSum;
+}
+function nodeCount(heap) {
+    var childSum = 0;
+    heap.children.forEach(function(child) {
+        childSum += summarize(child);
+    });
+    return 1 + childSum;
+}
+var heap = buildHeap(14);
+var heapSum = 0;
+repeatOnChange(function() {
+    heapSum = summarize(heap);
+    heapNodeCount = nodeCount(heap);
+});
+console.log(heapSum == 64);
+getLastChild(heap).value += 100;
+console.log(heapSum == 164);
+
+
+var lastChild = getLastChild(heap);
+lastChild.children.push(buildHeap(1));
+lastChild.children.push(buildHeap(1));
+lastChild.children.push(buildHeap(1));
+lastChild.children.push(buildHeap(1));
+console.log(heapSum == 168);
+
+lastChild.children[lastChild.children.length - 1] = buildHeap(2);
+console.log(heapSum == 169);
+
+console.log(heap);
+console.log("Finished!");
