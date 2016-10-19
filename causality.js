@@ -1,21 +1,31 @@
-console.log({});
 
+// Helper to quickly get a child object
+function getMap(object, key) {
+    if (typeof(object[key]) === 'undefined') {
+        object[key] = {};
+    }
+    return object[key];
+}
 
+// Helper to quickly get a child array
+function getArray(object, key) {
+    if (typeof(object[key]) === 'undefined') {
+        object[key] = {};
+    }
+    return object[key];
+}
+
+var nextId = 1;
 function create(object) {
     if (typeof(object) === 'undefined') {
         object = {};
     }
 
+    object._id = nextId++;
     object._propertyObservers = {};
-    object._enumerateObservers = {}
+    object._enumerateObservers = {};
 
-    function getSet(observers, key) {
-        if (typeof(observers[key]) === 'undefined') {
-            observers[key] = {};
-        }
-        return observers[key];
-    }
-
+    addGenericFunctionCacher(object);
 
     return new Proxy(object, {
         getPrototypeOf : function(target) {
@@ -39,14 +49,14 @@ function create(object) {
         construct : function() {},
 
         get: function (target, key) {
-            registerAnyChangeObserver(getSet(target._propertyObservers, key));
+            registerAnyChangeObserver(getMap(target._propertyObservers, key));
             return target[key]; //  || undefined;
         },
 
         set: function (target, key, value) {
             target[key] = value;
             // console.log('Set key: ' + key);
-            notifyChangeObservers(getSet(target._propertyObservers, key));
+            notifyChangeObservers(getMap(target._propertyObservers, key));
             return true;
         },
 
@@ -86,7 +96,6 @@ function create(object) {
     });
 }
 
-var watch = create;
 var c = create;
 
 /**********************************
@@ -343,6 +352,153 @@ function refreshAllDirtyRepeaters() {
         }
     }
 }
+
+
+/************************************************************************
+ *  Cached methods
+ *
+ * A cached method will not reevaluate for the same arguments, unless
+ * some of the data it has read for such a call has changed. If there
+ * is a parent cached method, it will be notified upon change.
+ * (even if the parent does not actually use/read any return value)
+ ************************************************************************/
+
+function argumentsToArray(arguments) {
+    return Array.prototype.slice.call(arguments);
+};
+
+function startsWith(prefix, string) {
+    return (prefix === string.substr(0, prefix.length));
+}
+
+function makeMarkedArgumentHash(argumentList) {
+    var argumentHash = makeArgumentHash(argumentList);
+    if (argumentHash.indexOf("¤") !== -1) {
+        argumentHash = "¤" + argumentHash; // Put it up front!
+    }
+    return argumentHash;
+}
+
+function makeArgumentHash(argumentList) {
+    var hash =  "";
+    var first = true;
+    argumentList.forEach(function(argument) {
+        if (!first) { hash += ","; }
+
+        if (typeof(argument._id) !== 'undefined') { //typeof(argument) === 'object' &&
+            hash += "{id=" + argument._id + "}";
+        } else  if  (typeof(argument) === 'number' || typeof(argument) === 'string') { // String or integer
+            hash += argument;
+        } else {
+            hash += "¤"; // Unrecognizeable, we have to rely on the hash-bucket.
+        }
+    });
+    return hash;
+}
+
+function compareArraysShallow(a, b) {
+    if (a.length === b.length) {
+        for (var i = 0; i < a.length; i++) {
+            if (a[i] !== b[i]) {
+                return false;
+            }
+        }
+        return true;
+    } else {
+        return fasle;
+    }
+}
+
+
+function isCachedInBucket(functionArgumentHashCaches, functionArguments) {
+    if (functionArgumentHashCaches.length === 0) {
+        return false;
+    } else {
+        // Search in the bucket!
+        for (var i = 0; i < functionArgumentHashCaches.length; i++) {
+            if (compareArraysShallow(functionArgumentHashCaches[i], functionArguments)) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+
+function addGenericFunctionCacher(object) {
+    object['cached'] = function() {
+        // Split arguments
+        var functionNameAndArgumentsArray = argumentsToArray(arguments);
+        var methodName = functionNameAndArgumentsArray.shift();
+        var functionArguments = functionNameAndArgumentsArray;
+
+        // Get cache(s) for this argument hash
+        var methodCaches = getMap(getMap(object, "_cachedCalls"), methodName);
+        var argumentsHash = makeMarkedArgumentHash(functionArguments);
+        var isHashNonShared = !startsWith("¤", argumentsHash);
+
+        // Figure out if we have a chache or not
+        var isCached = null;
+        if (isHashNonShared) {
+            isCached = typeof(methodCaches[argumentHash]) === 'undefined';
+        } else {
+            var functionArgumentHashCaches = getArray(methodCaches, argumentsHash);
+            isCached = isCachedInBucket(functionArgumentHashCaches, functionArguments) ;
+        }
+
+        if (!isCached) {
+            // console.log("Cached method not seen before, or re-caching needed... ");
+            var methodCache = {
+                observers : {},
+                returnValue : returnValue
+            };
+            if (isHashNonShared) {
+                methodCaches[argumentsHash] = methodCache;
+            } else {
+                methodCache.functionArguments = functionArguments;
+                functionArgumentHashCaches.push(methodCache);
+            }
+
+            // Never encountered these arguments before, make a new cache
+            var returnValue = uponChangeDo(this.__() + "." + methodName,
+                function() {
+                    var returnValue;
+                    // blockSideEffects(function() {
+                    returnValue = this[methodName].apply(this, methodArguments);
+                    // }.bind(this));
+                    return returnValue;
+                }.bind(this),
+                function() {
+                    // Get and delete method cache
+                    if (isHashNonShared) {
+                        var methodCaches = this._cachedCalls[methodName]; // Really necesary?
+                        var methodCache = methodCaches[argumentHash];
+                        delete methodCaches[argumentHash];
+                    } else {
+                        for (var i = 0; i < functionArgumentHashCaches.length; i++) {
+                            if (compareArraysShallow(functionArgumentHashCaches[i], functionArguments)) {
+                                functionArgumentHashCaches.splice(i, 1);
+                                break;
+                            }
+                        }
+                    }
+
+                    // Recorders dirty
+                    liquid.recordersDirty(methodCache.observers);
+                }.bind(this));
+            methodCache.returnValue = returnValue;
+            liquid.registerObserverTo(this, {name: methodName}, methodCache);
+            return returnValue;
+        } else {
+            // Encountered these arguments before, reuse previous repeater
+            // console.log("Cached method seen before ...");
+            // trace('repetition', "Cached method seen before ...");
+            var methodCache = methodCaches[argumentHash];
+            liquid.registerObserverTo(this, {name: methodName}, methodCache);
+            traceGroupEnd();
+            return methodCache.returnValue;
+        }
+    }
+};
 
 
 /**
