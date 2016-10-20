@@ -321,7 +321,7 @@ function removeFromArray(object, array) {
             break;
         }
     }
-};
+}
 
 function removeRepeater(repeater) {
     // console.log("removeRepeater: " + repeater.id + "." + repeater.description);
@@ -365,7 +365,7 @@ function refreshAllDirtyRepeaters() {
 
 function argumentsToArray(arguments) {
     return Array.prototype.slice.call(arguments);
-};
+}
 
 function startsWith(prefix, string) {
     return (prefix === string.substr(0, prefix.length));
@@ -393,7 +393,7 @@ function makeArgumentHash(argumentList) {
             hash += "¤"; // Unrecognizeable, we have to rely on the hash-bucket.
         }
     });
-    return hash;
+    return "(" + hash + ")";
 }
 
 function compareArraysShallow(a, b) {
@@ -409,14 +409,13 @@ function compareArraysShallow(a, b) {
     }
 }
 
-
 function isCachedInBucket(functionArgumentHashCaches, functionArguments) {
     if (functionArgumentHashCaches.length === 0) {
         return false;
     } else {
         // Search in the bucket!
         for (var i = 0; i < functionArgumentHashCaches.length; i++) {
-            if (compareArraysShallow(functionArgumentHashCaches[i], functionArguments)) {
+            if (compareArraysShallow(functionArgumentHashCaches[i].functionArguments, functionArguments)) {
                 return true;
             }
         }
@@ -424,58 +423,67 @@ function isCachedInBucket(functionArgumentHashCaches, functionArguments) {
     }
 }
 
+var cachedCalls = 0;
+function cachedCallCount() {
+    return cachedCalls;
+}
+
 function addGenericFunctionCacher(object) {
     object['cached'] = function() {
         // Split arguments
         var functionNameAndArgumentsArray = argumentsToArray(arguments);
-        var methodName = functionNameAndArgumentsArray.shift();
+        var functionName = functionNameAndArgumentsArray.shift();
+        // console.log("Making cached call: " + functionName);
         var functionArguments = functionNameAndArgumentsArray;
 
         // Get cache(s) for this argument hash
-        var methodCaches = getMap(getMap(object, "_cachedCalls"), methodName);
+        var functionCaches = getMap(getMap(object, "_cachedCalls"), functionName);
         var argumentsHash = makeMarkedArgumentHash(functionArguments);
-        var isHashNonShared = !startsWith("¤", argumentsHash);
+        var sharedHash = startsWith("¤", argumentsHash);
+        // console.log(argumentsHash);
+        // console.log(sharedHash);
 
         // Figure out if we have a chache or not
         var isCached = null;
-        if (isHashNonShared) {
-            isCached = typeof(methodCaches[argumentHash]) === 'undefined';
+        if (!sharedHash) {
+            isCached = typeof(functionCaches[argumentsHash]) !== 'undefined';
         } else {
-            var functionArgumentHashCaches = getArray(methodCaches, argumentsHash);
+            var functionArgumentHashCaches = getArray(functionCaches, argumentsHash);
             isCached = isCachedInBucket(functionArgumentHashCaches, functionArguments) ;
         }
 
         if (!isCached) {
-            // console.log("Cached method not seen before, or re-caching needed... ");
-            var methodCache = {
+            cachedCalls++;
+            
+            // console.log("Cached function not seen before, or re-caching needed... ");
+            var functionCache = {
                 observers : {},
                 returnValue : returnValue
             };
-            if (isHashNonShared) {
-                methodCaches[argumentsHash] = methodCache;
+            if (!sharedHash) {
+                functionCaches[argumentsHash] = functionCache;
             } else {
-                methodCache.functionArguments = functionArguments;
-                functionArgumentHashCaches.push(methodCache);
+                functionCache.functionArguments = functionArguments;
+                functionArgumentHashCaches.push(functionCache);
             }
 
             // Never encountered these arguments before, make a new cache
-            var returnValue = uponChangeDo(this.__() + "." + methodName,
+            var returnValue = uponChangeDo(
                 function() {
                     var returnValue;
                     // blockSideEffects(function() {
-                    returnValue = this[methodName].apply(this, methodArguments);
+                    returnValue = this[functionName].apply(this, functionArguments);
                     // }.bind(this));
                     return returnValue;
                 }.bind(this),
                 function() {
-                    // Get and delete method cache
-                    if (isHashNonShared) {
-                        var methodCaches = this._cachedCalls[methodName]; // Really necesary?
-                        var methodCache = methodCaches[argumentHash];
-                        delete methodCaches[argumentHash];
+                    // Get and delete function cache
+                    if (!sharedHash) {
+                        var functionCache = functionCaches[argumentsHash];
+                        delete functionCaches[argumentsHash];
                     } else {
                         for (var i = 0; i < functionArgumentHashCaches.length; i++) {
-                            if (compareArraysShallow(functionArgumentHashCaches[i], functionArguments)) {
+                            if (compareArraysShallow(functionArgumentHashCaches[i].functionArguments, functionArguments)) {
                                 functionArgumentHashCaches.splice(i, 1);
                                 break;
                             }
@@ -483,22 +491,28 @@ function addGenericFunctionCacher(object) {
                     }
 
                     // Recorders dirty
-                    liquid.recordersDirty(methodCache.observers);
+                    notifyChangeObservers(functionCache.observers);
                 }.bind(this));
-            methodCache.returnValue = returnValue;
-            liquid.registerObserverTo(this, {name: methodName}, methodCache);
+            functionCache.returnValue = returnValue;
+            registerAnyChangeObserver(functionCache.observers);
             return returnValue;
         } else {
             // Encountered these arguments before, reuse previous repeater
-            // console.log("Cached method seen before ...");
-            // trace('repetition', "Cached method seen before ...");
-            var methodCache = methodCaches[argumentHash];
-            liquid.registerObserverTo(this, {name: methodName}, methodCache);
-            traceGroupEnd();
-            return methodCache.returnValue;
+            if (!sharedHash) {
+                functionCache = functionCaches[argumentsHash];
+            } else {
+                for (var i = 0; i < functionArgumentHashCaches.length; i++) {
+                    if (compareArraysShallow(functionArgumentHashCaches[i].functionArguments, functionArguments)) {
+                        functionCache = functionArgumentHashCaches[i];
+                        break;
+                    }
+                }
+            }
+            registerAnyChangeObserver(functionCache.observers);
+            return functionCache.returnValue;
         }
     }
-};
+}
 
 
 /**
@@ -511,8 +525,9 @@ function install(target) {
     }
     target['repeatOnChange'] = repeatOnChange;
     target['uponChangeDo'] = uponChangeDo;
-    target['create'] = create;
+    target['create'] = create; 
     target['c'] = c;
+    target['cachedCallCount'] = cachedCallCount;
 }
 
 if (typeof(module) !== 'undefined') {
