@@ -62,6 +62,9 @@ function create(object) {
         },
 
         set: function (target, key, value) {
+            if (typeof(target[key]) === 'undefined') {
+                notifyChangeObservers(target._enumerateObservers);
+            }
             target[key] = value;
             // console.log('Set key: ' + key);
             notifyChangeObservers(getMap(target._propertyObservers, key));
@@ -88,7 +91,7 @@ function create(object) {
                 }
             });
             result.push('length');
-            return keys;
+            return result;
         },
 
         has: function (target, key) {
