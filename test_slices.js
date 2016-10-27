@@ -19,9 +19,9 @@ function differentialSplices(previous, array) {
         // console.log("adding");
         // console.log(previousIndex);
         // console.log(addedRemovedLength);
-        let splice = {type:'added', sequence: added, index: previousIndex + addedRemovedLength};
+        let splice = {type:'splice', index: previousIndex + addedRemovedLength, removedCount: 0, added: added};
         addedRemovedLength += added.length;
-        console.log(splice);
+        // console.log(splice);
         splices.push(splice);
     }
 
@@ -29,9 +29,20 @@ function differentialSplices(previous, array) {
         // console.log("removing");
         // console.log(previousIndex);
         // console.log(addedRemovedLength);
-        let splice = {type:'removed', sequence: removed, index: previousIndex + addedRemovedLength};
+        let splice = {type:'splice', index: previousIndex + addedRemovedLength, removedCount: removed.length, added: [] };
         addedRemovedLength -= removed.length;
-        console.log(splice);
+        // console.log(splice);
+        splices.push(splice);
+    }
+
+    function removeAdd(removedCount, added) {
+        // console.log("removing");
+        // console.log(previousIndex);
+        // console.log(addedRemovedLength);
+        let splice = {type:'splice', index: previousIndex + addedRemovedLength, removedCount: removedCount, added: added};
+        addedRemovedLength -= removedCount;
+        addedRemovedLength += added.length;
+        // console.log(splice);
         splices.push(splice);
     }
     
@@ -84,40 +95,28 @@ function differentialSplices(previous, array) {
             done = true;
         } else {
             // Found mid-area of missmatch.
-            // console.log("mismatch in mid-area");
+            let previousScanIndex = previousIndex;
+            let newScanIndex = newIndex;
+            let foundMatchAgain = false;
 
-            // Consider add
-            added = [];
-            var newIndexProbe = newIndex;
-            do {
-                added.push(array[newIndexProbe++]);
-            } while (newIndexProbe < array.length && previous[previousIndex] !== array[newIndexProbe]);
-            // console.log("consider add");
-            // console.log(added);
-
-            // Consider remove
-            removed = [];
-            var previousIndexProbe = previousIndex;
-            do {
-                removed.push(previous[previousIndexProbe++]);
-            } while (previousIndexProbe < array.length && previous[newIndex] !== array[previousIndexProbe]);
-            // console.log("consider remove");
-            // console.log(removed);
-
-            // Allways use the minimal modification until match, except when some list ran out, then take the other modification
-            if (previousIndexProbe === previous.length) {
-                add(added);
-                newIndex = newIndexProbe;
-            } else if (newIndexProbe === array.length) {
-                remove(removed);
-                previousIndex = previousIndexProbe;
-            } else if (added.length < removed.length) { // Slight bias towards remove.
-                add(added);
-                newIndex = newIndexProbe
-            } else {
-                remove(removed);
-                previousIndex = previousIndexProbe;
+            while(previousScanIndex < previous.length && !foundMatchAgain) {
+                newScanIndex = newIndex;
+                while(newScanIndex < array.length && !foundMatchAgain) {
+                    if (previous[previousScanIndex] === array[newScanIndex]) {
+                        // console.log("found match again")
+                        // console.log([previousScanIndex, newScanIndex]);
+                        foundMatchAgain = true;
+                    }
+                    if (!foundMatchAgain) newScanIndex++;
+                }
+                if (!foundMatchAgain) previousScanIndex++;
             }
+            // console.log("Found a gap");
+            // console.log([previousIndex, newIndex]);
+            // console.log([previousScanIndex, newScanIndex]);
+            removeAdd(previousScanIndex - previousIndex, array.slice(newIndex, newScanIndex));
+            previousIndex = previousScanIndex;
+            newIndex = newScanIndex;
         }
     }
 
@@ -126,20 +125,21 @@ function differentialSplices(previous, array) {
 
 function observeArraySlices(array, observerFunction) {
     // Setup previous
-    var previous = [];
+    var previous = c([]);
     array.forEach(function(element) {previous.push(element)});
 
     repeatOnChange(function() {
         array.forEach(function() {}); // Establish observation
         withoutRecording(function() {
             var splices = differentialSplices(previous, array);
+            if (splices.length > 0) {
+                // Remember array for next time
+                previous = c([]);
+                array.forEach(function(element) {previous.push(element)});
 
-            // Remember array for next time
-            previous = [];
-            array.forEach(function(element) {previous.push(element)});
-
-            // Notify
-            observerFunction(splices);
+                // Notify
+                observerFunction(splices);
+            }
         });
     });
     
@@ -148,8 +148,16 @@ function observeArraySlices(array, observerFunction) {
 
 
 // console.log(differentialSplices(['a', 'c'], ['a', 'b', 'c']));
-console.log(differentialSplices(['a', 'b', 'c'], ['a', 'c']));
+// console.log(differentialSplices(['a', 'b', 'c'], ['a', 'c']));
+// console.log(differentialSplices(['a', 'b', 'c'], ['a', 'x', 'c']));
+// console.log(differentialSplices(
+//     ['a', 'b', 'c', 'd', 'e', 'f'],
+//     ['a', 'b', 'c', 'x', 'y', 'z', 'd', 'e']));
 
-var observedArray = observeArraySlices(c(['a', 'b', 'c']), function(changes) {console.log("Changes: " + changes)});
+var observedArray = observeArraySlices(c(['a', 'b', 'c']),
+    function(changes) {
+        console.log(changes)
+    });
 
 observedArray[1] = 'z';
+observedArray.push('last');

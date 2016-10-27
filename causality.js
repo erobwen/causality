@@ -15,6 +15,14 @@ function getArray(object, key) {
     return object[key];
 }
 
+function startsWith(prefix, string) {
+    // trace('security', string);
+    // trace('security', prefix.length);
+    // trace('security', string.substr(0, prefix.length));
+    return (prefix === string.substr(0, prefix.length));
+};
+
+
 var nextId = 1;
 function create(object) {
     if (typeof(object) === 'undefined') {
@@ -73,7 +81,13 @@ function create(object) {
         ownKeys: function (target, key) { // Not inherited?
             registerAnyChangeObserver(target._enumerateObservers);
             var keys = Object.keys(target);
-            keys.push('length');
+            let result = [];
+            keys.forEach(function(key) {
+                if (!startsWith('_', key)) {
+                    result.push(key);
+                }
+            });
+            result.push('length');
             return keys;
         },
 
