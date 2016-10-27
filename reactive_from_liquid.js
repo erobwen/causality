@@ -46,7 +46,7 @@ var addLiquidRepetitionFunctionality = function(liquid) {
 
 	
 	var recordingPaused = 0;
-	liquid.pauseRecording = function(action) {
+	liquid.withoutRecording = function(action) {
 		recordingPaused++;
 		action();
 		recordingPaused--;

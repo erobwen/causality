@@ -140,7 +140,7 @@ function uponChangeDo() { // description(optional), doFirst, doAfterChange. doAf
 
 
 var recordingPaused = 0;
-function pauseRecording(action) {
+function withoutRecording(action) {
     recordingPaused++;
     action();
     recordingPaused--;
@@ -528,6 +528,7 @@ function install(target) {
     target['create'] = create; 
     target['c'] = c;
     target['cachedCallCount'] = cachedCallCount;
+    target['withoutRecording'] = withoutRecording;
 }
 
 if (typeof(module) !== 'undefined') {
