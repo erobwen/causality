@@ -22,7 +22,7 @@ function getMap(object, key) {
 // Helper to quickly get a child array
 function getArray(object, key) {
     if (typeof(object[key]) === 'undefined') {
-        object[key] = {};
+        object[key] = [];
     }
     return object[key];
 }
