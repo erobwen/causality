@@ -1,3 +1,15 @@
+// Using UMD pattern: https://github.com/umdjs/umd
+(function(root, factory){
+	if (typeof define === 'function' && define.amd) {
+		define([], factory); // Support AMD
+	}	else if (typeof module === 'object' && module.exports) {
+		module.exports = factory(); // Support NodeJS
+	}	else {
+		root.causality = factory(); // Support browser global
+	}
+}(this, function() {
+
+
 
 // Helper to quickly get a child object
 function getMap(object, key) {
@@ -546,10 +558,11 @@ function install(target) {
     target['c'] = c;
     target['cachedCallCount'] = cachedCallCount;
     target['withoutRecording'] = withoutRecording;
+	  return target;
 }
 
-if (typeof(module) !== 'undefined') {
-    module.exports.install = install
-} else {
-    install();
-}
+	return {
+		install: install,
+	};
+
+}));
