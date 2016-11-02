@@ -1,0 +1,11 @@
+Things to do:
+
+* Recursive proxy wrapping when using c/create
+
+* Automatically wrap non proxy object on assign/push etc.
+
+* Hide object metadata in handler or proxy object instead of target?
+
+* Implement infusion
+
+* Implement projection
