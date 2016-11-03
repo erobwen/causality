@@ -69,17 +69,18 @@ function create(object) {
         construct : function() {},
 
         get: function (target, key) {
-            registerAnyChangeObserver(getMap(target._propertyObservers, key));
+            registerAnyChangeObserver("_propertyObservers." + key, getMap(target._propertyObservers, key));
             return target[key]; //  || undefined;
         },
 
         set: function (target, key, value) {
-            if (typeof(target[key]) === 'undefined') {
-                notifyChangeObservers(target._enumerateObservers);
-            }
-            target[key] = value;
             // console.log('Set key: ' + key);
-            notifyChangeObservers(getMap(target._propertyObservers, key));
+            var undefinedKey = typeof(target[key]) === 'undefined';
+            target[key] = value;
+            if (undefinedKey) {
+                notifyChangeObservers("_enumerateObservers", target._enumerateObservers);
+            }
+            notifyChangeObservers("_propertyObservers." + key, getMap(target._propertyObservers, key));
             return true;
         },
 
@@ -88,13 +89,13 @@ function create(object) {
                 return false;
             } else {
                 delete target[key];
-                notifyChangeObservers(target._enumerateObservers);
+                notifyChangeObservers("_enumerateObservers", target._enumerateObservers);
                 return true;
             }
         },
 
         ownKeys: function (target, key) { // Not inherited?
-            registerAnyChangeObserver(target._enumerateObservers);
+            registerAnyChangeObserver("_enumerateObservers", target._enumerateObservers);
             var keys = Object.keys(target);
             let result = [];
             keys.forEach(function(key) {
@@ -108,18 +109,18 @@ function create(object) {
 
         has: function (target, key) {
             // TODO: Check against key starts with "_¤"
-            registerAnyChangeObserver(target._enumerateObservers);
+            registerAnyChangeObserver("_enumerateObservers", target._enumerateObservers);
             return key in target;
         },
 
         defineProperty: function (target, key, oDesc) {
-            notifyChangeObservers(target._enumerateObservers);
+            notifyChangeObservers("_enumerateObservers", target._enumerateObservers);
             // if (oDesc && "value" in oDesc) { target.setItem(key, oDesc.value); }
             return target;
         },
 
         getOwnPropertyDescriptor: function (target, key) {
-            registerAnyChangeObserver(target._enumerateObservers);
+            registerAnyChangeObserver("_enumerateObservers", target._enumerateObservers);
             return Object.getOwnPropertyDescriptor(target, key);
         }
     });
@@ -176,7 +177,8 @@ function withoutRecording(action) {
 }
 
 
-function registerAnyChangeObserver(observerSet) { // instance can be a cached method if observing its return value, object & definition only needed for debugging.
+function registerAnyChangeObserver(description, observerSet) { // instance can be a cached method if observing its return value, object & definition only needed for debugging.
+    // console.log("registerAnyChangeObserver: " + description);
     if (activeRecorders.length > 0 && recordingPaused === 0) {
         var activeRecorder = activeRecorders[activeRecorders.length - 1];
 
@@ -215,7 +217,8 @@ function blockUponChangeActions(callback) {
 
 
 // Recorders is a map from id => recorder
-function notifyChangeObservers(observers) {
+function notifyChangeObservers(description, observers) {
+    // console.log("notifyChangeObservers:" + description);
     for (id in observers) {
         notifyChangeObserver(observers[id]);
     }
@@ -520,10 +523,10 @@ function addGenericFunctionCacher(object) {
                     }
 
                     // Recorders dirty
-                    notifyChangeObservers(functionCache.observers);
+                    notifyChangeObservers("functionCache.observers", functionCache.observers);
                 }.bind(this));
             functionCache.returnValue = returnValue;
-            registerAnyChangeObserver(functionCache.observers);
+            registerAnyChangeObserver("functionCache.observers", functionCache.observers);
             return returnValue;
         } else {
             // Encountered these arguments before, reuse previous repeater
@@ -537,7 +540,7 @@ function addGenericFunctionCacher(object) {
                     }
                 }
             }
-            registerAnyChangeObserver(functionCache.observers);
+            registerAnyChangeObserver("functionCache.observers", functionCache.observers);
             return functionCache.returnValue;
         }
     }

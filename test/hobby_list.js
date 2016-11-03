@@ -11,13 +11,15 @@ describe("object tree modifications", function(){
 	let out = {};
 	
 	repeatOnChange(function(){
+		// console.log("=== Reevaluate ===");
 		cnt++;
 		//var x = state.a;
-    for( let key in state ){
-      if( state[key].hobby ){
-        out[key] = state[key].hobby.length;
-      }
-    }
+		for( let key in state ){
+			if( state[key].hobby ){
+				out[key] = state[key].hobby.length;
+			}
+		}
+		// console.log("=== finished ===");
 	});
 
 	it('init', function(){
