@@ -105,3 +105,7 @@ var i = 0;
 while(i < a.length) {
     console.log(a[i++]);
 }
+
+
+console.log("Simple indexing");
+var b = a[2];
