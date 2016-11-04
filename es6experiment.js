@@ -88,8 +88,20 @@ function createX(object) {
 
 var a = createX(['a', 'b']);
 console.log("Pushing to array");
-a.push('c')
-
+a.push('c');
 
 console.log("Setting length to 0");
 a.length = 0;
+
+a = ['a', 'b', 'c'];
+
+console.log("Iterate for each");
+a.forEach(function(a) {
+    console.log(a);
+});
+
+console.log("Iterate index");
+var i = 0;
+while(i < a.length) {
+    console.log(a[i++]);
+}
