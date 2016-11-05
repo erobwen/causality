@@ -69,19 +69,23 @@ function create(object) {
         construct : function() {},
 
         get: function (target, key) {
-            registerAnyChangeObserver("_propertyObservers." + key, getMap(target._propertyObservers, key));
-            return target[key]; //  || undefined;
+            if (typeof(key) !== 'undefined' && !(key instanceof Symbol)) {
+                registerAnyChangeObserver("_propertyObservers." + key, getMap(target._propertyObservers, key));
+                return target[key]; //  || undefined;
+            }
         },
 
         set: function (target, key, value) {
-            // console.log('Set key: ' + key);
-            var undefinedKey = typeof(target[key]) === 'undefined';
-            target[key] = value;
-            if (undefinedKey) {
-                notifyChangeObservers("_enumerateObservers", target._enumerateObservers);
+            if (target[key] !== value) {
+                // console.log('Set key: ' + key);
+                var undefinedKey = typeof(target[key]) === 'undefined';
+                target[key] = value;
+                if (undefinedKey) {
+                    notifyChangeObservers("_enumerateObservers", target._enumerateObservers);
+                }
+                notifyChangeObservers("_propertyObservers." + key, getMap(target._propertyObservers, key));
+                return true;
             }
-            notifyChangeObservers("_propertyObservers." + key, getMap(target._propertyObservers, key));
-            return true;
         },
 
         deleteProperty: function (target, key) {
@@ -226,13 +230,15 @@ function notifyChangeObservers(description, observers) {
 
 
 function notifyChangeObserver(observer) {
-    removeObservation(observer); // Cannot be any more dirty than it already is!
-    if (observationBlocked > 0) {
-        observersToNotifyChange.push(observer);
-    } else {
-        // blockSideEffects(function() {
-        observer.uponChangeAction();
-        // });
+    if (observer != activeRecorders[activeRecorders.length - 1]) {
+        removeObservation(observer); // Cannot be any more dirty than it already is!
+        if (observationBlocked > 0) {
+            observersToNotifyChange.push(observer);
+        } else {
+            // blockSideEffects(function() {
+            observer.uponChangeAction();
+            // });
+        }
     }
 }
 
