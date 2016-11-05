@@ -76,8 +76,10 @@ function create(object) {
         },
 
         set: function (target, key, value) {
-            if (target[key] !== value) {
-                // console.log('Set key: ' + key);
+            // console.log(typeof(value));
+            if (!isNaN(value) && target[key] !== value) {
+
+                // console.log('Set key: ' + key + " = " + value);
                 var undefinedKey = typeof(target[key]) === 'undefined';
                 target[key] = value;
                 if (undefinedKey) {
