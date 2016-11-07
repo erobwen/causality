@@ -65,7 +65,7 @@ function createX(object) {
         has: function (target, key) {
             console.log("has");
             // TODO: Check against key starts with "_¤"
-            registerAnyChangeObserver("_enumerateObservers", target._enumerateObservers);
+            // registerAnyChangeObserver("_enumerateObservers", target._enumerateObservers);
             return key in target;
         },
 
@@ -78,7 +78,7 @@ function createX(object) {
 
         getOwnPropertyDescriptor: function (target, key) {
             console.log("getOwnPropertyDescriptor");
-            registerAnyChangeObserver("_enumerateObservers", target._enumerateObservers);
+            // registerAnyChangeObserver("_enumerateObservers", target._enumerateObservers);
             return Object.getOwnPropertyDescriptor(target, key);
         }
     });
@@ -93,7 +93,7 @@ a.push('c');
 console.log("Setting length to 0");
 a.length = 0;
 
-a = ['a', 'b', 'c'];
+a = createX(['a', 'b', 'c']);
 
 console.log("Iterate for each");
 a.forEach(function(a) {
@@ -109,3 +109,6 @@ while(i < a.length) {
 
 console.log("Simple indexing");
 var b = a[2];
+
+console.log("Simple setting");
+a[2] = 'Foobar';

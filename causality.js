@@ -35,6 +35,10 @@ function startsWith(prefix, string) {
 };
 
 
+var cumulativeAssignment = false;
+function setCumulativeAssignment(value) {
+    cumulativeAssignment = value;
+}
 var nextId = 1;
 function create(object) {
     if (typeof(object) === 'undefined') {
@@ -76,18 +80,27 @@ function create(object) {
         },
 
         set: function (target, key, value) {
-            // console.log(typeof(value));
-            if (!isNaN(value) && target[key] !== value) {
+            console.log(typeof(value));
 
-                // console.log('Set key: ' + key + " = " + value);
-                var undefinedKey = typeof(target[key]) === 'undefined';
-                target[key] = value;
-                if (undefinedKey) {
-                    notifyChangeObservers("_enumerateObservers", target._enumerateObservers);
-                }
-                notifyChangeObservers("_propertyObservers." + key, getMap(target._propertyObservers, key));
-                return true;
+            // If cumulative assignment, inside recorder and value is undefined, no assignment.
+            if (cumulativeAssignment && activeRecorders.length > 0 && (isNaN(value) || typeof(value) === 'undefined')) {
+                return;
             }
+
+            // If same value as already set, do nothing.
+            if (target[key] === value || (isNaN(target[key]) && isNaN(value))) {
+                return;
+            }
+
+            console.log('Set key: ' + key + " = " + value);
+            console.log('Old value: ' + target[key]);
+            var undefinedKey = typeof(target[key]) === 'undefined';
+            target[key] = value;
+            if (undefinedKey) {
+                notifyChangeObservers("_enumerateObservers", target._enumerateObservers);
+            }
+            notifyChangeObservers("_propertyObservers." + key, getMap(target._propertyObservers, key));
+            return true;
         },
 
         deleteProperty: function (target, key) {
@@ -569,6 +582,7 @@ function install(target) {
     target['c'] = c;
     target['cachedCallCount'] = cachedCallCount;
     target['withoutRecording'] = withoutRecording;
+    target['setCumulativeAssignment'] = setCumulativeAssignment;
 	  return target;
 }
 

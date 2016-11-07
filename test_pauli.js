@@ -1,4 +1,6 @@
 require('./causality').install();
+setCumulativeAssignment(true);
+
 
 // var r = create({U: 0, I: 0, R: 0});
 //
@@ -30,7 +32,6 @@ require('./causality').install();
 // r.I = 3;
 // console.log(r.U + ", " + r.I + ", " + r.R);
 //
-
 // repeatOnChange(function(){
 //     if (r.R && r.I) r.U = r.R * r.I;
 //     if (r.U && r.I) r.R = r.U / r.I;
@@ -39,18 +40,18 @@ require('./causality').install();
 var r = create({U: NaN, I: NaN, R: NaN});
 
 repeatOnChange(function(){
-    // console.log("== repeat ==");
     r.U = r.R * r.I;
     r.R = r.U / r.I;
     r.I = r.U / r.R;
-    // console.log(r.U);
-    // console.log(r.R);
-    // console.log(r.I);
-    // console.log("== end ==");
 });
 
+console.log("Setting U");
 r.U = 6;
+console.log(r.U + ', ' + r.I + ', ' + r.R); //6, 3, 2
+console.log();
 //r.I = 3;
+console.log("Setting R")
 r.R = 2;
 
 console.log(r.U + ', ' + r.I + ', ' + r.R); //6, 3, 2
+console.log();
