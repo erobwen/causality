@@ -34,6 +34,9 @@
         return (prefix === string.substr(0, prefix.length));
     }
 
+    var argumentsToArray = function(arguments) {
+        return Array.prototype.slice.call(arguments);
+    };
 
     // Cumulative assignment settings.
     var cumulativeAssignment = false;
@@ -78,8 +81,25 @@
             },
 
             get: function (target, key) {
-                if (typeof(key) !== 'undefined' && !(key instanceof Symbol)) {
-                    registerAnyChangeObserver("_propertyObservers." + key.toString(), getMap(target._propertyObservers, key));
+                if (target instanceof Array) {
+                    if (key === 'push') {
+                        return function() {
+                            var argumentsArray = argumentsToArray(arguments);
+                            blockUponChangeActions(function() {
+                                // console.log("Pushing");
+                                // console.log(argumentsArray);
+                                target.push.apply(target, argumentsArray);
+                                // console.log(target);
+                                // console.log("notify");
+                                notifyChangeObservers("_enumerateObservers", target._enumerateObservers);
+                                notifyChangeObservers("_propertyObservers.length", getMap(target._propertyObservers, "length"));
+                            });
+                        }
+                    }
+                }
+
+                if (typeof(key) !== 'undefined') {
+                    registerAnyChangeObserver("_propertyObservers." + key.toString(), getMap(target._propertyObservers, key.toString()));
                     return target[key]; //  || undefined;
                 }
             },
@@ -108,10 +128,12 @@
                 // console.log('Old value: ' + target[key]);
                 var undefinedKey = typeof(target[key]) === 'undefined';
                 target[key]      = value;
-                if (undefinedKey) {
-                    notifyChangeObservers("_enumerateObservers", target._enumerateObservers);
-                }
-                notifyChangeObservers("_propertyObservers." + key, getMap(target._propertyObservers, key));
+                blockUponChangeActions(function() {
+                    if (undefinedKey) {
+                        notifyChangeObservers("_enumerateObservers", target._enumerateObservers);
+                    }
+                    notifyChangeObservers("_propertyObservers." + key, getMap(target._propertyObservers, key));
+                });
                 return true;
             },
 
@@ -248,6 +270,8 @@
             }
         }
     }
+
+    var transaction = blockUponChangeActions;
 
 
 // Recorders is a map from id => recorder
