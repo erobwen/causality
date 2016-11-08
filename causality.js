@@ -95,15 +95,11 @@
             object = {};
         }
 
-        object._id                 = nextId++;
-        // object._propertyObservers  = {};
-        // object._enumerateObservers = {};
-        // object._arrayObservers = {};
-
         addGenericFunctionCacher(object);
 
         return new Proxy(object, {
-            // id:
+            id: nextId++,
+
             getPrototypeOf: function (target) {
                 return Object.getPrototypeOf(target);
             },
@@ -128,7 +124,9 @@
             },
 
             get: function (target, key) {
-                if (target instanceof Array) {
+                if (key === '_id') {
+                    return this._id;
+                } else if (target instanceof Array) {
                     if (typeof(key) === 'number') {
                         // Number
                         registerAnyChangeObserver("_arrayObservers", getMap(this, "_arrayObservers"));
