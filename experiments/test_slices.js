@@ -1,4 +1,4 @@
-require('./causality').install();
+require('../causality').install();
 
 function differentialSplices(previous, array) {
     // console.log('differentialSplices');

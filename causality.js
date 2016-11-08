@@ -8,7 +8,36 @@
         root.causality = factory(); // Support browser global
     }
 }(this, function () {
+    var mutableArrayFunctions = [
+        'copyWithin', 'pop', 'push', 'reverse', 'shift', 'sort', 'splice','unshift', 'fill'
+    ];
 
+    // concat()	Joins two or more arrays, and returns a copy of the joined arrays
+    // ()	Copies array elements within the array, to and from specified positions
+    // every()	Checks if every element in an array pass a test
+    // ()	Fill the elements in an array with a static value
+    // filter()	Creates a new array with every element in an array that pass a test
+    // find()	Returns the value of the first element in an array that pass a test
+    // findIndex()	Returns the index of the first element in an array that pass a test
+    // forEach()	Calls a function for each array element
+    // indexOf()	Search the array for an element and returns its position
+    // isArray()	Checks whether an object is an array
+    // join()	Joins all elements of an array into a string
+    // lastIndexOf()	Search the array for an element, starting at the end, and returns its position
+    // map()	Creates a new array with the result of calling a function for each array element
+    // ()	Removes the last element of an array, and returns that element
+    // ()	Adds new elements to the end of an array, and returns the new length
+    // reduce()	Reduce the values of an array to a single value (going left-to-right)
+    // reduceRight()	Reduce the values of an array to a single value (going right-to-left)
+    // ()	Reverses the order of the elements in an array
+    // ()	Removes the first element of an array, and returns that element
+    // slice()	Selects a part of an array, and returns the new array
+    // some()	Checks if any of the elements in an array pass a test
+    // ()	Sorts the elements of an array
+    // ()	Adds/Removes elements from an array
+    // toString()	Converts an array to a string, and returns the result
+    // ()	Adds new elements to the beginning of an array, and returns the new length
+    // valueOf()	Returns the primitive value of an array
 
 
     // Helper to quickly get a child object
@@ -53,6 +82,7 @@
         object._id                 = nextId++;
         object._propertyObservers  = {};
         object._enumerateObservers = {};
+        object._arrayObservers = {};
 
         addGenericFunctionCacher(object);
 
@@ -82,59 +112,70 @@
 
             get: function (target, key) {
                 if (target instanceof Array) {
-                    if (key === 'push') {
-                        return function() {
-                            var argumentsArray = argumentsToArray(arguments);
-                            blockUponChangeActions(function() {
-                                // console.log("Pushing");
-                                // console.log(argumentsArray);
-                                target.push.apply(target, argumentsArray);
-                                // console.log(target);
-                                // console.log("notify");
-                                notifyChangeObservers("_enumerateObservers", target._enumerateObservers);
-                                notifyChangeObservers("_propertyObservers.length", getMap(target._propertyObservers, "length"));
-                            });
+                    if (typeof(key) === 'number') {
+                        // Number
+                        registerAnyChangeObserver("_arrayObservers", target._arrayObservers);
+                        return target[key];
+                    } else {
+                        // String
+                        if (mutableArrayFunctions.indexOf(key) !== -1) {
+                            return function() {
+                                var argumentsArray = argumentsToArray(arguments);
+                                blockUponChangeActions(function() {
+                                    // console.log("Pushing");
+                                    // console.log(argumentsArray);
+                                    var result = target[key].apply(target, argumentsArray);
+                                    // console.log(target);
+                                    // console.log("notify");
+                                    notifyChangeObservers("_arrayObservers", target._arrayObservers);
+                                    return result;
+                                });
+                            }
                         }
+                        registerAnyChangeObserver("_arrayObservers", target._arrayObservers);
+                        return target[key];
                     }
-                }
-
-                if (typeof(key) !== 'undefined') {
-                    registerAnyChangeObserver("_propertyObservers." + key.toString(), getMap(target._propertyObservers, key.toString()));
-                    return target[key]; //  || undefined;
+                } else {
+                    if (typeof(key) !== 'undefined') {
+                        registerAnyChangeObserver("_propertyObservers." + key.toString(), getMap(target._propertyObservers, key.toString()));
+                        return target[key]; //  || undefined;
+                    }
                 }
             },
 
             set: function (target, key, value) {
                 // console.log(typeof(value));
-
-                // If cumulative assignment, inside recorder and value is undefined, no assignment.
-                if (!(target instanceof Array)) {
-                    if (cumulativeAssignment && activeRecorders.length > 0 && (isNaN(value) || typeof(value) === 'undefined')) {
-                        return false;
-                    }
-
-                    // If same value as already set, do nothing.
-                    var previousValue = target[key];
-                    if (previousValue === value || ( typeof(previousValue) === 'number' && isNaN(previousValue) && typeof(value) === 'number' && isNaN(value))) {
-                        // console.log(typeof(previousValue));
-                        // console.log(isNaN(previousValue));
-                        // console.log(typeof(value));
-                        // console.log(isNaN(value));
-                        return false;
-                    }
+                // If same value as already set, do nothing.
+                var previousValue = target[key];
+                if (previousValue === value || ( typeof(previousValue) === 'number' && isNaN(previousValue) && typeof(value) === 'number' && isNaN(value))) {
+                    // console.log(typeof(previousValue));
+                    // console.log(isNaN(previousValue));
+                    // console.log(typeof(value));
+                    // console.log(isNaN(value));
+                    return false;
                 }
 
-                // console.log('Set key: ' + key + " = " + value);
-                // console.log('Old value: ' + target[key]);
-                var undefinedKey = typeof(target[key]) === 'undefined';
-                target[key]      = value;
-                blockUponChangeActions(function() {
-                    if (undefinedKey) {
-                        notifyChangeObservers("_enumerateObservers", target._enumerateObservers);
-                    }
-                    notifyChangeObservers("_propertyObservers." + key, getMap(target._propertyObservers, key));
-                });
-                return true;
+                // If cumulative assignment, inside recorder and value is undefined, no assignment.
+                if (cumulativeAssignment && activeRecorders.length > 0 && (isNaN(value) || typeof(value) === 'undefined')) {
+                    return false;
+                }
+
+                if ((target instanceof Array)) {
+                    target[key] = value;
+                    notifyChangeObservers("_arrayObservers", target._arrayObservers);
+                } else {
+                       // console.log('Set key: ' + key + " = " + value);
+                    // console.log('Old value: ' + target[key]);
+                    var undefinedKey = typeof(target[key]) === 'undefined';
+                    target[key]      = value;
+                    blockUponChangeActions(function() {
+                        if (undefinedKey) {
+                            notifyChangeObservers("_enumerateObservers", target._enumerateObservers);
+                        }
+                        notifyChangeObservers("_propertyObservers." + key, getMap(target._propertyObservers, key));
+                    });
+                    return true;
+                }
             },
 
             deleteProperty: function (target, key) {
@@ -626,6 +667,7 @@
         target['c']                       = c;
         target['cachedCallCount']         = cachedCallCount;
         target['withoutRecording']        = withoutRecording;
+        target['transaction']        = transaction;
         target['setCumulativeAssignment'] = setCumulativeAssignment;
         return target;
     }

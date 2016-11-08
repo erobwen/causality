@@ -1,4 +1,4 @@
-require('./causality').install();
+require('../causality').install();
 setCumulativeAssignment(true);
 
 
@@ -47,11 +47,36 @@ repeatOnChange(function(){
 
 console.log("Setting U");
 r.U = 6;
-console.log(r.U + ', ' + r.I + ', ' + r.R); //6, 3, 2
+console.log(r.U + ', ' + r.I + ', ' + r.R); //6, NaN, NaN
 console.log();
 //r.I = 3;
-console.log("Setting R")
+console.log("Setting R");
 r.R = 2;
 
 console.log(r.U + ', ' + r.I + ', ' + r.R); //6, 3, 2
 console.log();
+
+
+console.log("Unsetting R");
+r.R = NaN;
+console.log(r.U + ', ' + r.I + ', ' + r.R); //6, 3, 2
+console.log();
+
+
+console.log("Unsetting R & U consecutive (will just repair the unset value)");
+r.R = NaN;
+r.U = NaN;
+console.log(r.U + ', ' + r.I + ', ' + r.R); //6, 3, 2
+console.log();
+
+
+
+console.log("Unsetting R & U in transaction");
+transaction(function() {
+    r.R = NaN;
+    r.U = NaN;
+});
+console.log(r.U + ', ' + r.I + ', ' + r.R); //NaN, 3, NaN
+console.log();
+
+
