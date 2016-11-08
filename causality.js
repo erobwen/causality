@@ -74,26 +74,33 @@ function create(object) {
 
         get: function (target, key) {
             if (typeof(key) !== 'undefined' && !(key instanceof Symbol)) {
-                registerAnyChangeObserver("_propertyObservers." + key, getMap(target._propertyObservers, key));
+                registerAnyChangeObserver("_propertyObservers." + key.toString(), getMap(target._propertyObservers, key));
                 return target[key]; //  || undefined;
             }
         },
 
         set: function (target, key, value) {
-            console.log(typeof(value));
+            // console.log(typeof(value));
 
             // If cumulative assignment, inside recorder and value is undefined, no assignment.
-            if (cumulativeAssignment && activeRecorders.length > 0 && (isNaN(value) || typeof(value) === 'undefined')) {
-                return;
+            if (!(target instanceof Array)) {
+                if (cumulativeAssignment && activeRecorders.length > 0 && (isNaN(value) || typeof(value) === 'undefined')) {
+                    return false;
+                }
+
+                // If same value as already set, do nothing.
+                var previousValue = target[key];
+                if (previousValue === value || ( typeof(previousValue) === 'number' && isNaN(previousValue) && typeof(value) === 'number' && isNaN(value))) {
+                    // console.log(typeof(previousValue));
+                    // console.log(isNaN(previousValue));
+                    // console.log(typeof(value));
+                    // console.log(isNaN(value));
+                    return false;
+                }
             }
 
-            // If same value as already set, do nothing.
-            if (target[key] === value || (isNaN(target[key]) && isNaN(value))) {
-                return;
-            }
-
-            console.log('Set key: ' + key + " = " + value);
-            console.log('Old value: ' + target[key]);
+            // console.log('Set key: ' + key + " = " + value);
+            // console.log('Old value: ' + target[key]);
             var undefinedKey = typeof(target[key]) === 'undefined';
             target[key] = value;
             if (undefinedKey) {
