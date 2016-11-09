@@ -1,4 +1,4 @@
-require('./causality').install();
+require('../causality').install();
 
 console.log("");
 console.log("Testing cached calls:");

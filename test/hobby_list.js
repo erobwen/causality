@@ -11,13 +11,14 @@ describe("object tree modifications", function(){
 	let out = {};
 	
 	repeatOnChange(function(){
+		// console.log("=== Reevaluate ===");
 		cnt++;
-		//var x = state.a;
-    for( let key in state ){
-      if( state[key].hobby ){
-        out[key] = state[key].hobby.length;
-      }
-    }
+		for( let key in state ){
+			if( state[key].hobby ){
+				out[key] = state[key].hobby.length;
+			}
+		}
+		// console.log("=== finished ===");
 	});
 
 	it('init', function(){
@@ -26,13 +27,13 @@ describe("object tree modifications", function(){
 
 	it("Setting a", function(){
 		state.a = c({name:"Apa"});
-		//assert.equal(cnt,2);
+		assert.equal(cnt,2);
 		assert.equal(out.a, undefined);
 	});
 
 	it("Setting a.hobby", function(){
 		state.a.hobby = c([]);
-		//assert.equal(cnt,2);
+		assert.equal(cnt,3);
 		//log(state['a'].hobby);
 		//log(state['a'].hobby.length);
 		assert.equal(out.a, 0);
@@ -40,7 +41,7 @@ describe("object tree modifications", function(){
 
 	it("Pushing to hobby", function(){
 		state.a.hobby.push('causality');
-		//assert.equal(cnt,3);
+		assert.equal(cnt,4);
 		assert.equal(out.a, 1);
 	});
 
