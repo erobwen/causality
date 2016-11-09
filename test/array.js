@@ -97,4 +97,49 @@ describe("arrays", function(){
     assert.deepEqual(a.slice(), [1,2,3]);
 	});
 
+	it('should find and remove', function() {
+    var a = c([10,20,20]);
+    var idx = -1;
+    function predicate(item, index) {
+      if (item === 20) {
+        idx = index;
+        return true;
+      }
+      return false;
+    }
+
+		log( a.find(predicate) );
+		log( idx );
+
+    assert.equal(a.find(predicate), 20);
+    assert.equal(idx, 1);
+    assert.equal(a.find(predicate, null, 1), 20);
+    assert.equal(idx, 1);
+    assert.equal(a.find(predicate, null, 2), 20);
+    assert.equal(idx, 2);
+    idx = -1;
+    assert.equal(a.find(predicate, null, 3), undefined);
+    assert.equal(idx, -1);
+
+    assert.equal(a.remove(20), true);
+    assert.equal(a.find(predicate), 20);
+    assert.equal(idx, 1);
+    idx = -1;
+    assert.equal(a.remove(20), true);
+    assert.equal(a.find(predicate), undefined);
+    assert.equal(idx, -1);
+
+    assert.equal(a.remove(20), false);
+		
+	});
+	
+	it('should concat', function() {
+		var a1 = c([1,2]);
+		var a2 = c([3,4]);
+		assert.deepEqual(a1.concat(a2), [1,2,3,4])
+})
+
+	
 });
+
+
