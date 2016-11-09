@@ -95,10 +95,9 @@
             object = {};
         }
 
-        addGenericFunctionCacher(object);
-
         return new Proxy(object, {
             id: nextId++,
+            cached: getGenericFunctionCacher(object),
 
             getPrototypeOf: function (target) {
                 return Object.getPrototypeOf(target);
@@ -126,6 +125,8 @@
             get: function (target, key) {
                 if (key === '_id') {
                     return this._id;
+                } else if (key === 'cached') {
+                    return this.cached;
                 } else if (target instanceof Array) {
                     if (typeof(key) === 'number') {
                         // Number
@@ -581,8 +582,8 @@
         return cachedCalls;
     }
 
-    function addGenericFunctionCacher(object) {
-        object['cached'] = function () {
+    function getGenericFunctionCacher(object) {
+        return function () {
             // Split arguments
             var functionNameAndArgumentsArray = argumentsToArray(arguments);
             var functionName                  = functionNameAndArgumentsArray.shift();
@@ -664,7 +665,7 @@
                 registerAnyChangeObserver("functionCache.observers", functionCache.observers);
                 return functionCache.returnValue;
             }
-        }
+        };
     }
 
 
