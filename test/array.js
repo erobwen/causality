@@ -54,18 +54,6 @@ describe("arrays", function(){
     assert.equal(sum(), 0);
     assert.deepEqual(a.slice(), []);
 
-		a.length = 4;
-		assert.equal(isNaN(sum()), false); // Differs from mobx
-    assert.deepEqual(a.length, 4);
-
-		assert.equal( a+"", ",,,");
-
-		assert.deepEqual(a.slice(), [,,,]); // Differs from mobx
-		
-		a[1] = undefined;
-		a[2] = null;
-		assert.deepEqual(a.slice(), [,undefined,null,]);
-
     a.splice(0,a.length, 1,2,2,4);
     assert.equal(sum(), 9);
 
@@ -78,13 +66,35 @@ describe("arrays", function(){
 
     a.unshift(3);
     assert.deepEqual(a.slice(), [3,1,2]);
-    assert.deepEqual(a.sort(), [1,2,3]); // Differs from mobx
-    assert.deepEqual(a.slice(), [1,2,3]);
 
-		assert.equal(JSON.stringify(a), "[1,2,3]");
+
+		assert.equal(JSON.stringify(a), "[3,1,2]");
 
 		assert.deepEqual(Object.keys(a), ['0', '1', '2']); // Differs from mobx
 		
+	});
+
+	it('should differ undefined from nonexisting', function(){
+		var a = c([]);
+
+		a.length = 4;
+		assert.equal(isNaN(sum()), false); // Differs from mobx
+    assert.deepEqual(a.length, 4);
+
+		assert.equal( a+"", ",,,");
+
+		assert.deepEqual(a.slice(), [,,,]); // Differs from mobx
+		
+		a[1] = undefined;
+		a[2] = null;
+		assert.deepEqual(a.slice(), [,undefined,null,]);
+	});
+
+	it('should sort', function(){
+		var a = c([3,1,2]);
+
+    assert.deepEqual(a.sort(), [1,2,3]); // Differs from mobx
+    assert.deepEqual(a.slice(), [1,2,3]);
 	});
 
 });
