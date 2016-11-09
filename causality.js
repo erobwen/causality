@@ -41,19 +41,35 @@
 
 
     // Helper to quickly get a child object
-    function getMap(object, key) {
-        if (typeof(object[key]) === 'undefined') {
-            object[key] = {};
+    function getMap() {
+        var argumentList = argumentsToArray(arguments);
+        var object = argumentList.shift();
+        while (argumentList.length > 0) {
+            var key = argumentList.shift();
+            if (typeof(object[key]) === 'undefined') {
+                object[key] = {};
+            }
+            object = object[key];
         }
-        return object[key];
+        return object;
     }
 
     // Helper to quickly get a child array
-    function getArray(object, key) {
-        if (typeof(object[key]) === 'undefined') {
-            object[key] = [];
+    function getArray() {
+        var argumentList = argumentsToArray(arguments);
+        var object = argumentList.shift();
+        while (argumentList.length > 0) {
+            var key = argumentList.shift();
+            if (typeof(object[key]) === 'undefined') {
+                if (argumentList.length === 0) {
+                    object[key] = [];
+                } else {
+                    object[key] = {};
+                }
+            }
+            object = object[key];
         }
-        return object[key];
+        return object;
     }
 
     function startsWith(prefix, string) {
@@ -79,14 +95,10 @@
             object = {};
         }
 
-        object._id                 = nextId++;
-        object._propertyObservers  = {};
-        object._enumerateObservers = {};
-        object._arrayObservers = {};
-
-        addGenericFunctionCacher(object);
-
         return new Proxy(object, {
+            id: nextId++,
+            cached: getGenericFunctionCacher(object),
+
             getPrototypeOf: function (target) {
                 return Object.getPrototypeOf(target);
             },
@@ -111,10 +123,14 @@
             },
 
             get: function (target, key) {
-                if (target instanceof Array) {
+                if (key === '_id') {
+                    return this._id;
+                } else if (key === 'cached') {
+                    return this.cached;
+                } else if (target instanceof Array) {
                     if (typeof(key) === 'number') {
                         // Number
-                        registerAnyChangeObserver("_arrayObservers", target._arrayObservers);
+                        registerAnyChangeObserver("_arrayObservers", getMap(this, "_arrayObservers"));
                         return target[key];
                     } else {
                         // String
@@ -127,17 +143,17 @@
                                     var result = target[key].apply(target, argumentsArray);
                                     // console.log(target);
                                     // console.log("notify");
-                                    notifyChangeObservers("_arrayObservers", target._arrayObservers);
+                                    notifyChangeObservers("_arrayObservers", getMap(this, "_arrayObservers"));
                                     return result;
-                                });
-                            }
+                                }.bind(this));
+                            }.bind(this)
                         }
-                        registerAnyChangeObserver("_arrayObservers", target._arrayObservers);
+                        registerAnyChangeObserver("_arrayObservers", getMap(this, "_arrayObservers"));
                         return target[key];
                     }
                 } else {
                     if (typeof(key) !== 'undefined') {
-                        registerAnyChangeObserver("_propertyObservers." + key.toString(), getMap(target._propertyObservers, key.toString()));
+                        registerAnyChangeObserver("_propertyObservers." + key.toString(), getMap(this, "_propertyObservers", key.toString()));
                         return target[key]; //  || undefined;
                     }
                 }
@@ -162,7 +178,7 @@
 
                 if ((target instanceof Array)) {
                     target[key] = value;
-                    notifyChangeObservers("_arrayObservers", target._arrayObservers);
+                    notifyChangeObservers("_arrayObservers", getMap(this, "_arrayObservers"));
                 } else {
                        // console.log('Set key: ' + key + " = " + value);
                     // console.log('Old value: ' + target[key]);
@@ -170,10 +186,10 @@
                     target[key]      = value;
                     blockUponChangeActions(function() {
                         if (undefinedKey) {
-                            notifyChangeObservers("_enumerateObservers", target._enumerateObservers);
+                            notifyChangeObservers("_enumerateObservers", getMap(this, "_enumerateObservers"));
                         }
-                        notifyChangeObservers("_propertyObservers." + key, getMap(target._propertyObservers, key));
-                    });
+                        notifyChangeObservers("_propertyObservers." + key, getMap(this, "_propertyObservers", key));
+                    }.bind(this));
                     return true;
                 }
             },
@@ -183,13 +199,13 @@
                     return false;
                 } else {
                     delete target[key];
-                    notifyChangeObservers("_enumerateObservers", target._enumerateObservers);
+                    notifyChangeObservers("_enumerateObservers", getMap(this, "_enumerateObservers"));
                     return true;
                 }
             },
 
             ownKeys: function (target, key) { // Not inherited?
-                registerAnyChangeObserver("_enumerateObservers", target._enumerateObservers);
+                registerAnyChangeObserver("_enumerateObservers", getMap(this, "_enumerateObservers"));
                 var keys   = Object.keys(target);
                 let result = [];
                 keys.forEach(function (key) {
@@ -203,18 +219,18 @@
 
             has: function (target, key) {
                 // TODO: Check against key starts with "_¤"
-                registerAnyChangeObserver("_enumerateObservers", target._enumerateObservers);
+                registerAnyChangeObserver("_enumerateObservers", getMap(this, "_enumerateObservers"));
                 return key in target;
             },
 
             defineProperty: function (target, key, oDesc) {
-                notifyChangeObservers("_enumerateObservers", target._enumerateObservers);
+                notifyChangeObservers("_enumerateObservers", getMap(this, "_enumerateObservers"));
                 // if (oDesc && "value" in oDesc) { target.setItem(key, oDesc.value); }
                 return target;
             },
 
             getOwnPropertyDescriptor: function (target, key) {
-                registerAnyChangeObserver("_enumerateObservers", target._enumerateObservers);
+                registerAnyChangeObserver("_enumerateObservers", getMap(this, "_enumerateObservers"));
                 return Object.getOwnPropertyDescriptor(target, key);
             }
         });
@@ -566,8 +582,8 @@
         return cachedCalls;
     }
 
-    function addGenericFunctionCacher(object) {
-        object['cached'] = function () {
+    function getGenericFunctionCacher(object) {
+        return function () {
             // Split arguments
             var functionNameAndArgumentsArray = argumentsToArray(arguments);
             var functionName                  = functionNameAndArgumentsArray.shift();
@@ -575,7 +591,7 @@
             var functionArguments             = functionNameAndArgumentsArray;
 
             // Get cache(s) for this argument hash
-            var functionCaches = getMap(getMap(object, "_cachedCalls"), functionName);
+            var functionCaches = getMap(this, "_cachedCalls", functionName);
             var argumentsHash  = makeMarkedArgumentHash(functionArguments);
             var sharedHash     = startsWith("¤", argumentsHash);
             // console.log(argumentsHash);
@@ -649,7 +665,7 @@
                 registerAnyChangeObserver("functionCache.observers", functionCache.observers);
                 return functionCache.returnValue;
             }
-        }
+        };
     }
 
 
