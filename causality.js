@@ -136,16 +136,17 @@
                         // String
                         if (mutableArrayFunctions.indexOf(key) !== -1) {
                             return function() {
+                                var result;
                                 var argumentsArray = argumentsToArray(arguments);
                                 blockUponChangeActions(function() {
                                     // console.log("Pushing");
                                     // console.log(argumentsArray);
-                                    var result = target[key].apply(target, argumentsArray);
+                                    result = target[key].apply(target, argumentsArray);
                                     // console.log(target);
                                     // console.log("notify");
                                     notifyChangeObservers("_arrayObservers", getMap(this, "_arrayObservers"));
-                                    return result;
                                 }.bind(this));
+                                return result;
                             }.bind(this)
                         }
                         registerAnyChangeObserver("_arrayObservers", getMap(this, "_arrayObservers"));
