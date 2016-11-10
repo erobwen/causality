@@ -209,14 +209,10 @@
 
             ownKeys: function (target, key) { // Not inherited?
                 registerAnyChangeObserver("_enumerateObservers", getMap(this, "_enumerateObservers"));
-                var keys   = Object.keys(target);
-                let result = [];
-                keys.forEach(function (key) {
-                    if (!startsWith('_', key)) {
-                        result.push(key);
-                    }
-                });
-                result.push('length');
+                var result   = Object.keys(target);
+                if ((target instanceof Array)) {
+                    result.push('length');
+                }
                 return result;
             },
 
