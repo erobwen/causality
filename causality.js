@@ -163,13 +163,15 @@
             set: function (target, key, value) {
                 // console.log(typeof(value));
                 // If same value as already set, do nothing.
-                var previousValue = target[key];
-                if (previousValue === value || ( typeof(previousValue) === 'number' && isNaN(previousValue) && typeof(value) === 'number' && isNaN(value))) {
-                    // console.log(typeof(previousValue));
-                    // console.log(isNaN(previousValue));
-                    // console.log(typeof(value));
-                    // console.log(isNaN(value));
-                    return false;
+                if (key in target) {
+                    var previousValue = target[key];
+                    if (previousValue === value || ( typeof(previousValue) === 'number' && isNaN(previousValue) && typeof(value) === 'number' && isNaN(value))) {
+                        // console.log(typeof(previousValue));
+                        // console.log(isNaN(previousValue));
+                        // console.log(typeof(value));
+                        // console.log(isNaN(value));
+                        return false;
+                    }
                 }
 
                 // If cumulative assignment, inside recorder and value is undefined, no assignment.
@@ -183,7 +185,7 @@
                 } else {
                        // console.log('Set key: ' + key + " = " + value);
                     // console.log('Old value: ' + target[key]);
-                    var undefinedKey = typeof(target[key]) === 'undefined';
+                    var undefinedKey = !(key in target);
                     target[key]      = value;
                     blockUponChangeActions(function() {
                         if (undefinedKey) {
