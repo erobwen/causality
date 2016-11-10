@@ -522,33 +522,6 @@
         return (prefix === string.substr(0, prefix.length));
     }
 
-    function makeMarkedArgumentHash(argumentList) {
-        var argumentHash = makeArgumentHash(argumentList);
-        if (argumentHash.indexOf("¤") !== -1) {
-            argumentHash = "¤" + argumentHash; // Put it up front!
-        }
-        return argumentHash;
-    }
-
-    function makeArgumentHash(argumentList) {
-        var hash  = "";
-        var first = true;
-        argumentList.forEach(function (argument) {
-            if (!first) {
-                hash += ",";
-            }
-
-            if (typeof(argument._id) !== 'undefined') { //typeof(argument) === 'object' &&
-                hash += "{id=" + argument._id + "}";
-            } else if (typeof(argument) === 'number' || typeof(argument) === 'string') { // String or integer
-                hash += argument;
-            } else {
-                hash += "¤"; // Unrecognizeable, we have to rely on the hash-bucket.
-            }
-        });
-        return "(" + hash + ")";
-    }
-
     function compareArraysShallow(a, b) {
         if (a.length === b.length) {
             for (var i = 0; i < a.length; i++) {
@@ -582,88 +555,127 @@
         return cachedCalls;
     }
 
+
+    // Get cache(s) for this argument hash
+    function getFunctionCacher(object, functionName, functionArguments) {
+        var uniqueHash = true;
+
+        function makeArgumentHash(argumentList) {
+            var hash  = "";
+            var first = true;
+            argumentList.forEach(function (argument) {
+                if (!first) {
+                    hash += ",";
+                }
+
+                if (typeof(argument._id) !== 'undefined') { //typeof(argument) === 'object' &&
+                    hash += "{id=" + argument._id + "}";
+                } else if (typeof(argument) === 'number' || typeof(argument) === 'string') { // String or integer
+                    hash += argument;
+                } else {
+                    uniqueHash = false;
+                    hash += "{}"; // Non-identifiable, we have to rely on the hash-bucket.
+                }
+            });
+            return "(" + hash + ")";
+        }
+
+        var argumentsHash = makeArgumentHash(functionArguments);
+        var functionCaches = getMap(object, "_cachedCalls", functionName);
+        var functionCache = null;
+
+        // console.log(argumentsHash);
+        // console.log(sharedHash);
+        return {
+            cacheRecordExists : function() {
+                // Figure out if we have a chache or not
+                var result = null;
+                if (uniqueHash) {
+                    result = typeof(functionCaches[argumentsHash]) !== 'undefined';
+                } else {
+                    var functionArgumentHashCaches = getArray(functionCaches, argumentsHash);
+                    result = isCachedInBucket(functionArgumentHashCaches, functionArguments);
+                }
+                return result;
+            },
+
+            deleteExistingRecord : function() {
+                if (uniqueHash) {
+                    var result = functionCaches[argumentsHash];
+                    delete functionCaches[argumentsHash];
+                    return result;
+                } else {
+                    var functionArgumentHashCaches = getArray(functionCaches, argumentsHash);
+                    for (var i = 0; i < functionArgumentHashCaches.length; i++) {
+                        if (compareArraysShallow(functionArgumentHashCaches[i].functionArguments, functionArguments)) {
+                            var result = functionArgumentHashCaches[i];
+                            functionArgumentHashCaches.splice(i, 1);
+                            return result;
+                        }
+                    }
+                }
+            },
+
+            getExistingRecord : function() {
+                if (uniqueHash) {
+                    return functionCaches[argumentsHash]
+                } else {
+                    var functionArgumentHashCaches = getArray(functionCaches, argumentsHash);
+                    for (var i = 0; i < functionArgumentHashCaches.length; i++) {
+                        if (compareArraysShallow(functionArgumentHashCaches[i].functionArguments, functionArguments)) {
+                            return functionArgumentHashCaches[i];
+                        }
+                    }
+                }
+            },
+
+            createNewRecord : function() {
+                if (uniqueHash) {
+                    return getMap(functionCaches, argumentsHash)
+                } else {
+                    var functionArgumentHashCaches = getArray(functionCaches, argumentsHash);
+                    var record = {};
+                    functionArgumentHashCaches.push(record);
+                    return record;
+                }
+            }
+        };
+    }
+
+
     function getGenericFunctionCacher(object) {
         return function () {
             // Split arguments
-            var functionNameAndArgumentsArray = argumentsToArray(arguments);
-            var functionName                  = functionNameAndArgumentsArray.shift();
-            // console.log("Making cached call: " + functionName);
-            var functionArguments             = functionNameAndArgumentsArray;
+            var argumentsList = argumentsToArray(arguments);
+            var functionName = argumentsList.shift();
+            var functionCacher = getFunctionCacher(this, functionName, argumentsList)
 
-            // Get cache(s) for this argument hash
-            var functionCaches = getMap(this, "_cachedCalls", functionName);
-            var argumentsHash  = makeMarkedArgumentHash(functionArguments);
-            var sharedHash     = startsWith("¤", argumentsHash);
-            // console.log(argumentsHash);
-            // console.log(sharedHash);
-
-            // Figure out if we have a chache or not
-            var isCached = null;
-            if (!sharedHash) {
-                isCached = typeof(functionCaches[argumentsHash]) !== 'undefined';
-            } else {
-                var functionArgumentHashCaches = getArray(functionCaches, argumentsHash);
-                isCached                       = isCachedInBucket(functionArgumentHashCaches, functionArguments);
-            }
-
-            if (!isCached) {
+            if (!functionCacher.cacheRecordExists()) {
                 cachedCalls++;
 
-                // console.log("Cached function not seen before, or re-caching needed... ");
-                var functionCache = {
-                    observers: {},
-                    returnValue: returnValue
-                };
-                if (!sharedHash) {
-                    functionCaches[argumentsHash] = functionCache;
-                } else {
-                    functionCache.functionArguments = functionArguments;
-                    functionArgumentHashCaches.push(functionCache);
-                }
-
                 // Never encountered these arguments before, make a new cache
-                var returnValue           = uponChangeDo(
+                var returnValue = uponChangeDo(
                     function () {
                         var returnValue;
                         // blockSideEffects(function() {
-                        returnValue = this[functionName].apply(this, functionArguments);
+                        returnValue = object[functionName].apply(this, argumentsList);
                         // }.bind(this));
                         return returnValue;
                     }.bind(this),
                     function () {
-                        // Get and delete function cache
-                        if (!sharedHash) {
-                            var functionCache = functionCaches[argumentsHash];
-                            delete functionCaches[argumentsHash];
-                        } else {
-                            for (var i = 0; i < functionArgumentHashCaches.length; i++) {
-                                if (compareArraysShallow(functionArgumentHashCaches[i].functionArguments, functionArguments)) {
-                                    functionArgumentHashCaches.splice(i, 1);
-                                    break;
-                                }
-                            }
-                        }
-
-                        // Recorders dirty
-                        notifyChangeObservers("functionCache.observers", functionCache.observers);
+                        // Delete function cache and notify
+                        var cacheRecord = functionCacher.deleteExistingRecord();
+                        notifyChangeObservers("functionCache.observers", getMap(cacheRecord, 'observers'));
                     }.bind(this));
-                functionCache.returnValue = returnValue;
-                registerAnyChangeObserver("functionCache.observers", functionCache.observers);
+                var cacheRecord = functionCacher.createNewRecord();
+                cacheRecord.returnValue = returnValue;
+                registerAnyChangeObserver("functionCache.observers", getMap(cacheRecord, 'observers'));
                 return returnValue;
             } else {
                 // Encountered these arguments before, reuse previous repeater
-                if (!sharedHash) {
-                    functionCache = functionCaches[argumentsHash];
-                } else {
-                    for (var i = 0; i < functionArgumentHashCaches.length; i++) {
-                        if (compareArraysShallow(functionArgumentHashCaches[i].functionArguments, functionArguments)) {
-                            functionCache = functionArgumentHashCaches[i];
-                            break;
-                        }
-                    }
-                }
-                registerAnyChangeObserver("functionCache.observers", functionCache.observers);
-                return functionCache.returnValue;
+                var cacheRecord = functionCacher.getExistingRecord();
+                registerAnyChangeObserver("functionCache.observers", getMap(cacheRecord, 'observers'));
+                return cacheRecord.returnValue;
             }
         };
     }
