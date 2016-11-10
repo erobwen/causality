@@ -3,9 +3,6 @@ require('../causality').install();
 
 
 describe("Test cached functions", function(){
-    console.log("");
-    console.log("Testing cached calls:");
-    console.log("Setup...");
     function buildHeap(value) {
         var childrenStartValue = value - 5;
         var childrenCount = 0;
