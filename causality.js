@@ -58,14 +58,18 @@
         staticArrayOverrides[functionName] = function() {
             var result;
             var argumentsArray = argumentsToArray(arguments);
-            blockUponChangeActions(function() {
-                // console.log("Pushing");
-                // console.log(argumentsArray);
-                result = this.target[functionName].apply(this.target, argumentsArray);
-                // console.log(target);
-                // console.log("notify");
-                notifyChangeObservers("_arrayObservers", getMap(this, "_arrayObservers"));
-            }.bind(this));
+            observationBlocked++;
+            result = this.target[functionName].apply(this.target, argumentsArray);
+            observationBlocked--;
+            notifyChangeObservers("_arrayObservers", getMap(this, "_arrayObservers"));
+            if (observationBlocked == 0) {
+                while (observersToNotifyChange.length > 0) {
+                    var recorder = observersToNotifyChange.shift()
+                    // blockSideEffects(function() {
+                    recorder.uponChangeAction();
+                    // });
+                }
+            }
             return result;
         };
     });
@@ -206,10 +210,9 @@
                 }
             });
         } else {
-            return {};
-            return new Proxy(object, {
+            return new Proxy(target, {
                 id: nextId++,
-                cached: getGenericCallAndCacheFunction(object),
+                cached: getGenericCallAndCacheFunction(target),
 
                 getPrototypeOf: function (target) {
                     return Object.getPrototypeOf(target);
@@ -239,31 +242,6 @@
                         return this._id;
                     } else if (key === 'cached') {
                         return this.cached;
-                    } else if (target instanceof Array) {
-                        if (typeof(key) === 'number') {
-                            // Number
-                            registerAnyChangeObserver("_arrayObservers", getMap(this, "_arrayObservers"));
-                            return target[key];
-                        } else {
-                            // String
-                            if (mutableArrayFunctions.indexOf(key) !== -1) {
-                                return function() {
-                                    var result;
-                                    var argumentsArray = argumentsToArray(arguments);
-                                    blockUponChangeActions(function() {
-                                        // console.log("Pushing");
-                                        // console.log(argumentsArray);
-                                        result = target[key].apply(target, argumentsArray);
-                                        // console.log(target);
-                                        // console.log("notify");
-                                        notifyChangeObservers("_arrayObservers", getMap(this, "_arrayObservers"));
-                                    }.bind(this));
-                                    return result;
-                                }.bind(this)
-                            }
-                            registerAnyChangeObserver("_arrayObservers", getMap(this, "_arrayObservers"));
-                            return target[key];
-                        }
                     } else {
                         if (typeof(key) !== 'undefined') {
                             registerAnyChangeObserver("_propertyObservers." + key.toString(), getMap(this, "_propertyObservers", key.toString()));
@@ -291,22 +269,18 @@
                         return false;
                     }
 
-                    if ((target instanceof Array)) {
-                        target[key] = value;
-                        notifyChangeObservers("_arrayObservers", getMap(this, "_arrayObservers"));
-                    } else {
-                        // console.log('Set key: ' + key + " = " + value);
-                        // console.log('Old value: ' + target[key]);
-                        var undefinedKey = !(key in target);
-                        target[key]      = value;
-                        blockUponChangeActions(function() {
-                            if (undefinedKey) {
-                                notifyChangeObservers("_enumerateObservers", getMap(this, "_enumerateObservers"));
-                            }
-                            notifyChangeObservers("_propertyObservers." + key, getMap(this, "_propertyObservers", key));
-                        }.bind(this));
-                        return true;
-                    }
+
+                    // console.log('Set key: ' + key + " = " + value);
+                    // console.log('Old value: ' + target[key]);
+                    var undefinedKey = !(key in target);
+                    target[key]      = value;
+                    blockUponChangeActions(function() {
+                        if (undefinedKey) {
+                            notifyChangeObservers("_enumerateObservers", getMap(this, "_enumerateObservers"));
+                        }
+                        notifyChangeObservers("_propertyObservers." + key, getMap(this, "_propertyObservers", key));
+                    }.bind(this));
+                    return true;
                 },
 
                 deleteProperty: function (target, key) {
@@ -321,22 +295,16 @@
 
                 ownKeys: function (target, key) { // Not inherited?
                     registerAnyChangeObserver("_enumerateObservers", getMap(this, "_enumerateObservers"));
-                    var result   = Object.keys(target);
-                    if ((target instanceof Array)) {
-                        result.push('length');
-                    }
-                    return result;
+                    return Object.keys(target);
                 },
 
                 has: function (target, key) {
-                    // TODO: Check against key starts with "_¤"
                     registerAnyChangeObserver("_enumerateObservers", getMap(this, "_enumerateObservers"));
                     return key in target;
                 },
 
                 defineProperty: function (target, key, oDesc) {
                     notifyChangeObservers("_enumerateObservers", getMap(this, "_enumerateObservers"));
-                    // if (oDesc && "value" in oDesc) { target.setItem(key, oDesc.value); }
                     return target;
                 },
 
