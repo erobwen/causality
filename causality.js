@@ -8,10 +8,6 @@
         root.causality = factory(); // Support browser global
     }
 }(this, function () {
-    var mutableArrayFunctions = [
-        'copyWithin', 'pop', 'push', 'reverse', 'shift', 'sort', 'splice','unshift', 'fill'
-    ];
-
     // concat()	Joins two or more arrays, and returns a copy of the joined arrays
     // ()	Copies array elements within the array, to and from specified positions
     // every()	Checks if every element in an array pass a test
@@ -39,6 +35,40 @@
     // ()	Adds new elements to the beginning of an array, and returns the new length
     // valueOf()	Returns the primitive value of an array
 
+    
+    var mutableArrayFunctions = [
+        'copyWithin', 'pop', 'push', 'reverse', 'shift', 'sort', 'splice','unshift', 'fill'
+    ];
+    
+    var staticArrayOverrides = {};
+
+    // observationBlocked++;
+    // callback();
+    // observationBlocked--;
+    // if (observationBlocked == 0) {
+    //     while (observersToNotifyChange.length > 0) {
+    //         var recorder = observersToNotifyChange.shift()
+    //         // blockSideEffects(function() {
+    //         recorder.uponChangeAction();
+    //         // });
+    //     }
+    // }
+
+    mutableArrayFunctions.forEach(function(functionName) {
+        staticArrayOverrides[functionName] = function() {
+            var result;
+            var argumentsArray = argumentsToArray(arguments);
+            blockUponChangeActions(function() {
+                // console.log("Pushing");
+                // console.log(argumentsArray);
+                result = this.target[functionName].apply(this.target, argumentsArray);
+                // console.log(target);
+                // console.log("notify");
+                notifyChangeObservers("_arrayObservers", getMap(this, "_arrayObservers"));
+            }.bind(this));
+            return result;
+        };
+    });
 
     // Helper to quickly get a child object
     function getMap() {
@@ -83,150 +113,241 @@
     }
 
     var nextId = 1;
-    function create(object) {
-        if (typeof(object) === 'undefined') {
-            object = {};
+    function create(target) {
+        if (typeof(target) === 'undefined') {
+            target = {};
         }
 
-        return new Proxy(object, {
-            id: nextId++,
-            cached: getGenericCallAndCacheFunction(object),
+        var handler;
+        if (target instanceof Array) {
+            return new Proxy(target, {
+                target: target,
+                overrides: {
+                    _id: nextId++,
+                    cached: getGenericCallAndCacheFunction(target)
+                },
+                
+                getPrototypeOf: function (target) {
+                    return Object.getPrototypeOf(target);
+                },
+                setPrototypeOf: function (target, prototype) {
+                    Object.setPrototypeOf(target, prototype);
+                },
 
-            getPrototypeOf: function (target) {
-                return Object.getPrototypeOf(target);
-            },
+                // TODO
+                isExtensible: function () {},
+                preventExtensions: function () {},
+                apply: function () {},
+                construct: function () {},
 
-            setPrototypeOf: function (target, prototype) {
-                Object.setPrototypeOf(target, prototype);
-            },
-
-            isExtensible: function () {
-            },
-
-            preventExtensions: function () {
-            },
-
-            apply: function () {
-                // if (typeof(target) === 'Array') {
-                //
-                // }
-            },
-
-            construct: function () {
-            },
-
-            get: function (target, key) {
-                if (key === '_id') {
-                    return this._id;
-                } else if (key === 'cached') {
-                    return this.cached;
-                } else if (target instanceof Array) {
-                    if (typeof(key) === 'number') {
-                        // Number
-                        registerAnyChangeObserver("_arrayObservers", getMap(this, "_arrayObservers"));
-                        return target[key];
+                get: function (target, key) {
+                    if (staticArrayOverrides[key]) {
+                        return staticArrayOverrides[key].bind(this);
+                    } else if (this.overrides[key]) {
+                        return this.overrides[key];
                     } else {
-                        // String
-                        if (mutableArrayFunctions.indexOf(key) !== -1) {
-                            return function() {
-                                var result;
-                                var argumentsArray = argumentsToArray(arguments);
-                                blockUponChangeActions(function() {
-                                    // console.log("Pushing");
-                                    // console.log(argumentsArray);
-                                    result = target[key].apply(target, argumentsArray);
-                                    // console.log(target);
-                                    // console.log("notify");
-                                    notifyChangeObservers("_arrayObservers", getMap(this, "_arrayObservers"));
-                                }.bind(this));
-                                return result;
-                            }.bind(this)
-                        }
-                        registerAnyChangeObserver("_arrayObservers", getMap(this, "_arrayObservers"));
+                        registerAnyChangeObserver("_arrayObservers", getMap(this, "_arrayObservers"));//object
                         return target[key];
                     }
-                } else {
-                    if (typeof(key) !== 'undefined') {
-                        registerAnyChangeObserver("_propertyObservers." + key.toString(), getMap(this, "_propertyObservers", key.toString()));
-                        return target[key]; //  || undefined;
-                    }
-                }
-            },
+                },
 
-            set: function (target, key, value) {
-                // console.log(typeof(value));
-                // If same value as already set, do nothing.
-                if (key in target) {
-                    var previousValue = target[key];
-                    if (previousValue === value || ( typeof(previousValue) === 'number' && isNaN(previousValue) && typeof(value) === 'number' && isNaN(value))) {
-                        // console.log(typeof(previousValue));
-                        // console.log(isNaN(previousValue));
-                        // console.log(typeof(value));
-                        // console.log(isNaN(value));
+                set: function (target, key, value) {
+                    // If same value as already set, do nothing.
+                    // if (key in target) {
+                    //     var previousValue = target[key];
+                    //     if (previousValue === value || ( typeof(previousValue) === 'number' && isNaN(previousValue) && typeof(value) === 'number' && isNaN(value))) {
+                    //         return false;
+                    //     }
+                    // }
+
+                    // If cumulative assignment, inside recorder and value is undefined, no assignment.
+                    if (cumulativeAssignment && activeRecorders.length > 0 && (isNaN(value) || typeof(value) === 'undefined')) {
                         return false;
                     }
-                }
 
-                // If cumulative assignment, inside recorder and value is undefined, no assignment.
-                if (cumulativeAssignment && activeRecorders.length > 0 && (isNaN(value) || typeof(value) === 'undefined')) {
-                    return false;
-                }
+                    if ((target instanceof Array)) {
+                        target[key] = value;
+                        notifyChangeObservers("_arrayObservers", getMap(this, "_arrayObservers"));
+                    }
+                },
 
-                if ((target instanceof Array)) {
-                    target[key] = value;
-                    notifyChangeObservers("_arrayObservers", getMap(this, "_arrayObservers"));
-                } else {
-                       // console.log('Set key: ' + key + " = " + value);
-                    // console.log('Old value: ' + target[key]);
-                    var undefinedKey = !(key in target);
-                    target[key]      = value;
-                    blockUponChangeActions(function() {
-                        if (undefinedKey) {
-                            notifyChangeObservers("_enumerateObservers", getMap(this, "_enumerateObservers"));
-                        }
-                        notifyChangeObservers("_propertyObservers." + key, getMap(this, "_propertyObservers", key));
-                    }.bind(this));
-                    return true;
-                }
-            },
+                deleteProperty: function (target, key) {
+                    if (!(key in target)) {
+                        return false;
+                    } else {
+                        delete target[key];
+                        notifyChangeObservers("_enumerateObservers", getMap(this, "_enumerateObservers"));
+                        return true;
+                    }
+                },
 
-            deleteProperty: function (target, key) {
-                if (!(key in target)) {
-                    return false;
-                } else {
-                    delete target[key];
+                ownKeys: function (target, key) {
+                    registerAnyChangeObserver("_enumerateObservers", getMap(this, "_enumerateObservers"));
+                    var result   = Object.keys(target);
+                    if ((target instanceof Array)) {
+                        result.push('length');
+                    }
+                    return result;
+                },
+
+                has: function (target, key) {
+                    registerAnyChangeObserver("_enumerateObservers", getMap(this, "_enumerateObservers"));
+                    return key in target;
+                },
+
+                defineProperty: function (target, key, oDesc) {
                     notifyChangeObservers("_enumerateObservers", getMap(this, "_enumerateObservers"));
-                    return true;
+                    return target;
+                },
+
+                getOwnPropertyDescriptor: function (target, key) {
+                    registerAnyChangeObserver("_enumerateObservers", getMap(this, "_enumerateObservers"));
+                    return Object.getOwnPropertyDescriptor(target, key);
                 }
-            },
+            });
+        } else {
+            return {};
+            return new Proxy(object, {
+                id: nextId++,
+                cached: getGenericCallAndCacheFunction(object),
 
-            ownKeys: function (target, key) { // Not inherited?
-                registerAnyChangeObserver("_enumerateObservers", getMap(this, "_enumerateObservers"));
-                var result   = Object.keys(target);
-                if ((target instanceof Array)) {
-                    result.push('length');
+                getPrototypeOf: function (target) {
+                    return Object.getPrototypeOf(target);
+                },
+
+                setPrototypeOf: function (target, prototype) {
+                    Object.setPrototypeOf(target, prototype);
+                },
+
+                isExtensible: function () {
+                },
+
+                preventExtensions: function () {
+                },
+
+                apply: function () {
+                    // if (typeof(target) === 'Array') {
+                    //
+                    // }
+                },
+
+                construct: function () {
+                },
+
+                get: function (target, key) {
+                    if (key === '_id') {
+                        return this._id;
+                    } else if (key === 'cached') {
+                        return this.cached;
+                    } else if (target instanceof Array) {
+                        if (typeof(key) === 'number') {
+                            // Number
+                            registerAnyChangeObserver("_arrayObservers", getMap(this, "_arrayObservers"));
+                            return target[key];
+                        } else {
+                            // String
+                            if (mutableArrayFunctions.indexOf(key) !== -1) {
+                                return function() {
+                                    var result;
+                                    var argumentsArray = argumentsToArray(arguments);
+                                    blockUponChangeActions(function() {
+                                        // console.log("Pushing");
+                                        // console.log(argumentsArray);
+                                        result = target[key].apply(target, argumentsArray);
+                                        // console.log(target);
+                                        // console.log("notify");
+                                        notifyChangeObservers("_arrayObservers", getMap(this, "_arrayObservers"));
+                                    }.bind(this));
+                                    return result;
+                                }.bind(this)
+                            }
+                            registerAnyChangeObserver("_arrayObservers", getMap(this, "_arrayObservers"));
+                            return target[key];
+                        }
+                    } else {
+                        if (typeof(key) !== 'undefined') {
+                            registerAnyChangeObserver("_propertyObservers." + key.toString(), getMap(this, "_propertyObservers", key.toString()));
+                            return target[key]; //  || undefined;
+                        }
+                    }
+                },
+
+                set: function (target, key, value) {
+                    // console.log(typeof(value));
+                    // If same value as already set, do nothing.
+                    if (key in target) {
+                        var previousValue = target[key];
+                        if (previousValue === value || ( typeof(previousValue) === 'number' && isNaN(previousValue) && typeof(value) === 'number' && isNaN(value))) {
+                            // console.log(typeof(previousValue));
+                            // console.log(isNaN(previousValue));
+                            // console.log(typeof(value));
+                            // console.log(isNaN(value));
+                            return false;
+                        }
+                    }
+
+                    // If cumulative assignment, inside recorder and value is undefined, no assignment.
+                    if (cumulativeAssignment && activeRecorders.length > 0 && (isNaN(value) || typeof(value) === 'undefined')) {
+                        return false;
+                    }
+
+                    if ((target instanceof Array)) {
+                        target[key] = value;
+                        notifyChangeObservers("_arrayObservers", getMap(this, "_arrayObservers"));
+                    } else {
+                        // console.log('Set key: ' + key + " = " + value);
+                        // console.log('Old value: ' + target[key]);
+                        var undefinedKey = !(key in target);
+                        target[key]      = value;
+                        blockUponChangeActions(function() {
+                            if (undefinedKey) {
+                                notifyChangeObservers("_enumerateObservers", getMap(this, "_enumerateObservers"));
+                            }
+                            notifyChangeObservers("_propertyObservers." + key, getMap(this, "_propertyObservers", key));
+                        }.bind(this));
+                        return true;
+                    }
+                },
+
+                deleteProperty: function (target, key) {
+                    if (!(key in target)) {
+                        return false;
+                    } else {
+                        delete target[key];
+                        notifyChangeObservers("_enumerateObservers", getMap(this, "_enumerateObservers"));
+                        return true;
+                    }
+                },
+
+                ownKeys: function (target, key) { // Not inherited?
+                    registerAnyChangeObserver("_enumerateObservers", getMap(this, "_enumerateObservers"));
+                    var result   = Object.keys(target);
+                    if ((target instanceof Array)) {
+                        result.push('length');
+                    }
+                    return result;
+                },
+
+                has: function (target, key) {
+                    // TODO: Check against key starts with "_¤"
+                    registerAnyChangeObserver("_enumerateObservers", getMap(this, "_enumerateObservers"));
+                    return key in target;
+                },
+
+                defineProperty: function (target, key, oDesc) {
+                    notifyChangeObservers("_enumerateObservers", getMap(this, "_enumerateObservers"));
+                    // if (oDesc && "value" in oDesc) { target.setItem(key, oDesc.value); }
+                    return target;
+                },
+
+                getOwnPropertyDescriptor: function (target, key) {
+                    registerAnyChangeObserver("_enumerateObservers", getMap(this, "_enumerateObservers"));
+                    return Object.getOwnPropertyDescriptor(target, key);
                 }
-                return result;
-            },
-
-            has: function (target, key) {
-                // TODO: Check against key starts with "_¤"
-                registerAnyChangeObserver("_enumerateObservers", getMap(this, "_enumerateObservers"));
-                return key in target;
-            },
-
-            defineProperty: function (target, key, oDesc) {
-                notifyChangeObservers("_enumerateObservers", getMap(this, "_enumerateObservers"));
-                // if (oDesc && "value" in oDesc) { target.setItem(key, oDesc.value); }
-                return target;
-            },
-
-            getOwnPropertyDescriptor: function (target, key) {
-                registerAnyChangeObserver("_enumerateObservers", getMap(this, "_enumerateObservers"));
-                return Object.getOwnPropertyDescriptor(target, key);
-            }
-        });
+            });
+        }
     }
+
 
     var c = create;
 

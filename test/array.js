@@ -86,6 +86,7 @@ describe("arrays", function () {
         assert.equal(isNaN(sum(a)), false);
         assert.deepEqual(a.length, 4);
 
+        assert.equal(a.slice() + "", ",,,");
         assert.equal(a + "", ",,,");
 
         assert.deepEqual(a, [, , ,]);
