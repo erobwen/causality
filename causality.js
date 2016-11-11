@@ -72,13 +72,6 @@
         return object;
     }
 
-    function startsWith(prefix, string) {
-        // trace('security', string);
-        // trace('security', prefix.length);
-        // trace('security', string.substr(0, prefix.length));
-        return (prefix === string.substr(0, prefix.length));
-    }
-
     var argumentsToArray = function(arguments) {
         return Array.prototype.slice.call(arguments);
     };
@@ -97,7 +90,7 @@
 
         return new Proxy(object, {
             id: nextId++,
-            cached: getGenericFunctionCacher(object),
+            cached: getGenericCallAndCacheFunction(object),
 
             getPrototypeOf: function (target) {
                 return Object.getPrototypeOf(target);
@@ -517,10 +510,6 @@
         return Array.prototype.slice.call(arguments);
     }
 
-    function startsWith(prefix, string) {
-        return (prefix === string.substr(0, prefix.length));
-    }
-
     function compareArraysShallow(a, b) {
         if (a.length === b.length) {
             for (var i = 0; i < a.length; i++) {
@@ -530,7 +519,7 @@
             }
             return true;
         } else {
-            return fasle;
+            return false;
         }
     }
 
@@ -592,7 +581,7 @@
                 if (uniqueHash) {
                     result = typeof(functionCaches[argumentsHash]) !== 'undefined';
                 } else {
-                    var functionArgumentHashCaches = getArray(functionCaches, argumentsHash);
+                    var functionArgumentHashCaches = getArray(functionCaches, "_nonpersistent_cacheBuckets" , argumentsHash);
                     result = isCachedInBucket(functionArgumentHashCaches, functionArguments);
                 }
                 return result;
@@ -604,7 +593,7 @@
                     delete functionCaches[argumentsHash];
                     return result;
                 } else {
-                    var functionArgumentHashCaches = getArray(functionCaches, argumentsHash);
+                    var functionArgumentHashCaches = getArray(functionCaches, "_nonpersistent_cacheBuckets" , argumentsHash);
                     for (var i = 0; i < functionArgumentHashCaches.length; i++) {
                         if (compareArraysShallow(functionArgumentHashCaches[i].functionArguments, functionArguments)) {
                             var result = functionArgumentHashCaches[i];
@@ -619,7 +608,7 @@
                 if (uniqueHash) {
                     return functionCaches[argumentsHash]
                 } else {
-                    var functionArgumentHashCaches = getArray(functionCaches, argumentsHash);
+                    var functionArgumentHashCaches = getArray(functionCaches, "_nonpersistent_cacheBuckets" , argumentsHash);
                     for (var i = 0; i < functionArgumentHashCaches.length; i++) {
                         if (compareArraysShallow(functionArgumentHashCaches[i].functionArguments, functionArguments)) {
                             return functionArgumentHashCaches[i];
@@ -632,7 +621,7 @@
                 if (uniqueHash) {
                     return getMap(functionCaches, argumentsHash)
                 } else {
-                    var functionArgumentHashCaches = getArray(functionCaches, argumentsHash);
+                    var functionArgumentHashCaches = getArray(functionCaches, "_nonpersistent_cacheBuckets", argumentsHash);
                     var record = {};
                     functionArgumentHashCaches.push(record);
                     return record;
@@ -642,7 +631,7 @@
     }
 
 
-    function getGenericFunctionCacher(object) {
+    function getGenericCallAndCacheFunction(object) { // this
         return function () {
             // Split arguments
             var argumentsList = argumentsToArray(arguments);
