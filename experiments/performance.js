@@ -160,7 +160,9 @@ while( mylist.length < amount ){
 	});
 }
 for( let element of mylist ){
+    console.time("element");
 	element.hobby.push('drapes');
+    console.timeEnd("element");
 }
 console.timeEnd("causality");
 log( count );
