@@ -131,18 +131,16 @@
                     cached: getGenericCallAndCacheFunction(target)
                 },
                 
-                getPrototypeOf: function (target) {
-                    return Object.getPrototypeOf(target);
-                },
-                setPrototypeOf: function (target, prototype) {
-                    Object.setPrototypeOf(target, prototype);
-                },
-
-                // TODO
-                isExtensible: function () {},
-                preventExtensions: function () {},
-                apply: function () {},
-                construct: function () {},
+                // getPrototypeOf: function (target) {
+                //     return Object.getPrototypeOf(target);
+                // },
+                // setPrototypeOf: function (target, prototype) {
+                //     Object.setPrototypeOf(target, prototype);
+                // },
+                // isExtensible: function () {},
+                // preventExtensions: function () {},
+                // apply: function () {},
+                // construct: function () {},
 
                 get: function (target, key) {
                     if (staticArrayOverrides[key]) {
@@ -151,6 +149,7 @@
                         return this.overrides[key];
                     } else {
                         registerAnyChangeObserver("_arrayObservers", getMap(this, "_arrayObservers"));//object
+                        // console.log("get: " + key.toString() + "result: " + target[key]);
                         return target[key];
                     }
                 },

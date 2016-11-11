@@ -7,14 +7,14 @@ require('../causality').install();
 // // a.sort();
 // // console.log(a);
 //
-// var a = c([]);
+var a = c([]);
 // var sum = function () {
 //     return -1 + a.reduce(function (a, b) {
 //             return a + b;
 //         }, 1);
 // };
 //
-// a.length = 4;
+a.length = 4;
 // // assert.equal(isNaN(sum(a)), false);
 // // assert.deepEqual(a.length, 4);
 // //
@@ -22,12 +22,24 @@ require('../causality').install();
 // //
 // // assert.deepEqual(a.slice(), [, , ,]);
 // //
-// console.log(a);
-// a[1] = undefined;
-// a[2] = null;
-// console.log(a);
-// console.log(a.slice());//, [, undefined, null,]);
-//
+console.log(a);
+a[1] = undefined;
+a[2] = null;
+console.log();
+console.log("a");
+console.log(a);
+
+console.log();
+console.log("a.slice()");
+console.log(a.slice());//, [, undefined, null,]);
+
+console.log();
+console.log("[, undefined, null,] + ''");
+console.log([, undefined, null,] + "");
+
+console.log();
+console.log("a + ''");
+console.log(a + "");
 //
 
-assert.equal(a + "", ",,,");
+// assert.equal(a + "", ",,,");
