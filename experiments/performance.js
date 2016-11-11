@@ -123,13 +123,13 @@ console.time("proxy");
 count = 0;
 mylist = [];
 while( mylist.length < amount ){
-	var obj = {
+    let obj = {
 		name: "Bert",
 		birth: new Date(1980,5,5),
 		hobby: createX(['causality', 'muffins']),
 	};
 
-	var xobj = createX(obj);
+	let xobj = createX(obj);
 	
 	mylist.push(xobj);
 	plain_reaction(xobj.hobby);
@@ -147,12 +147,12 @@ console.time("causality");
 count = 0;
 mylist = [];
 while( mylist.length < amount ){
-	var obj = {
+    let obj = {
 		name: "Bert",
 		birth: new Date(1980,5,5),
 		hobby: create(['causality', 'muffins']),
 	};
-	var xobj = create(obj);
+    let xobj = create(obj);
 	mylist.push(xobj);
 
 	repeatOnChange(function(){
@@ -160,9 +160,9 @@ while( mylist.length < amount ){
 	});
 }
 for( let element of mylist ){
-    console.time("element");
+    // console.time("element");
 	element.hobby.push('drapes');
-    console.timeEnd("element");
+    // console.timeEnd("element");
 }
 console.timeEnd("causality");
 log( count );
