@@ -54,22 +54,20 @@
     //     }
     // }
 
+
+
     mutableArrayFunctions.forEach(function(functionName) {
         staticArrayOverrides[functionName] = function() {
             var result;
             var argumentsArray = argumentsToArray(arguments);
-            observationBlocked++;
-            result = this.target[functionName].apply(this.target, argumentsArray);
-            observationBlocked--;
+            // observationBlocked++;
+            nullifyObserverNotification(function() {
+                result = this.target[functionName].apply(this.target, argumentsArray);
+            }.bind(this));
+            // observationBlocked--;
             notifyChangeObservers("_arrayObservers", getMap(this, "_arrayObservers"));
-            if (observationBlocked == 0) {
-                while (observersToNotifyChange.length > 0) {
-                    var recorder = observersToNotifyChange.shift()
-                    // blockSideEffects(function() {
-                    recorder.uponChangeAction();
-                    // });
-                }
-            }
+            // proceedWithPostponedNotifications();
+
             return result;
         };
     });
@@ -104,6 +102,16 @@
             object = object[key];
         }
         return object;
+    }
+
+    function isDefined(object, property) {
+        return (typeof(object[property]) !== 'undefined');
+    }
+
+    function setIfNotDefined(object, property, value) {
+        if (typeof(object[property]) === 'undefined') {
+            object[property] = value;
+        }
     }
 
     var argumentsToArray = function(arguments) {
@@ -168,10 +176,8 @@
                         return false;
                     }
 
-                    if ((target instanceof Array)) {
-                        target[key] = value;
-                        notifyChangeObservers("_arrayObservers", getMap(this, "_arrayObservers"));
-                    }
+                    target[key] = value;
+                    notifyChangeObservers("_arrayObservers", getMap(this, "_arrayObservers"));
                 },
 
                 deleteProperty: function (target, key) {
@@ -179,13 +185,13 @@
                         return false;
                     } else {
                         delete target[key];
-                        notifyChangeObservers("_enumerateObservers", getMap(this, "_enumerateObservers"));
+                        notifyChangeObservers("_arrayObservers", getMap(this, "_arrayObservers"));
                         return true;
                     }
                 },
 
                 ownKeys: function (target, key) {
-                    registerAnyChangeObserver("_enumerateObservers", getMap(this, "_enumerateObservers"));
+                    registerAnyChangeObserver("_arrayObservers", getMap(this, "_arrayObservers"));
                     var result   = Object.keys(target);
                     if ((target instanceof Array)) {
                         result.push('length');
@@ -194,17 +200,17 @@
                 },
 
                 has: function (target, key) {
-                    registerAnyChangeObserver("_enumerateObservers", getMap(this, "_enumerateObservers"));
+                    registerAnyChangeObserver("_arrayObservers", getMap(this, "_arrayObservers"));
                     return key in target;
                 },
 
                 defineProperty: function (target, key, oDesc) {
-                    notifyChangeObservers("_enumerateObservers", getMap(this, "_enumerateObservers"));
+                    notifyChangeObservers("_arrayObservers", getMap(this, "_arrayObservers"));
                     return target;
                 },
 
                 getOwnPropertyDescriptor: function (target, key) {
-                    registerAnyChangeObserver("_enumerateObservers", getMap(this, "_enumerateObservers"));
+                    registerAnyChangeObserver("_arrayObservers", getMap(this, "_arrayObservers"));
                     return Object.getOwnPropertyDescriptor(target, key);
                 }
             });
@@ -273,7 +279,7 @@
                     // console.log('Old value: ' + target[key]);
                     var undefinedKey = !(key in target);
                     target[key]      = value;
-                    blockUponChangeActions(function() {
+                    postponeObserverNotification(function() {
                         if (undefinedKey) {
                             notifyChangeObservers("_enumerateObservers", getMap(this, "_enumerateObservers"));
                         }
@@ -345,6 +351,7 @@
 
         // Recorder structure
         var recorder = {
+            nextToNotify: null,
             id: recorderId++,
             description: description,
             sources: [],
@@ -368,16 +375,57 @@
         recordingPaused--;
     }
 
-
+    var sourcesObserverSetChunkSize = 5000;
+    // var counter = 0;
     function registerAnyChangeObserver(description, observerSet) { // instance can be a cached method if observing its return value, object & definition only needed for debugging.
         // console.log("registerAnyChangeObserver: " + description);
         if (activeRecorders.length > 0 && recordingPaused === 0) {
             var activeRecorder = activeRecorders[activeRecorders.length - 1];
+            var recorderId = activeRecorder.id;
+
+            setIfNotDefined(observerSet, "contentsCounter", 0);
+            if (typeof(getMap(observerSet, 'contents')[recorderId]) !== 'undefined') {
+                return;
+            }
+
+            // console.log(observerSet);
+            if (observerSet.contentsCounter === sourcesObserverSetChunkSize && typeof(observerSet.last) !== 'undefined') {
+                // console.log("Going down!");
+                observerSet = observerSet.last;
+                if (typeof(getMap(observerSet, 'contents')[recorderId]) !== 'undefined') {
+                    return;
+                }
+            }
+            if (observerSet.contentsCounter === sourcesObserverSetChunkSize) {
+                // console.log("New chunk");
+                var newChunk = { next: null, previous: null, parent: null, contentsCounter: 0};
+                if (isDefined(observerSet, 'parent')) {
+                    // console.log("New sibling");
+                    observerSet.next = newChunk;
+                    newChunk.previous = observerSet;
+                    newChunk.parent = observerSet.parent;
+                    observerSet.parent.last = newChunk;
+                } else {
+                    // console.log("Create a child");
+                    // console.log();
+                    newChunk.parent = observerSet;
+                    observerSet.first = newChunk;
+                    observerSet.last = newChunk;
+                }
+                observerSet = newChunk;
+            }
+
 
             // Add repeater on object beeing observed, if not already added before
-            var recorderId = activeRecorder.id;
-            if (typeof(observerSet[recorderId]) === 'undefined') {
-                observerSet[recorderId] = activeRecorder;
+            var observerSetContents = getMap(observerSet, 'contents');
+            if (typeof(observerSetContents[recorderId]) === 'undefined') {
+                // counter++;
+                // console.log("  ---  really registerAnyChangeObserver: " + description);
+                // if (counter > 10) {
+                //     throwError("What the fuck!");
+                // }
+                observerSet.contentsCounter = observerSet.contentsCounter + 1;
+                observerSetContents[recorderId] = activeRecorder;
 
                 // Note dependency in repeater itself (for cleaning up)
                 activeRecorder.sources.push(observerSet);
@@ -391,40 +439,80 @@
      * -------------- */
 
     var observersToNotifyChange = [];
+    var nextObserverToNotifyChange = null;
+    var lastObserverToNotifyChange = null;
 
-    var observationBlocked = 0;
+    var observerNotificationPostponed = 0;
+    var observerNotificationNullified = 0;
 
-    function blockUponChangeActions(callback) {
-        observationBlocked++;
-        callback();
-        observationBlocked--;
-        if (observationBlocked == 0) {
-            while (observersToNotifyChange.length > 0) {
-                var recorder = observersToNotifyChange.shift()
+    function proceedWithPostponedNotifications() {
+        if (observerNotificationPostponed == 0) {
+            while (nextObserverToNotifyChange !== null) {
+                var recorder = nextObserverToNotifyChange;
+                nextObserverToNotifyChange = nextObserverToNotifyChange.nextToNotify;
                 // blockSideEffects(function() {
                 recorder.uponChangeAction();
                 // });
             }
+            lastObserverToNotifyChange = null;
         }
     }
 
-    var transaction = blockUponChangeActions;
+    function nullifyObserverNotification(callback) {
+        observerNotificationNullified++;
+        callback();
+        observerNotificationNullified--;
+    }
+
+    function postponeObserverNotification(callback) {
+        observerNotificationPostponed++;
+        callback();
+        observerNotificationPostponed--;
+        proceedWithPostponedNotifications();
+    }
+
+    var transaction = postponeObserverNotification;
 
 
 // Recorders is a map from id => recorder
     function notifyChangeObservers(description, observers) {
-        // console.log("notifyChangeObservers:" + description);
-        for (id in observers) {
-            notifyChangeObserver(observers[id]);
+        if (observerNotificationNullified > 0) {
+            return;
         }
+        // console.log("notifyChangeObservers:" + description);
+        // console.log(observers);
+        // transaction(function() {
+        let contents = getMap(observers, 'contents');
+        for (id in contents) {
+            notifyChangeObserver(contents[id]);
+        }
+        // });
+
+        if (typeof(observers.first) !== 'undefined') {
+            var chainedObserverChunk = observers.first;
+            while(chainedObserverChunk !== null) {
+                let contents = getMap(chainedObserverChunk, 'contents');
+                for (id in contents) {
+                    notifyChangeObserver(contents[id]);
+                }
+                chainedObserverChunk = chainedObserverChunk.next;
+            }
+        }
+        // if ()
     }
 
 
     function notifyChangeObserver(observer) {
         if (observer != activeRecorders[activeRecorders.length - 1]) {
             removeObservation(observer); // Cannot be any more dirty than it already is!
-            if (observationBlocked > 0) {
-                observersToNotifyChange.push(observer);
+            if (observerNotificationPostponed > 0) {
+                if (lastObserverToNotifyChange !== null) {
+                    lastObserverToNotifyChange.nextToNotify = observer;
+                } else {
+                    nextObserverToNotifyChange = observer;
+                }
+                lastObserverToNotifyChange = observer;
+                // observersToNotifyChange.push(observer);
             } else {
                 // blockSideEffects(function() {
                 observer.uponChangeAction();
@@ -435,16 +523,35 @@
 
 
     function removeObservation(recorder) {
-        // console.group("removeFromObservation: " + recorder.id + "." + recorder.description);
+        // console.log("---removeFromObservation: " + recorder.id + "." + recorder.description);
         if (recorder.id == 1) {
             // debugger;
         }
         // Clear out previous observations
+        // console.log("removeObservation");
+        // console.log(recorder);
         recorder.sources.forEach(function (observerSet) { // From observed object
             // console.log("Removing a source");
             // console.log(observerSet[recorder.id]);
-            delete observerSet[recorder.id];
+            var observerSetContents = getMap(observerSet, 'contents');
+            delete observerSetContents[recorder.id];
+            observerSet.contentsCounter--;
+            // console.log(observerSet.contentsCounter);
+            // console.log(observerSet);
+            if (observerSet.contentsCounter == 0 && isDefined(observerSet, 'parent')) {
+                // console.log("Terminating a chunk");
+                if (observerSet.next !== null) {
+                    observerSet.next.previous = observerSet.previous;
+                }
+                if (observerSet.previous !== null) {
+                    observerSet.previous.next = observerSet.next;
+                }
+                observerSet.previous = null;
+                observerSet.next = null;
+            }
+            // console.log("Finsied removing a source")
         });
+        // console.log("---Removed all sources");
         recorder.sources.lenght = 0;  // From repeater itself.
         // console.groupEnd();
     }
@@ -575,7 +682,7 @@
             if (dirtyRepeaters.length > 0) {
                 refreshingAllDirtyRepeaters = true;
                 while (dirtyRepeaters.length > 0) {
-                    var repeater = dirtyRepeaters.shift();
+                    var repeater = dirtyRepeaters.pop();
                     refreshRepeater(repeater);
                 }
 
