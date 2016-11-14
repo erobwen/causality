@@ -72,6 +72,8 @@ describe("arrays", function () {
 
         assert.deepEqual(Object.keys(a), ['0', '1', '2']);
 
+			assert( Array.isArray( a ) );
+			
     });
 
     it('should differ undefined from nonexisting', function () {

@@ -174,12 +174,12 @@ console.time("mobx");
 count = 0;
 mylist = [];
 while( mylist.length < amount ){
-	var obj = {
+	let obj = {
 		name: "Bert",
 		birth: new Date(1980,5,5),
 		hobby: ['causality', 'muffins'],
 	};
-	var xobj = mobx.observable(obj);
+	let xobj = mobx.observable(obj);
 	mylist.push(xobj);
 
 	mobx.autorun(function(){
