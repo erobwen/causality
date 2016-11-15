@@ -115,16 +115,9 @@
 
         var handler;
         if (target instanceof Array) {
-            return new Proxy(target, {
+            handler = {
                 target: target,
-                overrides: {
-                    _id: nextId++,
-                    cached: getGenericCallAndCacheFunction(target),
-                    repeat: getGenericRepeatFunction(target),
-                    // project: getGenericProjectFunction(target) //TODO
-                    // Consider: generic upon change do?
-                },
-                
+
                 // getPrototypeOf: function (target) {
                 //     return Object.getPrototypeOf(target);
                 // },
@@ -199,11 +192,13 @@
                     registerAnyChangeObserver("_arrayObservers", getMap(this, "_arrayObservers"));
                     return Object.getOwnPropertyDescriptor(target, key);
                 }
-            });
+            };
         } else {
-            return new Proxy(target, {
+            var handler = {
                 id: nextId++,
-                cached: getGenericCallAndCacheFunction(target),
+                repeat :  getGenericRepeatFunction(target),
+                cached : getGenericCallAndCacheFunction(target),
+                replaceWith : getGenericReplacer(target),
 
                 getPrototypeOf: function (target) {
                     return Object.getPrototypeOf(target);
@@ -229,8 +224,8 @@
                 },
 
                 get: function (target, key) {
-                    if (key === '_id') {
-                        return this._id;
+                    if (key === '__id') {
+                        return this.__id;
                     } else if (key === 'cached') {
                         return this.cached;
                     } else {
@@ -303,9 +298,21 @@
                     registerAnyChangeObserver("_enumerateObservers", getMap(this, "_enumerateObservers"));
                     return Object.getOwnPropertyDescriptor(target, key);
                 }
-            });
+            };
         }
+
+        var proxy = Proxy(target, handler);
+        handler.overrides = {
+            __id: nextId++,
+            __target: target,
+            // Consider: generic upon change do?
+            repeat :  getGenericRepeatFunction(proxy),
+            cached : getGenericCallAndCacheFunction(proxy),
+            replaceWith : getGenericReplacer(proxy)
+            // project: getGenericProjectFunction(target) //TODO
+        };
     }
+
 
 
     var c = create;
@@ -702,6 +709,7 @@
      *
      *                    Cached method signatures
      *
+     *          (reused by cache, repeat and project)
      ************************************************************************/
 
     function argumentsToArray(arguments) {
@@ -754,8 +762,8 @@
                     hash += ",";
                 }
 
-                if (typeof(argument._id) !== 'undefined') { //typeof(argument) === 'object' &&
-                    hash += "{id=" + argument._id + "}";
+                if (typeof(argument.__id) !== 'undefined') { //typeof(argument) === 'object' &&
+                    hash += "{id=" + argument.__id + "}";
                 } else if (typeof(argument) === 'number' || typeof(argument) === 'string') { // String or integer
                     hash += argument;
                 } else {
@@ -874,6 +882,168 @@
             }
         };
     }
+
+    /************************************************************************
+     * 
+     *  Splices
+     *
+     ************************************************************************/
+
+    function differentialSplices(previous, array) {
+        var done = false;
+        var splices = [];
+
+        var previousIndex = 0;
+        var newIndex = 0;
+
+        var addedRemovedLength = 0;
+
+        var removed;
+        var added;
+
+        function add(sequence) {
+            let splice = {type:'splice', index: previousIndex + addedRemovedLength, removed: [], added: added};
+            addedRemovedLength += added.length;
+            splices.push(splice);
+        }
+
+        function remove(sequence) {
+            let splice = {type:'splice', index: previousIndex + addedRemovedLength, removed: removed, added: [] };
+            addedRemovedLength -= removed.length;
+            splices.push(splice);
+        }
+
+        function removeAdd(removed, added) {
+            let splice = {type:'splice', index: previousIndex + addedRemovedLength, removed: removed, added: added};
+            addedRemovedLength -= removed.length;
+            addedRemovedLength += added.length;
+            splices.push(splice);
+        }
+
+        while (!done) {
+            while(
+            previousIndex < previous.length
+            && newIndex < array.length
+            && previous[previousIndex] === array[newIndex]) {
+                previousIndex++;
+                newIndex++;
+            }
+
+            if (previousIndex === previous.length && newIndex === array.length) {
+                done = true;
+            } else if (newIndex === array.length) {
+                // New array is finished
+                removed = [];
+                let index = previousIndex;
+                while(index < previous.length) {
+                    removed.push(previous[index++]);
+                }
+                remove(removed);
+                done = true;
+            } else if (previousIndex === previous.length) {
+                // Previous array is finished.
+                added = [];
+                while(newIndex < array.length) {
+                    added.push(array[newIndex++]);
+                }
+                add(added);
+                done = true;
+            } else {
+                // Found mid-area of missmatch.
+                let previousScanIndex = previousIndex;
+                let newScanIndex = newIndex;
+                let foundMatchAgain = false;
+
+                while(previousScanIndex < previous.length && !foundMatchAgain) {
+                    newScanIndex = newIndex;
+                    while(newScanIndex < array.length && !foundMatchAgain) {
+                        if (previous[previousScanIndex] === array[newScanIndex]) {
+                            // console.log("found match again")
+                            // console.log([previousScanIndex, newScanIndex]);
+                            foundMatchAgain = true;
+                        }
+                        if (!foundMatchAgain) newScanIndex++;
+                    }
+                    if (!foundMatchAgain) previousScanIndex++;
+                }
+                removeAdd(previous.slice(previousIndex, previousScanIndex), array.slice(newIndex, newScanIndex));
+                previousIndex = previousScanIndex;
+                newIndex = newScanIndex;
+            }
+        }
+
+        return splices;
+    }
+
+
+    /************************************************************************
+     *
+     *  Infusion
+     *
+     ************************************************************************/
+
+    function getGenericReplacer(object) { // this
+        return function(otherObject) {
+            infuseCoArrays([otherObject], [object]);
+        }
+    }
+
+    function infuseCoArrays(sources, targets) {
+        
+        // Setup id target map and ids.
+        var index = 0;
+        idTargetMap = {};
+        while (index < sources.length) {
+            sources[index].__infusionId = index;
+            targets[index].__infusionId = index;
+            idTargetMap[index] = target[index];
+            index++;
+        }
+
+        infuseWithMap(sources, idTargetMap);
+    }
+
+
+    function infuseWithMap(sources, idTargetMap) {
+
+        // Helper
+        function mapValue(value) {
+            if (typeof(value) === 'object') {
+                if (typeof(value.__infusionId) !== 'undefined') {
+                    value = idTargetMap[value.__infusionId]; // Reference to the replaced one.
+                }
+            }
+            return value;
+        }
+
+        // Setup id target map and ids.
+        var index = 0;
+        while (index < sources.length) {
+            let source = sources[index];
+            if (typeof(idTargetMap[source.__infusionId]) !== 'undefined') {
+                let target = idTargetMap[source.__infusionId];
+                var sourceWithoutProxy = source.__target;
+                if (sourceWithoutProxy instanceof Array) {
+                     let splices = differentialSplices(target.__target, sourceWithoutProxy); // let arrayIndex = 0;
+                    splices.forEach(function(splice) {
+                        target.splice(splice.index, splice.removed.length, splice.added.map(mapValue));
+                    });
+                } else {
+                    for (let property in sourceWithoutProxy) {
+                        target[property]  = mapValue(sourceWithoutProxy[property]);
+                    }
+                }
+            }
+        }
+    }
+
+
+    /************************************************************************
+     *
+     *  Infusion
+     *
+     ************************************************************************/
+
 
 
     /**
