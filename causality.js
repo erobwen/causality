@@ -119,7 +119,10 @@
                 target: target,
                 overrides: {
                     _id: nextId++,
-                    cached: getGenericCallAndCacheFunction(target)
+                    cached: getGenericCallAndCacheFunction(target),
+                    repeat: getGenericRepeatFunction(target),
+                    // project: getGenericProjectFunction(target) //TODO
+                    // Consider: generic upon change do?
                 },
                 
                 // getPrototypeOf: function (target) {
@@ -674,13 +677,31 @@
     }
 
 
+    function getGenericRepeatFunction(object) { // this
+        return function () {
+            // Split arguments
+            var argumentsList = argumentsToArray(arguments);
+            var functionName = argumentsList.shift();
+            var functionCacher = getFunctionCacher(this, "_repeaters", functionName, argumentsList);
+
+            if (!functionCacher.cacheRecordExists()) {
+                // Never encountered these arguments before, make a new cache
+                var cacheRecord = functionCacher.createNewRecord();
+                cacheRecord.repeaterHandle = repeatOnChange(function() {
+                    returnValue = object[functionName].apply(this, argumentsList);
+                });
+                return cacheRecord.repeaterHandle;
+            } else {
+                return functionCacher.getExistingRecord().repeaterHandle;
+            }
+        };
+    }
+
+
     /************************************************************************
-     *  Cached methods
      *
-     * A cached method will not reevaluate for the same arguments, unless
-     * some of the data it has read for such a call has changed. If there
-     * is a parent cached method, it will be notified upon change.
-     * (even if the parent does not actually use/read any return value)
+     *                    Cached method signatures
+     *
      ************************************************************************/
 
     function argumentsToArray(arguments) {
@@ -722,7 +743,7 @@
 
 
     // Get cache(s) for this argument hash
-    function getFunctionCacher(object, functionName, functionArguments) {
+    function getFunctionCacher(object, cacheStoreName, functionName, functionArguments) {
         var uniqueHash = true;
 
         function makeArgumentHash(argumentList) {
@@ -746,7 +767,7 @@
         }
 
         var argumentsHash = makeArgumentHash(functionArguments);
-        var functionCaches = getMap(object, "_cachedCalls", functionName);
+        var functionCaches = getMap(object, cacheStoreName, functionName);
         var functionCache = null;
 
         // console.log(argumentsHash);
@@ -808,12 +829,21 @@
     }
 
 
+    /************************************************************************
+     *  Cached methods
+     *
+     * A cached method will not reevaluate for the same arguments, unless
+     * some of the data it has read for such a call has changed. If there
+     * is a parent cached method, it will be notified upon change.
+     * (even if the parent does not actually use/read any return value)
+     ************************************************************************/
+
     function getGenericCallAndCacheFunction(object) { // this
         return function () {
             // Split arguments
             var argumentsList = argumentsToArray(arguments);
             var functionName = argumentsList.shift();
-            var functionCacher = getFunctionCacher(this, functionName, argumentsList)
+            var functionCacher = getFunctionCacher(this, "_cachedCalls", functionName, argumentsList);
 
             if (!functionCacher.cacheRecordExists()) {
                 cachedCalls++;
