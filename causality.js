@@ -42,32 +42,15 @@
     
     var staticArrayOverrides = {};
 
-    // observationBlocked++;
-    // callback();
-    // observationBlocked--;
-    // if (observationBlocked == 0) {
-    //     while (observersToNotifyChange.length > 0) {
-    //         var recorder = observersToNotifyChange.shift()
-    //         // blockSideEffects(function() {
-    //         recorder.uponChangeAction();
-    //         // });
-    //     }
-    // }
-
-
 
     mutableArrayFunctions.forEach(function(functionName) {
         staticArrayOverrides[functionName] = function() {
             var result;
             var argumentsArray = argumentsToArray(arguments);
-            // observationBlocked++;
             nullifyObserverNotification(function() {
                 result = this.target[functionName].apply(this.target, argumentsArray);
             }.bind(this));
-            // observationBlocked--;
             notifyChangeObservers("_arrayObservers", getMap(this, "_arrayObservers"));
-            // proceedWithPostponedNotifications();
-
             return result;
         };
     });
@@ -476,17 +459,16 @@
 
 // Recorders is a map from id => recorder
     function notifyChangeObservers(description, observers) {
+        // transaction(function() {
         if (observerNotificationNullified > 0) {
             return;
         }
         // console.log("notifyChangeObservers:" + description);
         // console.log(observers);
-        // transaction(function() {
         let contents = getMap(observers, 'contents');
         for (id in contents) {
             notifyChangeObserver(contents[id]);
         }
-        // });
 
         if (typeof(observers.first) !== 'undefined') {
             var chainedObserverChunk = observers.first;
@@ -498,7 +480,7 @@
                 chainedObserverChunk = chainedObserverChunk.next;
             }
         }
-        // if ()
+        // });
     }
 
 
