@@ -308,7 +308,7 @@
             };
         }
 
-        var proxy = Proxy(target, handler);
+        var proxy = new Proxy(target, handler);
         handler.overrides = {
             __id: nextId++,
             __target: target,
@@ -323,6 +323,7 @@
         if (collecting.length > 0) {
             collecting[collecting.length - 1].push(proxy);
         }
+        return proxy;
     }
 
 
