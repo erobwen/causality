@@ -107,6 +107,13 @@
         cumulativeAssignment = value;
     }
 
+    var collecting = [];
+    function collect(array, action) {
+        collecting.push(array);
+        action();
+        collecting.pop();
+    }
+
     var nextId = 1;
     function create(target) {
         if (typeof(target) === 'undefined') {
@@ -311,6 +318,11 @@
             replaceWith : getGenericReplacer(proxy)
             // project: getGenericProjectFunction(target) //TODO
         };
+
+        // Collect newly created
+        if (collecting.length > 0) {
+            collecting[collecting.length - 1].push(proxy);
+        }
     }
 
 
@@ -1040,11 +1052,61 @@
 
     /************************************************************************
      *
-     *  Infusion
+     *  Projection
      *
      ************************************************************************/
 
+    function getGenericProjectFunction(object) { // this
+        return function () {
+            // Split argumentsp
+            var argumentsList = argumentsToArray(arguments);
+            var functionName = argumentsList.shift();
+            var functionCacher = getFunctionCacher(this, "_projections", functionName, argumentsList);
 
+            if (!functionCacher.cacheRecordExists()) {
+                var cacheRecord = functionCacher.createNewRecord();
+                cacheRecord.idObjectMap;
+                // Never encountered these arguments before, make a new cache
+                cacheRecord.repeaterHandler = repeatOnChange(
+                    function () {
+                        var newlyCrated;
+                        collect(newlyCrated, function() {
+                            cacheRecord.returnValue = object[functionName].apply(this, argumentsList);
+                        });
+                        infuseWithMap(newlyCreated, cacheRecord.idObjectMap);
+                        newlyCreated.forEach(function(newObject) {
+                            if (typeof(newObject.__infusionId) !== 'undefined') {
+                                if (typeof(cacheRecord.idObjectMap[newObject.__infusionId]) === 'undefined') {
+                                    cacheRecord.idObjectMap[newObject.__infusionId] = newObject;
+                                }
+                            }
+                        });
+                    }
+                );
+                registerAnyChangeObserver("functionCache.observers", getMap(cacheRecord, 'observers'));
+                return cacheRecord.returnValue;
+            } else {
+                // Encountered these arguments before, reuse previous repeater
+                var cacheRecord = functionCacher.getExistingRecord();
+                registerAnyChangeObserver("functionCache.observers", getMap(cacheRecord, 'observers'));
+                return cacheRecord.returnValue;
+            }
+        };
+    }
+
+    /************************************************************************
+     *
+     *  Block side effects
+     *
+     ************************************************************************/
+
+    // TODO
+
+    /************************************************************************
+     *
+     *  Module installation
+     *
+     ************************************************************************/
 
     /**
      *  Module installation
