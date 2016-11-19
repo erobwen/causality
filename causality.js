@@ -259,13 +259,12 @@
                                 // console.log("get");
                                 console.log(this);
                             }
-                            var result = target[key]; //  || undefined;
-                            if (typeof(result) === 'undefined') {
-                                registerAnyChangeObserver("_enumerateObservers." + keyString, this._enumerateObservers);
-                            } else {
+                            if (key in target) {
                                 registerAnyChangeObserver("_propertyObservers." + keyString, this._propertyObservers[keyString]);
+                            } else {
+                                registerAnyChangeObserver("_enumerateObservers." + keyString, this._enumerateObservers);
                             }
-                            return result;
+                            return target[key];
                         }
                     }
                 },
