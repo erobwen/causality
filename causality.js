@@ -35,18 +35,22 @@
     // ()	Adds new elements to the beginning of an array, and returns the new length
     // valueOf()	Returns the primitive value of an array
 
-    
-    var mutableArrayFunctions = [
+
+    let mutableArrayFunctions = [
         'copyWithin', 'pop', 'push', 'reverse', 'shift', 'sort', 'splice','unshift', 'fill'
     ];
-    
-    var staticArrayOverrides = {};
 
+    let staticArrayOverrides = {};
+
+    let trace = false;
+    function startTrace() {
+        trace = true;
+    }
 
     mutableArrayFunctions.forEach(function(functionName) {
         staticArrayOverrides[functionName] = function() {
-            var result;
-            var argumentsArray = argumentsToArray(arguments);
+            let result;
+            let argumentsArray = argumentsToArray(arguments);
             nullifyObserverNotification(function() {
                 result = this.target[functionName].apply(this.target, argumentsArray);
             }.bind(this));
@@ -54,33 +58,19 @@
             return result;
         };
     });
-
+    // let common =  {};
     // Helper to quickly get a child object
     function getMap() {
-        var argumentList = argumentsToArray(arguments);
-        var object = argumentList.shift();
-        while (argumentList.length > 0) {
-            var key = argumentList.shift();
-            if (typeof(object[key]) === 'undefined') {
-                object[key] = {};
-            }
-            object = object[key];
+        if (trace) {
+            console.log("getMap");
         }
-        return object;
-    }
-
-    // Helper to quickly get a child array
-    function getArray() {
-        var argumentList = argumentsToArray(arguments);
-        var object = argumentList.shift();
+        let argumentList = argumentsToArray(arguments);
+        let object = argumentList.shift();
+        // console.log(argumentList);
         while (argumentList.length > 0) {
-            var key = argumentList.shift();
+            let key = argumentList.shift();
             if (typeof(object[key]) === 'undefined') {
-                if (argumentList.length === 0) {
-                    object[key] = [];
-                } else {
-                    object[key] = {};
-                }
+                object[key] = {};// common;
             }
             object = object[key];
         }
@@ -97,33 +87,37 @@
         }
     }
 
-    var argumentsToArray = function(arguments) {
+    let argumentsToArray = function(arguments) {
         return Array.prototype.slice.call(arguments);
     };
 
     // Cumulative assignment settings.
-    var cumulativeAssignment = false;
+    let cumulativeAssignment = false;
     function setCumulativeAssignment(value) {
         cumulativeAssignment = value;
     }
 
-    var collecting = [];
+    let collecting = [];
     function collect(array, action) {
         collecting.push(array);
         action();
         collecting.pop();
     }
 
-    var nextId = 1;
-    function create(target) {
-        if (typeof(target) === 'undefined') {
-            target = {};
+    let nextId = 1;
+    function create(targetO) { // let
+        if (trace) {
+            console.log("create");
+        }
+        if (typeof(targetO) === 'undefined') {
+            targetO = {};
         }
 
-        var handler;
-        if (target instanceof Array) {
+        let handler;
+        if (targetO instanceof Array) {
             handler = {
-                target: target,
+                _arrayObservers : {},
+                target: targetO,
 
                 // getPrototypeOf: function (target) {
                 //     return Object.getPrototypeOf(target);
@@ -137,12 +131,15 @@
                 // construct: function () {},
 
                 get: function (target, key) {
+                    if (trace) {
+                        console.log("get " + key);
+                    }
                     if (staticArrayOverrides[key]) {
                         return staticArrayOverrides[key].bind(this);
                     } else if (this.overrides[key]) {
                         return this.overrides[key];
                     } else {
-                        registerAnyChangeObserver("_arrayObservers", getMap(this, "_arrayObservers"));//object
+                        registerAnyChangeObserver("_arrayObservers", this._arrayObservers);//object
                         // console.log("get: " + key.toString() + "result: " + target[key]);
                         return target[key];
                     }
@@ -151,7 +148,7 @@
                 set: function (target, key, value) {
                     // If same value as already set, do nothing.
                     // if (key in target) {
-                    //     var previousValue = target[key];
+                    //     let previousValue = target[key];
                     //     if (previousValue === value || ( typeof(previousValue) === 'number' && isNaN(previousValue) && typeof(value) === 'number' && isNaN(value))) {
                     //         return false;
                     //     }
@@ -163,22 +160,29 @@
                     }
 
                     target[key] = value;
-                    notifyChangeObservers("_arrayObservers", getMap(this, "_arrayObservers"));
+                    notifyChangeObservers("_arrayObservers", this._arrayObservers);
+                    return true;
                 },
 
                 deleteProperty: function (target, key) {
+                    if (trace) {
+                        console.log("delete property" + key);
+                    }
                     if (!(key in target)) {
                         return false;
                     } else {
                         delete target[key];
-                        notifyChangeObservers("_arrayObservers", getMap(this, "_arrayObservers"));
+                        notifyChangeObservers("_arrayObservers", this._arrayObservers);
                         return true;
                     }
                 },
 
-                ownKeys: function (target, key) {
-                    registerAnyChangeObserver("_arrayObservers", getMap(this, "_arrayObservers"));
-                    var result   = Object.keys(target);
+                ownKeys: function (target) {
+                    if (trace) {
+                        console.log("own keys");
+                    }
+                    registerAnyChangeObserver("_arrayObservers", this._arrayObservers);
+                    let result   = Object.keys(target);
                     if ((target instanceof Array)) {
                         result.push('length');
                     }
@@ -186,68 +190,94 @@
                 },
 
                 has: function (target, key) {
-                    registerAnyChangeObserver("_arrayObservers", getMap(this, "_arrayObservers"));
+                    registerAnyChangeObserver("_arrayObservers", this._arrayObservers);
                     return key in target;
                 },
 
                 defineProperty: function (target, key, oDesc) {
-                    notifyChangeObservers("_arrayObservers", getMap(this, "_arrayObservers"));
+                    if (trace) {
+                        console.log("define");
+                    }
+                    notifyChangeObservers("_arrayObservers", this._arrayObservers);
                     return target;
                 },
 
                 getOwnPropertyDescriptor: function (target, key) {
-                    registerAnyChangeObserver("_arrayObservers", getMap(this, "_arrayObservers"));
+                    registerAnyChangeObserver("_arrayObservers", this._arrayObservers);
                     return Object.getOwnPropertyDescriptor(target, key);
                 }
             };
         } else {
-            var handler = {
-                id: nextId++,
-                repeat :  getGenericRepeatFunction(target),
-                cached : getGenericCallAndCacheFunction(target),
-                replaceWith : getGenericReplacer(target),
-
-                getPrototypeOf: function (target) {
-                    return Object.getPrototypeOf(target);
-                },
-
-                setPrototypeOf: function (target, prototype) {
-                    Object.setPrototypeOf(target, prototype);
-                },
-
-                isExtensible: function () {
-                },
-
-                preventExtensions: function () {
-                },
-
-                apply: function () {
-                    // if (typeof(target) === 'Array') {
-                    //
-                    // }
-                },
-
-                construct: function () {
-                },
+            let _propertyObservers = {};
+            for (property in targetO) {
+                _propertyObservers[property] = {};
+            }
+            handler = {
+                // getPrototypeOf: function (target) {
+                //     return Object.getPrototypeOf(target);
+                // },
+                //
+                // setPrototypeOf: function (target, prototype) {
+                //     Object.setPrototypeOf(target, prototype);
+                // },
+                //
+                // isExtensible: function () {
+                // },
+                //
+                // preventExtensions: function () {
+                // },
+                //
+                // apply: function () {
+                //     // if (typeof(target) === 'Array') {
+                //     //
+                //     // }
+                // },
+                //
+                // construct: function () {
+                // },
+                _enumerateObservers : {},
+                _propertyObservers: _propertyObservers,
 
                 get: function (target, key) {
-                    if (key === '__id') {
-                        return this.__id;
-                    } else if (key === 'cached') {
-                        return this.cached;
+                    if (trace) {
+                        console.log("get");
+                        console.log(this);
+                    }
+                    if (this.overrides[key]) {
+                        return this.overrides[key];
                     } else {
                         if (typeof(key) !== 'undefined') {
-                            registerAnyChangeObserver("_propertyObservers." + key.toString(), getMap(this, "_propertyObservers", key.toString()));
-                            return target[key]; //  || undefined;
+                            let keyString = key.toString();
+                            // console.log("getting " +  keyString);
+                            // console.log(this._propertyObservers[keyString]);
+                            if (typeof(this._propertyObservers[keyString]) ===  'undefined') {
+                                this._propertyObservers[keyString] = {};
+                            }
+                            this._propertyObservers[keyString].beta = true;
+                            // console.log(this._propertyObservers[keyString]);
+                            if (trace) {
+                                // console.log("get");
+                                console.log(this);
+                            }
+                            var result = target[key]; //  || undefined;
+                            if (typeof(result) === 'undefined') {
+                                registerAnyChangeObserver("_enumerateObservers." + keyString, this._enumerateObservers);
+                            } else {
+                                registerAnyChangeObserver("_propertyObservers." + keyString, this._propertyObservers[keyString]);
+                            }
+                            return result;
                         }
                     }
                 },
 
                 set: function (target, key, value) {
+                    if (trace) {
+                        console.log("set");
+                    }
                     // console.log(typeof(value));
                     // If same value as already set, do nothing.
                     if (key in target) {
-                        var previousValue = target[key];
+                        let previousValue = target[key];
                         if (previousValue === value || ( typeof(previousValue) === 'number' && isNaN(previousValue) && typeof(value) === 'number' && isNaN(value))) {
                             // console.log(typeof(previousValue));
                             // console.log(isNaN(previousValue));
@@ -265,13 +295,17 @@
 
                     // console.log('Set key: ' + key + " = " + value);
                     // console.log('Old value: ' + target[key]);
-                    var undefinedKey = !(key in target);
+                    let undefinedKey = !(key in target);
                     target[key]      = value;
                     postponeObserverNotification(function() {
+                        // console.log("set " + key);
+                        // console.log(value);
+                        // console.log(this._propertyObservers[key]);
                         if (undefinedKey) {
-                            notifyChangeObservers("_enumerateObservers", getMap(this, "_enumerateObservers"));
+                            notifyChangeObservers("_enumerateObservers", this._enumerateObservers);
+                        } else {
+                            notifyChangeObservers("_propertyObservers." + key, this._propertyObservers[key]);
                         }
-                        notifyChangeObservers("_propertyObservers." + key, getMap(this, "_propertyObservers", key));
                     }.bind(this));
                     return true;
                 },
@@ -281,42 +315,42 @@
                         return false;
                     } else {
                         delete target[key];
-                        notifyChangeObservers("_enumerateObservers", getMap(this, "_enumerateObservers"));
+                        notifyChangeObservers("_enumerateObservers", this._enumerateObservers);
                         return true;
                     }
                 },
 
                 ownKeys: function (target, key) { // Not inherited?
-                    registerAnyChangeObserver("_enumerateObservers", getMap(this, "_enumerateObservers"));
+                    registerAnyChangeObserver("_enumerateObservers", this._enumerateObservers);
                     return Object.keys(target);
                 },
 
                 has: function (target, key) {
-                    registerAnyChangeObserver("_enumerateObservers", getMap(this, "_enumerateObservers"));
+                    registerAnyChangeObserver("_enumerateObservers", this._enumerateObservers);
                     return key in target;
                 },
 
                 defineProperty: function (target, key, oDesc) {
-                    notifyChangeObservers("_enumerateObservers", getMap(this, "_enumerateObservers"));
+                    notifyChangeObservers("_enumerateObservers", this._enumerateObservers);
                     return target;
                 },
 
                 getOwnPropertyDescriptor: function (target, key) {
-                    registerAnyChangeObserver("_enumerateObservers", getMap(this, "_enumerateObservers"));
+                    registerAnyChangeObserver("_enumerateObservers", this._enumerateObservers);
                     return Object.getOwnPropertyDescriptor(target, key);
                 }
             };
         }
 
-        var proxy = new Proxy(target, handler);
+        let proxy = new Proxy(targetO, handler);
         handler.overrides = {
             __id: nextId++,
-            __target: target,
+            __target: targetO,
             // Consider: generic upon change do?
             repeat :  getGenericRepeatFunction(proxy),
             cached : getGenericCallAndCacheFunction(proxy),
-            replaceWith : getGenericReplacer(proxy)
-            // project: getGenericProjectFunction(target) //TODO
+            replaceWith : getGenericReplacer(proxy),
+            project: getGenericProjectFunction(proxy) //TODO
         };
 
         // Collect newly created
@@ -328,7 +362,7 @@
 
 
 
-    var c = create;
+    let c = create;
 
     /**********************************
      *  Dependency recording
@@ -337,15 +371,18 @@
      **********************************/
 
         // Recorder stack
-    var activeRecorders = [];
+    let activeRecorders = [];
 
-    var recorderId = 0;
+    let recorderId = 0;
 
     function uponChangeDo() { // description(optional), doFirst, doAfterChange. doAfterChange cannot modify model, if needed, use a repeater instead. (for guaranteed consistency)
+        if (trace) {
+            console.log("upon change do");
+        }
         // Arguments
-        var doFirst;
-        var doAfterChange;
-        var description = null;
+        let doFirst;
+        let doAfterChange;
+        let description = null;
         if (arguments.length > 2) {
             description   = arguments[0];
             doFirst       = arguments[1];
@@ -356,7 +393,7 @@
         }
 
         // Recorder structure
-        var recorder = {
+        let recorder = {
             nextToNotify: null,
             id: recorderId++,
             description: description,
@@ -366,14 +403,14 @@
 
         // Start recording, do first action then stop recording.
         activeRecorders.push(recorder);
-        var returnValue = doFirst();
+        let returnValue = doFirst();
         activeRecorders.pop();
 
         return returnValue;
     }
 
 
-    var recordingPaused = 0;
+    let recordingPaused = 0;
 
     function withoutRecording(action) {
         recordingPaused++;
@@ -381,49 +418,71 @@
         recordingPaused--;
     }
 
-    var sourcesObserverSetChunkSize = 5000;
-    // var counter = 0;
+    let sourcesObserverSetChunkSize = 500;
+    // let counter = 0; function
     function registerAnyChangeObserver(description, observerSet) { // instance can be a cached method if observing its return value, object & definition only needed for debugging.
-        // console.log("registerAnyChangeObserver: " + description);
-        if (activeRecorders.length > 0 && recordingPaused === 0) {
-            var activeRecorder = activeRecorders[activeRecorders.length - 1];
-            var recorderId = activeRecorder.id;
+        if (trace) {
+            console.log("registerAnyChangeObserver: " + description);
+        }
+        // console.log(activeRecorders.length);
+        if (typeof(observerSet.initialized) === 'undefined') {
+            // console.log("initialize observer set");
+            observerSet.isRoot = true;
+            observerSet.contents = {};
+            observerSet.contentsCounter = 0;
+            observerSet.initialized = true;
+            observerSet.first = null;
+            observerSet.last = null;
+        } else {
+            // console.log("reused observer set");
+        }
 
-            setIfNotDefined(observerSet, "contentsCounter", 0);
-            if (typeof(getMap(observerSet, 'contents')[recorderId]) !== 'undefined') {
+        if (activeRecorders.length > 0 && recordingPaused === 0) {
+            let activeRecorder = activeRecorders[activeRecorders.length - 1];
+            let recorderId = activeRecorder.id;
+
+            if (typeof(observerSet.contents[recorderId]) !== 'undefined') {
                 return;
             }
 
-            // console.log(observerSet);
-            if (observerSet.contentsCounter === sourcesObserverSetChunkSize && typeof(observerSet.last) !== 'undefined') {
+            // console.log(observerSet.contentsCounter);
+            if (observerSet.contentsCounter === sourcesObserverSetChunkSize && observerSet.last !== null) {
                 // console.log("Going down!");
                 observerSet = observerSet.last;
-                if (typeof(getMap(observerSet, 'contents')[recorderId]) !== 'undefined') {
+                if (typeof(observerSet.contents[recorderId]) !== 'undefined') {
                     return;
                 }
             }
             if (observerSet.contentsCounter === sourcesObserverSetChunkSize) {
                 // console.log("New chunk");
-                var newChunk = { next: null, previous: null, parent: null, contentsCounter: 0};
-                if (isDefined(observerSet, 'parent')) {
-                    // console.log("New sibling");
-                    observerSet.next = newChunk;
-                    newChunk.previous = observerSet;
-                    newChunk.parent = observerSet.parent;
-                    observerSet.parent.last = newChunk;
-                } else {
+                let newChunk =
+                    {
+                        isRoot : false,
+                        contents: {},
+                        contentsCounter: 0,
+                        next: null,
+                        previous: null,
+                        parent: null
+                    };
+                if (observerSet.isRoot) {
                     // console.log("Create a child");
                     // console.log();
                     newChunk.parent = observerSet;
                     observerSet.first = newChunk;
                     observerSet.last = newChunk;
+                } else {
+                    // console.log("New sibling");
+                    observerSet.next = newChunk;
+                    newChunk.previous = observerSet;
+                    newChunk.parent = observerSet.parent;
+                    observerSet.parent.last = newChunk;
                 }
                 observerSet = newChunk;
             }
 
 
             // Add repeater on object beeing observed, if not already added before
-            var observerSetContents = getMap(observerSet, 'contents');
+            let observerSetContents = observerSet.contents;
             if (typeof(observerSetContents[recorderId]) === 'undefined') {
                 // counter++;
                 // console.log("  ---  really registerAnyChangeObserver: " + description);
@@ -434,6 +493,7 @@
                 observerSetContents[recorderId] = activeRecorder;
 
                 // Note dependency in repeater itself (for cleaning up)
+                // console.log("pushing source to source array of length " + activeRecorder.sources.length);
                 activeRecorder.sources.push(observerSet);
             }
         }
@@ -444,17 +504,17 @@
      *  Upon change
      * -------------- */
 
-    var observersToNotifyChange = [];
-    var nextObserverToNotifyChange = null;
-    var lastObserverToNotifyChange = null;
+    let observersToNotifyChange = [];
+    let nextObserverToNotifyChange = null;
+    let lastObserverToNotifyChange = null;
 
-    var observerNotificationPostponed = 0;
-    var observerNotificationNullified = 0;
+    let observerNotificationPostponed = 0;
+    let observerNotificationNullified = 0;
 
     function proceedWithPostponedNotifications() {
         if (observerNotificationPostponed == 0) {
             while (nextObserverToNotifyChange !== null) {
-                var recorder = nextObserverToNotifyChange;
+                let recorder = nextObserverToNotifyChange;
                 nextObserverToNotifyChange = nextObserverToNotifyChange.nextToNotify;
                 // blockSideEffects(function() {
                 recorder.uponChangeAction();
@@ -477,26 +537,29 @@
         proceedWithPostponedNotifications();
     }
 
-    var transaction = postponeObserverNotification;
+    let transaction = postponeObserverNotification;
 
 
 // Recorders is a map from id => recorder
     function notifyChangeObservers(description, observers) {
+        // if (trace) {
+        //     console.log("notifyChangeObservers:" + description);
         // transaction(function() {
+        // }
         if (observerNotificationNullified > 0) {
             return;
         }
-        // console.log("notifyChangeObservers:" + description);
+
         // console.log(observers);
-        let contents = getMap(observers, 'contents');
+        let contents = observers.contents;
         for (id in contents) {
             notifyChangeObserver(contents[id]);
         }
 
         if (typeof(observers.first) !== 'undefined') {
-            var chainedObserverChunk = observers.first;
+            let chainedObserverChunk = observers.first;
             while(chainedObserverChunk !== null) {
-                let contents = getMap(chainedObserverChunk, 'contents');
+                let contents = chainedObserverChunk.contents;
                 for (id in contents) {
                     notifyChangeObserver(contents[id]);
                 }
@@ -528,7 +591,9 @@
 
 
     function removeObservation(recorder) {
-        // console.log("---removeFromObservation: " + recorder.id + "." + recorder.description);
+        if (trace) {
+            console.log("removeFromObservation: " + recorder.id + "." + recorder.description);
+        }
         if (recorder.id == 1) {
             // debugger;
         }
@@ -538,7 +603,7 @@
         recorder.sources.forEach(function (observerSet) { // From observed object
             // console.log("Removing a source");
             // console.log(observerSet[recorder.id]);
-            var observerSetContents = getMap(observerSet, 'contents');
+            let observerSetContents = getMap(observerSet, 'contents');
             delete observerSetContents[recorder.id];
             observerSet.contentsCounter--;
             // console.log(observerSet.contentsCounter);
@@ -579,18 +644,29 @@
 
 
 // Debugging
-// var allRepeaters = [];
+// let allRepeaters = [];
 
-    var dirtyRepeaters = [];
+    let dirtyRepeaters = [];
 
 // Repeater stack
-    var activeRepeaters = [];
-    var repeaterId      = 0;
+    let activeRepeaters = [];
+
+    function clearRepeaterLists() {
+        recorderId = 0;
+        dirtyRepeaters = [];
+        activeRepeaters = [];
+    }
+
+    let repeaterId      = 0;
 
     function repeatOnChange() { // description(optional), action
+        if (trace) {
+            console.log("repeatonchange");
+        }
+
         // Arguments
-        var repeaterAction;
-        var description = '';
+        let repeaterAction;
+        let description = '';
         if (arguments.length > 1) {
             description    = arguments[0];
             repeaterAction = arguments[1];
@@ -598,7 +674,7 @@
             repeaterAction = arguments[0];
         }
 
-        var repeater = {
+        let repeater = {
             id: repeaterId++,
             description: description,
             childRepeaters: [],
@@ -608,7 +684,7 @@
 
         // Attatch to parent repeater.
         if (activeRepeaters.length > 0) {
-            var parentRepeater = lastOfArray(activeRepeaters);
+            let parentRepeater = lastOfArray(activeRepeaters);
             parentRepeater.childRepeaters.push(repeater);
         }
 
@@ -619,6 +695,9 @@
     }
 
     function refreshRepeater(repeater) {
+        if (trace) {
+            console.log("refresh repeater");
+        }
         activeRepeaters.push(repeater);
         repeater.removed     = false;
         repeater.returnValue = uponChangeDo(
@@ -654,7 +733,7 @@
 
     function removeFromArray(object, array) {
         // console.log(object);
-        for (var i = 0; i < array.length; i++) {
+        for (let i = 0; i < array.length; i++) {
             // console.log("Searching!");
             // console.log(array[i]);
             if (array[i] === object) {
@@ -680,14 +759,14 @@
     }
 
 
-    var refreshingAllDirtyRepeaters = false;
+    let refreshingAllDirtyRepeaters = false;
 
     function refreshAllDirtyRepeaters() {
         if (!refreshingAllDirtyRepeaters) {
             if (dirtyRepeaters.length > 0) {
                 refreshingAllDirtyRepeaters = true;
                 while (dirtyRepeaters.length > 0) {
-                    var repeater = dirtyRepeaters.pop();
+                    let repeater = dirtyRepeaters.pop();
                     refreshRepeater(repeater);
                 }
 
@@ -725,9 +804,9 @@
      *          (reused by cache, repeat and project)
      ************************************************************************/
 
-    function argumentsToArray(arguments) {
-        return Array.prototype.slice.call(arguments);
-    }
+    // function argumentsToArray(arguments) {
+    //     return Array.prototype.slice.call(arguments);
+    // }
 
     function compareArraysShallow(a, b) {
         if (a.length === b.length) {
@@ -789,6 +868,7 @@
 
         var argumentsHash = makeArgumentHash(functionArguments);
         var functionCaches = getMap(object, cacheStoreName, functionName);
+        // console.log(functionCaches);
         var functionCache = null;
 
         // console.log(argumentsHash);
@@ -881,24 +961,25 @@
                     function () {
                         // Delete function cache and notify
                         var cacheRecord = functionCacher.deleteExistingRecord();
-                        notifyChangeObservers("functionCache.observers", getMap(cacheRecord, 'observers'));
+                        notifyChangeObservers("functionCache.observers", cacheRecord.observers);
                     }.bind(this));
                 var cacheRecord = functionCacher.createNewRecord();
                 cacheRecord.returnValue = returnValue;
-                registerAnyChangeObserver("functionCache.observers", getMap(cacheRecord, 'observers'));
+                cacheRecord.observers = {};
+                registerAnyChangeObserver("functionCache.observers", cacheRecord.observers);
                 return returnValue;
             } else {
                 // Encountered these arguments before, reuse previous repeater
                 var cacheRecord = functionCacher.getExistingRecord();
-                registerAnyChangeObserver("functionCache.observers", getMap(cacheRecord, 'observers'));
+                registerAnyChangeObserver("functionCache.observers", cacheRecord.observers);
                 return cacheRecord.returnValue;
             }
         };
     }
 
     /************************************************************************
-     * 
-     *  Splices
+     *
+     *  Splices // getMap
      *
      ************************************************************************/
 
@@ -1002,7 +1083,7 @@
     }
 
     function infuseCoArrays(sources, targets) {
-        
+
         // Setup id target map and ids.
         var index = 0;
         idTargetMap = {};
@@ -1033,11 +1114,11 @@
         var index = 0;
         while (index < sources.length) {
             let source = sources[index];
-            if (typeof(idTargetMap[source.__infusionId]) !== 'undefined') {
+            if (typeof(source.__infusionId) !== 'undefined' && typeof(idTargetMap[source.__infusionId]) !== 'undefined') {
                 let target = idTargetMap[source.__infusionId];
                 var sourceWithoutProxy = source.__target;
                 if (sourceWithoutProxy instanceof Array) {
-                     let splices = differentialSplices(target.__target, sourceWithoutProxy); // let arrayIndex = 0;
+                    let splices = differentialSplices(target.__target, sourceWithoutProxy); // let arrayIndex = 0;
                     splices.forEach(function(splice) {
                         target.splice(splice.index, splice.removed.length, splice.added.map(mapValue));
                     });
@@ -1053,7 +1134,7 @@
 
     /************************************************************************
      *
-     *  Projection
+     *  Projection (continous creation and infusion)
      *
      ************************************************************************/
 
@@ -1065,15 +1146,19 @@
             var functionCacher = getFunctionCacher(this, "_projections", functionName, argumentsList);
 
             if (!functionCacher.cacheRecordExists()) {
-                var cacheRecord = functionCacher.createNewRecord();
-                cacheRecord.idObjectMap;
+                let cacheRecord = functionCacher.createNewRecord();
+                cacheRecord.idObjectMap = {};
+
                 // Never encountered these arguments before, make a new cache
                 cacheRecord.repeaterHandler = repeatOnChange(
                     function () {
                         var newlyCrated;
+                        var returnValue;
                         collect(newlyCrated, function() {
-                            cacheRecord.returnValue = object[functionName].apply(this, argumentsList);
+                            returnValue = object[functionName].apply(this, argumentsList);
                         });
+
+                        // Infuse everything created during repetition.
                         infuseWithMap(newlyCreated, cacheRecord.idObjectMap);
                         newlyCreated.forEach(function(newObject) {
                             if (typeof(newObject.__infusionId) !== 'undefined') {
@@ -1082,14 +1167,27 @@
                                 }
                             }
                         });
+
+                        // Replace return value with infused one (if object)
+                        if (typeof(returnValue) === 'object' && typeof(object.__infusionId) !== 'undefined') {
+                            if (typeof(cacheRecord.idObjectMap[object.__infusionId]) !== 'undefined') {
+                                returnValue = cacheRecord.idObjectMap[object.__infusionId];
+                            }
+                        }
+
+                        // See if we need to trigger event on return value
+                        if (returnValue !== cacheRecord.returnValue) {
+                            notifyChangeObservers("functionCache.returnValueObservers", getMap(cacheRecord, 'returnValueObservers'));
+                            cacheRecord.returnValue = returnValue;
+                        }
                     }
                 );
-                registerAnyChangeObserver("functionCache.observers", getMap(cacheRecord, 'observers'));
+                registerAnyChangeObserver("functionCache.returnValueObservers", getMap(cacheRecord, 'returnValueObservers'));
                 return cacheRecord.returnValue;
             } else {
                 // Encountered these arguments before, reuse previous repeater
-                var cacheRecord = functionCacher.getExistingRecord();
-                registerAnyChangeObserver("functionCache.observers", getMap(cacheRecord, 'observers'));
+                let cacheRecord = functionCacher.getExistingRecord();
+                registerAnyChangeObserver("functionCache.returnValueObservers", getMap(cacheRecord, 'returnValueObservers'));
                 return cacheRecord.returnValue;
             }
         };
@@ -1117,14 +1215,16 @@
         if (typeof(target) === 'undefined') {
             target = (typeof(global) !== 'undefined') ? global : window;
         }
-        target['repeatOnChange']          = repeatOnChange;
-        target['uponChangeDo']            = uponChangeDo;
         target['create']                  = create;
         target['c']                       = c;
-        target['cachedCallCount']         = cachedCallCount;
+        target['uponChangeDo']            = uponChangeDo;
+        target['repeatOnChange']          = repeatOnChange;
         target['withoutRecording']        = withoutRecording;
         target['transaction']        = transaction;
+        target['clearRepeaterLists'] = clearRepeaterLists;
         target['setCumulativeAssignment'] = setCumulativeAssignment;
+        target['cachedCallCount'] = cachedCallCount;
+        target['startTrace'] = startTrace;
         return target;
     }
 
