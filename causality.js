@@ -446,7 +446,7 @@
             replaceWith : getGenericReplacer(proxy),
             project: getGenericProjectFunction(proxy),
             observe: function(observerFunction) {
-                if (typeof(handler.observers) !== 'undefined') {
+                if (typeof(handler.observers) === 'undefined') {
                     handler.observers = [];
                 }
                 handler.observers.push(observerFunction);

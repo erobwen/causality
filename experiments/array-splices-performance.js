@@ -159,11 +159,12 @@ function observeArraySlices(array, observerFunction) {
 
 var count = 0;
 
-var mylist = observeArraySlices(
-	create([]),
-	function(changes) {
-		count ++;
-	});
+var mylist = create([]);
+mylist.observe(
+    function(event) {
+        count ++;
+    }
+);
 
 console.time("causality");
 while( mylist.length < amount ){
