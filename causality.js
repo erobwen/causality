@@ -243,7 +243,12 @@
                     if (cumulativeAssignment && activeRecorders.length > 0 && (isNaN(value) || typeof(value) === 'undefined')) {
                         return false;
                     }
-
+                    if (!isNaN(key)) {
+                        if (typeof(key) === 'string') {
+                            key = parseInt(key);
+                        }
+                        this.emitEvent({ type: 'splice', index: key, removed: [target[key]], added: [value] });
+                    }
                     target[key] = value;
                     notifyChangeObservers("_arrayObservers", this._arrayObservers);
                     return true;
