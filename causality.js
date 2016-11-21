@@ -380,6 +380,7 @@
                     // console.log('Set key: ' + key + " = " + value);
                     // console.log('Old value: ' + target[key]);
                     let undefinedKey = !(key in target);
+                    let previousValue = target[key]
                     target[key]      = value;
                     postponeObserverNotification(function() {
                         // console.log("set " + key);
@@ -391,6 +392,7 @@
                             notifyChangeObservers("_propertyObservers." + key, this._propertyObservers[key]);
                         }
                     }.bind(this));
+                    this.emitEvent({type: 'set', newValue: value, oldValue: previousValue})
                     return true;
                 },
 
@@ -428,6 +430,7 @@
 
         let proxy = new Proxy(createdTarget, handler);
         handler.emitEvent = function(event) {
+            // console.log(event);
             if (typeof(handler.observers) !== 'undefined') {
                 handler.observers.forEach(function(observerFunction) {
                     observerFunction(event);
