@@ -40,24 +40,113 @@
         'copyWithin', 'pop', 'push', 'reverse', 'shift', 'sort', 'splice','unshift', 'fill'
     ];
 
-    let staticArrayOverrides = {};
+    let staticArrayOverrides = {
+        pop : function() {
+            let result;
+            let index = this.target.length - 1;
+            nullifyObserverNotification(function() {
+                result = this.target.pop();
+            }.bind(this));
+            notifyChangeObservers("_arrayObservers", this._arrayObservers);
+            this.emitEvent({type: 'splice', index: index, removed: [result], added: null});
+            return result;
+        },
+
+        push : function() {
+            let index = this.target.length;
+            let argumentsArray = argumentsToArray(arguments);
+            nullifyObserverNotification(function() {
+                this.target.push.apply(this.target, argumentsArray);
+            }.bind(this));
+            notifyChangeObservers("_arrayObservers", this._arrayObservers);
+            this.emitEvent({type: 'splice', index: index, removed: [], added: argumentsArray});
+            return this.target.length;
+        },
+
+        shift : function() {
+            let result;
+            nullifyObserverNotification(function() {
+                result = this.target.shift();
+            }.bind(this));
+            notifyChangeObservers("_arrayObservers", this._arrayObservers);
+            this.emitEvent({type: 'splice', index: 0, removed: [result], added: null});
+            return result;
+
+        },
+
+        unshift : function() {
+            let index = this.target.length;
+            let argumentsArray = argumentsToArray(arguments);
+            nullifyObserverNotification(function() {
+                this.target.unshift.apply(this.target, argumentsArray);
+            }.bind(this));
+            notifyChangeObservers("_arrayObservers", this._arrayObservers);
+            this.emitEvent({type: 'splice', index: 0, removed: [], added: argumentsArray});
+            return this.target.length;
+        },
+
+        splice : function() {
+            let argumentsArray = argumentsToArray(arguments);
+            let index = argumentsArray[0];
+            let removedCount = argumentsArray[1];
+            let added = argumentsArray.slice(2);
+            let removed = this.target.slice(index, index + removedCount);
+            let result;
+            // console.log(argumentsArray);
+            nullifyObserverNotification(function() {
+                result = this.target.splice.apply(this.target, argumentsArray);
+            }.bind(this));
+            notifyChangeObservers("_arrayObservers", this._arrayObservers);
+            this.emitEvent({type: 'splice', index: index, removed: removed, added: added});
+            return result; // equivalent to removed
+        },
+
+        copyWithin: function(target, start, end) {
+            if (target < 0) { start = this.target.length - target; }
+            if (start < 0) { start = this.target.length - start; }
+            if (end < 0) { start = this.target.length - end; }
+            end = Math.min(end, this.target.length);
+            start = Math.min(start, this.target.length);
+            if (start >= end) {
+                return;
+            }
+            let removed = this.target.slice(index, index + end - start);
+            let added = this.target.slice(start, end);
+
+            let result;
+            nullifyObserverNotification(function() {
+                result = this.target.copyWithin(target, start, end);
+            }.bind(this));
+            notifyChangeObservers("_arrayObservers", this._arrayObservers);
+
+            this.emitEvent({action: 'splice', index: target, added: added, removed: removed});
+            return result;
+        }
+    };
+
+    ['reverse', 'sort', 'fill'].forEach(function(functionName) {
+        staticArrayOverrides[functionName] = function() {
+            let argumentsArray = argumentsToArray(arguments);
+            let removed = this.target.slice(0);
+
+            let result;
+            nullifyObserverNotification(function() {
+                result = this.target[functionName].apply(this.target, argumentsArray);
+            }.bind(this));
+            notifyChangeObservers("_arrayObservers", getMap(this, "_arrayObservers"));
+            this.emitEvent({type: 'splice', index: 0, removed: removed, added: this.target.slice(0)});
+            return result;
+        };
+    });
+
 
     let trace = false;
     function startTrace() {
         trace = true;
     }
+    
 
-    mutableArrayFunctions.forEach(function(functionName) {
-        staticArrayOverrides[functionName] = function() {
-            let result;
-            let argumentsArray = argumentsToArray(arguments);
-            nullifyObserverNotification(function() {
-                result = this.target[functionName].apply(this.target, argumentsArray);
-            }.bind(this));
-            notifyChangeObservers("_arrayObservers", getMap(this, "_arrayObservers"));
-            return result;
-        };
-    });
+
     // let common =  {};
     // Helper to quickly get a child object
     function getMap() {
@@ -105,26 +194,22 @@
     }
 
     let nextId = 1;
-    function create(targetO) { // let
+    function create(createdTarget) { // let
         if (trace) {
             console.log("create");
         }
-        if (typeof(targetO) === 'undefined') {
-            targetO = {};
+        if (typeof(createdTarget) === 'undefined') {
+            createdTarget = {};
         }
 
         let handler;
-        if (targetO instanceof Array) {
+        if (createdTarget instanceof Array) {
             handler = {
                 _arrayObservers : {},
-                target: targetO,
+                target: createdTarget,
 
-                // getPrototypeOf: function (target) {
-                //     return Object.getPrototypeOf(target);
-                // },
-                // setPrototypeOf: function (target, prototype) {
-                //     Object.setPrototypeOf(target, prototype);
-                // },
+                // getPrototypeOf: function () {},
+                // setPrototypeOf: function () {},
                 // isExtensible: function () {},
                 // preventExtensions: function () {},
                 // apply: function () {},
@@ -209,7 +294,7 @@
             };
         } else {
             let _propertyObservers = {};
-            for (property in targetO) {
+            for (property in createdTarget) {
                 _propertyObservers[property] = {};
             }
             handler = {
@@ -341,15 +426,31 @@
             };
         }
 
-        let proxy = new Proxy(targetO, handler);
+        let proxy = new Proxy(createdTarget, handler);
+        handler.emitEvent = function(event) {
+            if (typeof(handler.observers) !== 'undefined') {
+                handler.observers.forEach(function(observerFunction) {
+                    observerFunction(event);
+                });
+            }
+        };
         handler.overrides = {
             __id: nextId++,
-            __target: targetO,
+            __target: createdTarget,
             // Consider: generic upon change do?
             repeat :  getGenericRepeatFunction(proxy),
             cached : getGenericCallAndCacheFunction(proxy),
             replaceWith : getGenericReplacer(proxy),
-            project: getGenericProjectFunction(proxy) //TODO
+            project: getGenericProjectFunction(proxy),
+            observe: function(observerFunction) {
+                if (typeof(handler.observers) !== 'undefined') {
+                    handler.observers = [];
+                }
+                handler.observers.push(observerFunction);
+                // return function() {
+                //     th
+                // }
+            }
         };
 
         // Collect newly created

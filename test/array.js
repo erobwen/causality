@@ -72,7 +72,7 @@ describe("arrays", function () {
 
         assert.deepEqual(Object.keys(a), ['0', '1', '2']);
 
-			assert( Array.isArray( a ) );
+        assert( Array.isArray( a ) );
 			
     });
 
