@@ -450,11 +450,11 @@
             cached : getGenericCallAndCacheFunction(handler),
             cachedInCache : function() { // Only cache if within another cached call.
                 let argumentsArray = argumentsToArray(arguments);
-                let removed = this.target.slice(0);
-
-                if (inCachedCall) {
+                if (inCachedCall > 0) {
+                    // console.log("cached call");
                     return this.cached.apply(this, argumentsArray);
                 } else {
+                    // console.log("normal call");
                     let functionName = argumentsArray.shift();
                     return this[functionName].apply(this, argumentsArray);
                 }
@@ -1058,22 +1058,26 @@
      * (even if the parent does not actually use/read any return value)
      ************************************************************************/
 
+    var inCachedCall = 0;
+
     function getGenericCallAndCacheFunction(handler) { // this
         return function () {
             // Split arguments
             var argumentsList = argumentsToArray(arguments);
             var functionName = argumentsList.shift();
-            var functionCacher = getFunctionCacher(this, "_cachedCalls", functionName, argumentsList);
+            var functionCacher = getFunctionCacher(handler, "_cachedCalls", functionName, argumentsList); // wierd, does not work with this inestead of handler...
 
             if (!functionCacher.cacheRecordExists()) {
                 cachedCalls++;
-
+                // console.log(functionName);
                 // Never encountered these arguments before, make a new cache
                 var returnValue = uponChangeDo(
                     function () {
                         var returnValue;
                         // blockSideEffects(function() {
+                        inCachedCall++;
                         returnValue = this[functionName].apply(this, argumentsList);
+                        inCachedCall--;
                         // }.bind(this));
                         return returnValue;
                     }.bind(this),
