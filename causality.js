@@ -1209,7 +1209,7 @@
         while (index < sources.length) {
             sources[index].__infusionId = index;
             targets[index].__infusionId = index;
-            idTargetMap[index] = target[index];
+            idTargetMap[index] = targets[index];
             index++;
         }
 
@@ -1247,6 +1247,7 @@
                     }
                 }
             }
+            index++;
         }
     }
 
@@ -1344,6 +1345,7 @@
         target['setCumulativeAssignment'] = setCumulativeAssignment;
         target['cachedCallCount'] = cachedCallCount;
         target['startTrace'] = startTrace;
+        target['infuseCoArrays'] = infuseCoArrays;
         return target;
     }
 
