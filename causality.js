@@ -446,10 +446,21 @@
             __id: nextId++,
             __target: createdTarget,
             // Consider: generic upon change do?
-            repeat :  getGenericRepeatFunction(proxy),
-            cached : getGenericCallAndCacheFunction(proxy),
-            replaceWith : getGenericReplacer(proxy),
-            project: getGenericProjectFunction(proxy),
+            repeat :  getGenericRepeatFunction(handler),
+            cached : getGenericCallAndCacheFunction(handler),
+            cachedInCache : function() { // Only cache if within another cached call.
+                let argumentsArray = argumentsToArray(arguments);
+                let removed = this.target.slice(0);
+
+                if (inCachedCall) {
+                    return this.cached.apply(this, argumentsArray);
+                } else {
+                    let functionName = argumentsArray.shift();
+                    return this[functionName].apply(this, argumentsArray);
+                }
+            },
+            replaceWith : getGenericReplacer(handler),
+            project: getGenericProjectFunction(handler),
             observe: function(observerFunction) {
                 if (typeof(handler.observers) === 'undefined') {
                     handler.observers = [];
@@ -884,7 +895,7 @@
     }
 
 
-    function getGenericRepeatFunction(object) { // this
+    function getGenericRepeatFunction(handler) {
         return function () {
             // Split arguments
             var argumentsList = argumentsToArray(arguments);
@@ -895,7 +906,7 @@
                 // Never encountered these arguments before, make a new cache
                 var cacheRecord = functionCacher.createNewRecord();
                 cacheRecord.repeaterHandle = repeatOnChange(function() {
-                    returnValue = object[functionName].apply(this, argumentsList);
+                    returnValue = this[functionName].apply(this, argumentsList);
                 });
                 return cacheRecord.repeaterHandle;
             } else {
@@ -1047,7 +1058,7 @@
      * (even if the parent does not actually use/read any return value)
      ************************************************************************/
 
-    function getGenericCallAndCacheFunction(object) { // this
+    function getGenericCallAndCacheFunction(handler) { // this
         return function () {
             // Split arguments
             var argumentsList = argumentsToArray(arguments);
@@ -1062,7 +1073,7 @@
                     function () {
                         var returnValue;
                         // blockSideEffects(function() {
-                        returnValue = object[functionName].apply(this, argumentsList);
+                        returnValue = this[functionName].apply(this, argumentsList);
                         // }.bind(this));
                         return returnValue;
                     }.bind(this),
@@ -1184,9 +1195,9 @@
      *
      ************************************************************************/
 
-    function getGenericReplacer(object) { // this
+    function getGenericReplacer(handler) { // this
         return function(otherObject) {
-            infuseCoArrays([otherObject], [object]);
+            infuseCoArrays([otherObject], [this]);
         }
     }
 
@@ -1246,7 +1257,7 @@
      *
      ************************************************************************/
 
-    function getGenericProjectFunction(object) { // this
+    function getGenericProjectFunction(handler) { // this
         return function () {
             // Split argumentsp
             var argumentsList = argumentsToArray(arguments);
@@ -1263,7 +1274,7 @@
                         var newlyCrated;
                         var returnValue;
                         collect(newlyCrated, function() {
-                            returnValue = object[functionName].apply(this, argumentsList);
+                            returnValue = this[functionName].apply(this, argumentsList);
                         });
 
                         // Infuse everything created during repetition.
@@ -1277,9 +1288,9 @@
                         });
 
                         // Replace return value with infused one (if object)
-                        if (typeof(returnValue) === 'object' && typeof(object.__infusionId) !== 'undefined') {
-                            if (typeof(cacheRecord.idObjectMap[object.__infusionId]) !== 'undefined') {
-                                returnValue = cacheRecord.idObjectMap[object.__infusionId];
+                        if (typeof(returnValue) === 'object' && typeof(this.__infusionId) !== 'undefined') {
+                            if (typeof(cacheRecord.idObjectMap[this.__infusionId]) !== 'undefined') {
+                                returnValue = cacheRecord.idObjectMap[this.__infusionId];
                             }
                         }
 
