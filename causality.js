@@ -372,9 +372,8 @@
         return proxy;
     }
 
-
-
     let c = create;
+
 
     /**********************************
      *  Dependency recording
@@ -382,7 +381,7 @@
      *  Upon change do
      **********************************/
 
-        // Recorder stack
+    // Recorder stack
     let activeRecorders = [];
 
     let recorderId = 0;
@@ -418,7 +417,6 @@
         return returnValue;
     }
 
-
     let recordingPaused = 0;
 
     function withoutRecording(action) {
@@ -453,7 +451,6 @@
                 }
             }
             if (observerSet.contentsCounter === sourcesObserverSetChunkSize) {
-                // console.log("New chunk");
                 let newChunk =
                     {
                         isRoot : false,
@@ -464,13 +461,10 @@
                         parent: null
                     };
                 if (observerSet.isRoot) {
-                    // console.log("Create a child");
-                    // console.log();
                     newChunk.parent = observerSet;
                     observerSet.first = newChunk;
                     observerSet.last = newChunk;
                 } else {
-                    // console.log("New sibling");
                     observerSet.next = newChunk;
                     newChunk.previous = observerSet;
                     newChunk.parent = observerSet.parent;
@@ -479,20 +473,13 @@
                 observerSet = newChunk;
             }
 
-
             // Add repeater on object beeing observed, if not already added before
             let observerSetContents = observerSet.contents;
             if (typeof(observerSetContents[recorderId]) === 'undefined') {
-                // counter++;
-                // console.log("  ---  really registerAnyChangeObserver: " + description);
-                // if (counter > 10) {
-                //     throwError("What the fuck!");
-                // }
                 observerSet.contentsCounter = observerSet.contentsCounter + 1;
                 observerSetContents[recorderId] = activeRecorder;
 
                 // Note dependency in repeater itself (for cleaning up)
-                // console.log("pushing source to source array of length " + activeRecorder.sources.length);
                 activeRecorder.sources.push(observerSet);
             }
         }
@@ -538,7 +525,6 @@
 
     let transaction = postponeObserverNotification;
 
-
     // Recorders is a map from id => recorder
     function notifyChangeObservers(description, observers) {
         if (observerNotificationNullified > 0) {
@@ -560,9 +546,7 @@
                 chainedObserverChunk = chainedObserverChunk.next;
             }
         }
-        // });
     }
-
 
     function notifyChangeObserver(observer) {
         if (observer != activeRecorders[activeRecorders.length - 1]) {
@@ -574,7 +558,6 @@
                     nextObserverToNotifyChange = observer;
                 }
                 lastObserverToNotifyChange = observer;
-                // observersToNotifyChange.push(observer);
             } else {
                 // blockSideEffects(function() {
                 observer.uponChangeAction();
@@ -585,15 +568,8 @@
 
 
     function removeObservation(recorder) {
-        if (recorder.id == 1) {
-            // debugger;
-        }
         // Clear out previous observations
-        // console.log("removeObservation");
-        // console.log(recorder);
         recorder.sources.forEach(function (observerSet) { // From observed object
-            // console.log("Removing a source");
-            // console.log(observerSet[recorder.id]);
             // let observerSetContents = getMap(observerSet, 'contents');
             if (typeof(observerSet['contents'])) {
                 observerSet['contents'] = {};
@@ -601,10 +577,7 @@
             let observerSetContents = observerSet['contents'];
             delete observerSetContents[recorder.id];
             observerSet.contentsCounter--;
-            // console.log(observerSet.contentsCounter);
-            // console.log(observerSet);
             if (observerSet.contentsCounter == 0 && isDefined(observerSet, 'parent')) {
-                // console.log("Terminating a chunk");
                 if (observerSet.next !== null) {
                     observerSet.next.previous = observerSet.previous;
                 }
@@ -614,11 +587,8 @@
                 observerSet.previous = null;
                 observerSet.next = null;
             }
-            // console.log("Finsied removing a source")
         });
-        // console.log("---Removed all sources");
         recorder.sources.lenght = 0;  // From repeater itself.
-        // console.groupEnd();
     }
 
 
@@ -638,12 +608,10 @@
     }
 
 
-// Debugging
-// let allRepeaters = [];
-
+    // Debugging
     let dirtyRepeaters = [];
 
-// Repeater stack
+    // Repeater stack
     let activeRepeaters = [];
 
     function clearRepeaterLists() {
@@ -743,7 +711,6 @@
         removeFromArray(repeater, allRepeaters);
     }
 
-
     let refreshingAllDirtyRepeaters = false;
 
     function refreshAllDirtyRepeaters() {
@@ -751,7 +718,7 @@
             if (dirtyRepeaters.length > 0) {
                 refreshingAllDirtyRepeaters = true;
                 while (dirtyRepeaters.length > 0) {
-                    let repeater = dirtyRepeaters.pop();
+                    let repeater = dirtyRepeaters.pop(); // TODO: should be shift?
                     refreshRepeater(repeater);
                 }
 
@@ -789,10 +756,6 @@
      *          (reused by cache, repeat and project)
      ************************************************************************/
 
-    // function argumentsToArray(arguments) {
-    //     return Array.prototype.slice.call(arguments);
-    // }
-
     function compareArraysShallow(a, b) {
         if (a.length === b.length) {
             for (let i = 0; i < a.length; i++) {
@@ -826,11 +789,9 @@
         return cachedCalls;
     }
 
-
     // Get cache(s) for this argument hash
     function getFunctionCacher(object, cacheStoreName, functionName, functionArguments) {
         let uniqueHash = true;
-        // console.log("========================================================get function cacher");
         function makeArgumentHash(argumentList) {
             let hash  = "";
             let first = true;
@@ -853,31 +814,15 @@
         let argumentsHash = makeArgumentHash(functionArguments);
 
         // let functionCaches = getMap(object, cacheStoreName, functionName);
-        // console.log(object);
         if (typeof(object[cacheStoreName]) === 'undefined') {
             object[cacheStoreName] = {};
-        }
-        if (typeof(object[cacheStoreName]) === 'undefined') {
-            console.log("WTF!!!");
-            console.log(cacheStoreName);
-            object.x = 10;
-            object.y = 42;
-            object.z = 34;
-            object['storedName'] = {};
-            object[cacheStoreName] = {};
-            console.log(object);
         }
         if (typeof(object[cacheStoreName][functionName]) === 'undefined') {
             object[cacheStoreName][functionName] = {};
         }
         let functionCaches = object[cacheStoreName][functionName];
-        // console.log(object);
-        // console.log("Function caches:");
-        // console.log(functionCaches);
         let functionCache = null;
 
-        // console.log(argumentsHash);
-        // console.log(sharedHash);
         return {
             cacheRecordExists : function() {
                 // Figure out if we have a chache or not
@@ -964,7 +909,6 @@
 
             if (!functionCacher.cacheRecordExists()) {
                 cachedCalls++;
-                // console.log(functionName);
                 // Never encountered these arguments before, make a new cache
                 let returnValue = uponChangeDo(
                     function () {
@@ -1070,8 +1014,6 @@
                     newScanIndex = newIndex;
                     while(newScanIndex < array.length && !foundMatchAgain) {
                         if (previous[previousScanIndex] === array[newScanIndex]) {
-                            // console.log("found match again")
-                            // console.log([previousScanIndex, newScanIndex]);
                             foundMatchAgain = true;
                         }
                         if (!foundMatchAgain) newScanIndex++;
@@ -1114,7 +1056,6 @@
 
         infuseWithMap(sources, idTargetMap);
     }
-
 
     function infuseWithMap(sources, idTargetMap) {
 
@@ -1250,5 +1191,4 @@
     return {
         install: install,
     };
-
 }));
