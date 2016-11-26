@@ -183,6 +183,7 @@
     // Cumulative assignment settings.
     let cumulativeAssignment = false;
     function setCumulativeAssignment(value) {
+        // console.log("===============================SET CUMULATIVE ASSIGNMENT =========================== " + value);
         cumulativeAssignment = value;
     }
 
@@ -231,6 +232,7 @@
                 },
 
                 set: function (target, key, value) {
+                    // console.log("setArray: " + key + " " + value);
                     // If same value as already set, do nothing.
                     // if (key in target) {
                     //     let previousValue = target[key];
@@ -360,6 +362,7 @@
                 },
 
                 set: function (target, key, value) {
+                    // console.log("set: " + key + " " + value);
                     if (trace) {
                         console.log("set");
                     }
@@ -372,12 +375,14 @@
                             // console.log(isNaN(previousValue));
                             // console.log(typeof(value));
                             // console.log(isNaN(value));
+                            // console.log("Already set");
                             return false;
                         }
                     }
 
                     // If cumulative assignment, inside recorder and value is undefined, no assignment.
                     if (cumulativeAssignment && activeRecorders.length > 0 && (isNaN(value) || typeof(value) === 'undefined')) {
+                        // console.log("Cumulative reject");
                         return false;
                     }
 
@@ -402,6 +407,7 @@
                 },
 
                 deleteProperty: function (target, key) {
+                    // console.log("delete");
                     if (!(key in target)) {
                         return false;
                     } else {
@@ -421,9 +427,9 @@
                     return key in target;
                 },
 
-                defineProperty: function (target, key, oDesc) {
+                defineProperty: function (target, key, descriptor) {
                     notifyChangeObservers("_enumerateObservers", this._enumerateObservers);
-                    return target;
+                    return Reflect.defineProperty(target, key, descriptor);
                 },
 
                 getOwnPropertyDescriptor: function (target, key) {
@@ -898,13 +904,13 @@
     function getGenericRepeatFunction(handler) {
         return function () {
             // Split arguments
-            var argumentsList = argumentsToArray(arguments);
-            var functionName = argumentsList.shift();
-            var functionCacher = getFunctionCacher(this, "_repeaters", functionName, argumentsList);
+            let argumentsList = argumentsToArray(arguments);
+            let functionName = argumentsList.shift();
+            let functionCacher = getFunctionCacher(this, "_repeaters", functionName, argumentsList);
 
             if (!functionCacher.cacheRecordExists()) {
                 // Never encountered these arguments before, make a new cache
-                var cacheRecord = functionCacher.createNewRecord();
+                let cacheRecord = functionCacher.createNewRecord();
                 cacheRecord.repeaterHandle = repeatOnChange(function() {
                     returnValue = this[functionName].apply(this, argumentsList);
                 });
@@ -929,7 +935,7 @@
 
     function compareArraysShallow(a, b) {
         if (a.length === b.length) {
-            for (var i = 0; i < a.length; i++) {
+            for (let i = 0; i < a.length; i++) {
                 if (a[i] !== b[i]) {
                     return false;
                 }
@@ -945,7 +951,7 @@
             return false;
         } else {
             // Search in the bucket!
-            for (var i = 0; i < functionArgumentHashCaches.length; i++) {
+            for (let i = 0; i < functionArgumentHashCaches.length; i++) {
                 if (compareArraysShallow(functionArgumentHashCaches[i].functionArguments, functionArguments)) {
                     return true;
                 }
@@ -954,7 +960,7 @@
         }
     }
 
-    var cachedCalls = 0;
+    let cachedCalls = 0;
 
     function cachedCallCount() {
         return cachedCalls;
@@ -963,11 +969,11 @@
 
     // Get cache(s) for this argument hash
     function getFunctionCacher(object, cacheStoreName, functionName, functionArguments) {
-        var uniqueHash = true;
-
+        let uniqueHash = true;
+        // console.log("========================================================get function cacher");
         function makeArgumentHash(argumentList) {
-            var hash  = "";
-            var first = true;
+            let hash  = "";
+            let first = true;
             argumentList.forEach(function (argument) {
                 if (!first) {
                     hash += ",";
@@ -984,22 +990,42 @@
             });
             return "(" + hash + ")";
         }
+        let argumentsHash = makeArgumentHash(functionArguments);
 
-        var argumentsHash = makeArgumentHash(functionArguments);
-        var functionCaches = getMap(object, cacheStoreName, functionName);
+        // let functionCaches = getMap(object, cacheStoreName, functionName);
+        // console.log(object);
+        if (typeof(object[cacheStoreName]) === 'undefined') {
+            object[cacheStoreName] = {};
+        }
+        if (typeof(object[cacheStoreName]) === 'undefined') {
+            console.log("WTF!!!");
+            console.log(cacheStoreName);
+            object.x = 10;
+            object.y = 42;
+            object.z = 34;
+            object['storedName'] = {};
+            object[cacheStoreName] = {};
+            console.log(object);
+        }
+        if (typeof(object[cacheStoreName][functionName]) === 'undefined') {
+            object[cacheStoreName][functionName] = {};
+        }
+        let functionCaches = object[cacheStoreName][functionName];
+        // console.log(object);
+        // console.log("Function caches:");
         // console.log(functionCaches);
-        var functionCache = null;
+        let functionCache = null;
 
         // console.log(argumentsHash);
         // console.log(sharedHash);
         return {
             cacheRecordExists : function() {
                 // Figure out if we have a chache or not
-                var result = null;
+                let result = null;
                 if (uniqueHash) {
                     result = typeof(functionCaches[argumentsHash]) !== 'undefined';
                 } else {
-                    var functionArgumentHashCaches = getArray(functionCaches, "_nonpersistent_cacheBuckets" , argumentsHash);
+                    let functionArgumentHashCaches = getArray(functionCaches, "_nonpersistent_cacheBuckets" , argumentsHash);
                     result = isCachedInBucket(functionArgumentHashCaches, functionArguments);
                 }
                 return result;
@@ -1007,14 +1033,14 @@
 
             deleteExistingRecord : function() {
                 if (uniqueHash) {
-                    var result = functionCaches[argumentsHash];
+                    let result = functionCaches[argumentsHash];
                     delete functionCaches[argumentsHash];
                     return result;
                 } else {
-                    var functionArgumentHashCaches = getArray(functionCaches, "_nonpersistent_cacheBuckets" , argumentsHash);
-                    for (var i = 0; i < functionArgumentHashCaches.length; i++) {
+                    let functionArgumentHashCaches = getArray(functionCaches, "_nonpersistent_cacheBuckets" , argumentsHash);
+                    for (let i = 0; i < functionArgumentHashCaches.length; i++) {
                         if (compareArraysShallow(functionArgumentHashCaches[i].functionArguments, functionArguments)) {
-                            var result = functionArgumentHashCaches[i];
+                            let result = functionArgumentHashCaches[i];
                             functionArgumentHashCaches.splice(i, 1);
                             return result;
                         }
@@ -1026,8 +1052,8 @@
                 if (uniqueHash) {
                     return functionCaches[argumentsHash]
                 } else {
-                    var functionArgumentHashCaches = getArray(functionCaches, "_nonpersistent_cacheBuckets" , argumentsHash);
-                    for (var i = 0; i < functionArgumentHashCaches.length; i++) {
+                    let functionArgumentHashCaches = getArray(functionCaches, "_nonpersistent_cacheBuckets" , argumentsHash);
+                    for (let i = 0; i < functionArgumentHashCaches.length; i++) {
                         if (compareArraysShallow(functionArgumentHashCaches[i].functionArguments, functionArguments)) {
                             return functionArgumentHashCaches[i];
                         }
@@ -1037,10 +1063,19 @@
 
             createNewRecord : function() {
                 if (uniqueHash) {
-                    return getMap(functionCaches, argumentsHash)
+                    if (typeof(functionCaches[argumentsHash]) === 'undefined') {
+                        functionCaches[argumentsHash] = {};
+                    }
+                    if (typeof(functionCaches[argumentsHash]) === 'undefined') {
+                        console.log("WTF!!!");
+                        console.log(functionCaches);
+                        console.log("End wtf");
+                    }
+                    return functionCaches[argumentsHash];
+                    // return getMap(functionCaches, argumentsHash)
                 } else {
-                    var functionArgumentHashCaches = getArray(functionCaches, "_nonpersistent_cacheBuckets", argumentsHash);
-                    var record = {};
+                    let functionArgumentHashCaches = getArray(functionCaches, "_nonpersistent_cacheBuckets", argumentsHash);
+                    let record = {};
                     functionArgumentHashCaches.push(record);
                     return record;
                 }
@@ -1058,22 +1093,22 @@
      * (even if the parent does not actually use/read any return value)
      ************************************************************************/
 
-    var inCachedCall = 0;
+    let inCachedCall = 0;
 
     function getGenericCallAndCacheFunction(handler) { // this
         return function () {
             // Split arguments
-            var argumentsList = argumentsToArray(arguments);
-            var functionName = argumentsList.shift();
-            var functionCacher = getFunctionCacher(handler, "_cachedCalls", functionName, argumentsList); // wierd, does not work with this inestead of handler...
+            let argumentsList = argumentsToArray(arguments);
+            let functionName = argumentsList.shift();
+            let functionCacher = getFunctionCacher(this, "cachedCalls", functionName, argumentsList); // wierd, does not work with this inestead of handler...
 
             if (!functionCacher.cacheRecordExists()) {
                 cachedCalls++;
                 // console.log(functionName);
                 // Never encountered these arguments before, make a new cache
-                var returnValue = uponChangeDo(
+                let returnValue = uponChangeDo(
                     function () {
-                        var returnValue;
+                        let returnValue;
                         // blockSideEffects(function() {
                         inCachedCall++;
                         returnValue = this[functionName].apply(this, argumentsList);
@@ -1083,17 +1118,17 @@
                     }.bind(this),
                     function () {
                         // Delete function cache and notify
-                        var cacheRecord = functionCacher.deleteExistingRecord();
+                        let cacheRecord = functionCacher.deleteExistingRecord();
                         notifyChangeObservers("functionCache.observers", cacheRecord.observers);
                     }.bind(this));
-                var cacheRecord = functionCacher.createNewRecord();
+                let cacheRecord = functionCacher.createNewRecord();
                 cacheRecord.returnValue = returnValue;
                 cacheRecord.observers = {};
                 registerAnyChangeObserver("functionCache.observers", cacheRecord.observers);
                 return returnValue;
             } else {
                 // Encountered these arguments before, reuse previous repeater
-                var cacheRecord = functionCacher.getExistingRecord();
+                let cacheRecord = functionCacher.getExistingRecord();
                 registerAnyChangeObserver("functionCache.observers", cacheRecord.observers);
                 return cacheRecord.returnValue;
             }
@@ -1107,16 +1142,16 @@
      ************************************************************************/
 
     function differentialSplices(previous, array) {
-        var done = false;
-        var splices = [];
+        let done = false;
+        let splices = [];
 
-        var previousIndex = 0;
-        var newIndex = 0;
+        let previousIndex = 0;
+        let newIndex = 0;
 
-        var addedRemovedLength = 0;
+        let addedRemovedLength = 0;
 
-        var removed;
-        var added;
+        let removed;
+        let added;
 
         function add(sequence) {
             let splice = {type:'splice', index: previousIndex + addedRemovedLength, removed: [], added: added};
@@ -1208,7 +1243,7 @@
     function infuseCoArrays(sources, targets) {
 
         // Setup id target map and ids.
-        var index = 0;
+        let index = 0;
         idTargetMap = {};
         while (index < sources.length) {
             sources[index].__infusionId = index;
@@ -1234,12 +1269,12 @@
         }
 
         // Setup id target map and ids.
-        var index = 0;
+        let index = 0;
         while (index < sources.length) {
             let source = sources[index];
             if (typeof(source.__infusionId) !== 'undefined' && typeof(idTargetMap[source.__infusionId]) !== 'undefined') {
                 let target = idTargetMap[source.__infusionId];
-                var sourceWithoutProxy = source.__target;
+                let sourceWithoutProxy = source.__target;
                 if (sourceWithoutProxy instanceof Array) {
                     let splices = differentialSplices(target.__target, sourceWithoutProxy); // let arrayIndex = 0;
                     splices.forEach(function(splice) {
@@ -1265,9 +1300,9 @@
     function getGenericProjectFunction(handler) { // this
         return function () {
             // Split argumentsp
-            var argumentsList = argumentsToArray(arguments);
-            var functionName = argumentsList.shift();
-            var functionCacher = getFunctionCacher(this, "_projections", functionName, argumentsList);
+            let argumentsList = argumentsToArray(arguments);
+            let functionName = argumentsList.shift();
+            let functionCacher = getFunctionCacher(this, "_projections", functionName, argumentsList);
 
             if (!functionCacher.cacheRecordExists()) {
                 let cacheRecord = functionCacher.createNewRecord();
@@ -1276,8 +1311,8 @@
                 // Never encountered these arguments before, make a new cache
                 cacheRecord.repeaterHandler = repeatOnChange(
                     function () {
-                        var newlyCrated;
-                        var returnValue;
+                        let newlyCrated;
+                        let returnValue;
                         collect(newlyCrated, function() {
                             returnValue = this[functionName].apply(this, argumentsList);
                         });

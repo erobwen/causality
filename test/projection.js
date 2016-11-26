@@ -2,6 +2,19 @@ const assert = require('assert');
 require('../causality').install();
 
 describe("Projections", function(){
+
+    var createNode = function() {
+
+        return create({
+            flattenPreOrder : function() {
+                var node = create({});
+
+            },
+            value : value,
+            children : children
+        });
+    };
+
     // let cnt = 0;
     // const state = create({});
     // let out = {};
