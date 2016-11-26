@@ -8,37 +8,33 @@
         root.causality = factory(); // Support browser global
     }
 }(this, function () {
-    // concat()	Joins two or more arrays, and returns a copy of the joined arrays
-    // ()	Copies array elements within the array, to and from specified positions
-    // every()	Checks if every element in an array pass a test
-    // ()	Fill the elements in an array with a static value
-    // filter()	Creates a new array with every element in an array that pass a test
-    // find()	Returns the value of the first element in an array that pass a test
-    // findIndex()	Returns the index of the first element in an array that pass a test
-    // forEach()	Calls a function for each array element
-    // indexOf()	Search the array for an element and returns its position
-    // isArray()	Checks whether an object is an array
-    // join()	Joins all elements of an array into a string
-    // lastIndexOf()	Search the array for an element, starting at the end, and returns its position
-    // map()	Creates a new array with the result of calling a function for each array element
-    // ()	Removes the last element of an array, and returns that element
-    // ()	Adds new elements to the end of an array, and returns the new length
-    // reduce()	Reduce the values of an array to a single value (going left-to-right)
-    // reduceRight()	Reduce the values of an array to a single value (going right-to-left)
-    // ()	Reverses the order of the elements in an array
-    // ()	Removes the first element of an array, and returns that element
-    // slice()	Selects a part of an array, and returns the new array
-    // some()	Checks if any of the elements in an array pass a test
-    // ()	Sorts the elements of an array
-    // ()	Adds/Removes elements from an array
-    // toString()	Converts an array to a string, and returns the result
-    // ()	Adds new elements to the beginning of an array, and returns the new length
-    // valueOf()	Returns the primitive value of an array
+    // Helper to quickly get a child object (this function was a great idea, but caused performance issues in stress-tests)
+    function getMap() {
+        let argumentList = argumentsToArray(arguments);
+        let object = argumentList.shift();
+        while (argumentList.length > 0) {
+            let key = argumentList.shift();
+            if (typeof(object[key]) === 'undefined') {
+                object[key] = {};
+            }
+            object = object[key];
+        }
+        return object;
+    }
 
+    function isDefined(object, property) {
+        return (typeof(object[property]) !== 'undefined');
+    }
 
-    let mutableArrayFunctions = [
-        'copyWithin', 'pop', 'push', 'reverse', 'shift', 'sort', 'splice','unshift', 'fill'
-    ];
+    function setIfNotDefined(object, property, value) {
+        if (typeof(object[property]) === 'undefined') {
+            object[property] = value;
+        }
+    }
+
+    let argumentsToArray = function(arguments) {
+        return Array.prototype.slice.call(arguments);
+    };
 
     let staticArrayOverrides = {
         pop : function() {
@@ -92,7 +88,6 @@
             let added = argumentsArray.slice(2);
             let removed = this.target.slice(index, index + removedCount);
             let result;
-            // console.log(argumentsArray);
             nullifyObserverNotification(function() {
                 result = this.target.splice.apply(this.target, argumentsArray);
             }.bind(this));
@@ -133,57 +128,15 @@
             nullifyObserverNotification(function() {
                 result = this.target[functionName].apply(this.target, argumentsArray);
             }.bind(this));
-            notifyChangeObservers("_arrayObservers", getMap(this, "_arrayObservers"));
+            notifyChangeObservers("_arrayObservers", this._arrayObservers);
             this.emitEvent({type: 'splice', index: 0, removed: removed, added: this.target.slice(0)});
             return result;
         };
     });
 
-
-    let trace = false;
-    function startTrace() {
-        trace = true;
-    }
-    
-
-
-    // let common =  {};
-    // Helper to quickly get a child object
-    function getMap() {
-        if (trace) {
-            console.log("getMap");
-        }
-        let argumentList = argumentsToArray(arguments);
-        let object = argumentList.shift();
-        // console.log(argumentList);
-        while (argumentList.length > 0) {
-            let key = argumentList.shift();
-            if (typeof(object[key]) === 'undefined') {
-                object[key] = {};// common;
-            }
-            object = object[key];
-        }
-        return object;
-    }
-
-    function isDefined(object, property) {
-        return (typeof(object[property]) !== 'undefined');
-    }
-
-    function setIfNotDefined(object, property, value) {
-        if (typeof(object[property]) === 'undefined') {
-            object[property] = value;
-        }
-    }
-
-    let argumentsToArray = function(arguments) {
-        return Array.prototype.slice.call(arguments);
-    };
-
     // Cumulative assignment settings.
     let cumulativeAssignment = false;
     function setCumulativeAssignment(value) {
-        // console.log("===============================SET CUMULATIVE ASSIGNMENT =========================== " + value);
         cumulativeAssignment = value;
     }
 
@@ -195,10 +148,7 @@
     }
 
     let nextId = 1;
-    function create(createdTarget) { // let
-        if (trace) {
-            console.log("create");
-        }
+    function create(createdTarget) {
         if (typeof(createdTarget) === 'undefined') {
             createdTarget = {};
         }
@@ -207,7 +157,6 @@
         if (createdTarget instanceof Array) {
             handler = {
                 _arrayObservers : {},
-                target: createdTarget,
 
                 // getPrototypeOf: function () {},
                 // setPrototypeOf: function () {},
@@ -217,24 +166,19 @@
                 // construct: function () {},
 
                 get: function (target, key) {
-                    if (trace) {
-                        console.log("get " + key);
-                    }
                     if (staticArrayOverrides[key]) {
                         return staticArrayOverrides[key].bind(this);
                     } else if (this.overrides[key]) {
                         return this.overrides[key];
                     } else {
                         registerAnyChangeObserver("_arrayObservers", this._arrayObservers);//object
-                        // console.log("get: " + key.toString() + "result: " + target[key]);
                         return target[key];
                     }
                 },
 
                 set: function (target, key, value) {
-                    // console.log("setArray: " + key + " " + value);
                     // If same value as already set, do nothing.
-                    // if (key in target) {
+                    // if (!!isNaN(key) && key in target) {
                     //     let previousValue = target[key];
                     //     if (previousValue === value || ( typeof(previousValue) === 'number' && isNaN(previousValue) && typeof(value) === 'number' && isNaN(value))) {
                     //         return false;
@@ -257,9 +201,6 @@
                 },
 
                 deleteProperty: function (target, key) {
-                    if (trace) {
-                        console.log("delete property" + key);
-                    }
                     if (!(key in target)) {
                         return false;
                     } else {
@@ -270,9 +211,6 @@
                 },
 
                 ownKeys: function (target) {
-                    if (trace) {
-                        console.log("own keys");
-                    }
                     registerAnyChangeObserver("_arrayObservers", this._arrayObservers);
                     let result   = Object.keys(target);
                     if ((target instanceof Array)) {
@@ -287,9 +225,6 @@
                 },
 
                 defineProperty: function (target, key, oDesc) {
-                    if (trace) {
-                        console.log("define");
-                    }
                     notifyChangeObservers("_arrayObservers", this._arrayObservers);
                     return target;
                 },
@@ -305,97 +240,54 @@
                 _propertyObservers[property] = {};
             }
             handler = {
-                // getPrototypeOf: function (target) {
-                //     return Object.getPrototypeOf(target);
-                // },
-                //
-                // setPrototypeOf: function (target, prototype) {
-                //     Object.setPrototypeOf(target, prototype);
-                // },
-                //
-                // isExtensible: function () {
-                // },
-                //
-                // preventExtensions: function () {
-                // },
-                //
-                // apply: function () {
-                //     // if (typeof(target) === 'Array') {
-                //     //
-                //     // }
-                // },
-                //
-                // construct: function () {
-                // },
+                // getPrototypeOf: function () {},
+                // setPrototypeOf: function () {},
+                // isExtensible: function () {},
+                // preventExtensions: function () {},
+                // apply: function () {},
+                // construct: function () {},
+
                 _enumerateObservers : {},
                 _propertyObservers: _propertyObservers,
 
                 get: function (target, key) {
-                    if (trace) {
-                        console.log("get");
-                        console.log(this);
-                    }
                     if (this.overrides[key]) {
                         return this.overrides[key];
                     } else {
                         if (typeof(key) !== 'undefined') {
                             let keyString = key.toString();
-                            // console.log("getting " +  keyString);
-                            // console.log(this._propertyObservers[keyString]);
+
                             if (typeof(this._propertyObservers[keyString]) ===  'undefined') {
                                 this._propertyObservers[keyString] = {};
                             }
-                            this._propertyObservers[keyString].beta = true;
-                            // console.log(this._propertyObservers[keyString]);
-                            if (trace) {
-                                // console.log("get");
-                                console.log(this);
-                            }
-                            if (key in target) {
+                            if (keyString in target) {
                                 registerAnyChangeObserver("_propertyObservers." + keyString, this._propertyObservers[keyString]);
                             } else {
                                 registerAnyChangeObserver("_enumerateObservers." + keyString, this._enumerateObservers);
                             }
-                            return target[key];
+                            return target[keyString];
                         }
                     }
                 },
 
                 set: function (target, key, value) {
-                    // console.log("set: " + key + " " + value);
-                    if (trace) {
-                        console.log("set");
-                    }
-                    // console.log(typeof(value));
                     // If same value as already set, do nothing.
                     if (key in target) {
                         let previousValue = target[key];
                         if (previousValue === value || ( typeof(previousValue) === 'number' && isNaN(previousValue) && typeof(value) === 'number' && isNaN(value))) {
-                            // console.log(typeof(previousValue));
-                            // console.log(isNaN(previousValue));
-                            // console.log(typeof(value));
-                            // console.log(isNaN(value));
-                            // console.log("Already set");
                             return false;
                         }
                     }
 
                     // If cumulative assignment, inside recorder and value is undefined, no assignment.
                     if (cumulativeAssignment && activeRecorders.length > 0 && (isNaN(value) || typeof(value) === 'undefined')) {
-                        // console.log("Cumulative reject");
                         return false;
                     }
 
-
-                    // console.log('Set key: ' + key + " = " + value);
-                    // console.log('Old value: ' + target[key]);
                     let undefinedKey = !(key in target);
                     let previousValue = target[key]
                     target[key]      = value;
                     postponeObserverNotification(function() {
-                        // console.log("set " + key);
-                        // console.log(value);
-                        // console.log(this._propertyObservers[key]);
                         if (undefinedKey) {
                             notifyChangeObservers("_enumerateObservers", this._enumerateObservers);
                         } else {
@@ -407,7 +299,6 @@
                 },
 
                 deleteProperty: function (target, key) {
-                    // console.log("delete");
                     if (!(key in target)) {
                         return false;
                     } else {
@@ -438,29 +329,28 @@
                 }
             };
         }
+        handler.target = createdTarget;
 
         let proxy = new Proxy(createdTarget, handler);
+
         handler.emitEvent = function(event) {
-            // console.log(event);
             if (typeof(handler.observers) !== 'undefined') {
                 handler.observers.forEach(function(observerFunction) {
                     observerFunction(event);
                 });
             }
         };
+
         handler.overrides = {
             __id: nextId++,
             __target: createdTarget,
-            // Consider: generic upon change do?
             repeat :  getGenericRepeatFunction(handler),
             cached : getGenericCallAndCacheFunction(handler),
             cachedInCache : function() { // Only cache if within another cached call.
                 let argumentsArray = argumentsToArray(arguments);
                 if (inCachedCall > 0) {
-                    // console.log("cached call");
                     return this.cached.apply(this, argumentsArray);
                 } else {
-                    // console.log("normal call");
                     let functionName = argumentsArray.shift();
                     return this[functionName].apply(this, argumentsArray);
                 }
@@ -472,9 +362,6 @@
                     handler.observers = [];
                 }
                 handler.observers.push(observerFunction);
-                // return function() {
-                //     th
-                // }
             }
         };
 
@@ -501,9 +388,6 @@
     let recorderId = 0;
 
     function uponChangeDo() { // description(optional), doFirst, doAfterChange. doAfterChange cannot modify model, if needed, use a repeater instead. (for guaranteed consistency)
-        if (trace) {
-            console.log("upon change do");
-        }
         // Arguments
         let doFirst;
         let doAfterChange;
@@ -544,22 +428,14 @@
     }
 
     let sourcesObserverSetChunkSize = 500;
-    // let counter = 0; function
     function registerAnyChangeObserver(description, observerSet) { // instance can be a cached method if observing its return value, object & definition only needed for debugging.
-        if (trace) {
-            console.log("registerAnyChangeObserver: " + description);
-        }
-        // console.log(activeRecorders.length);
         if (typeof(observerSet.initialized) === 'undefined') {
-            // console.log("initialize observer set");
             observerSet.isRoot = true;
             observerSet.contents = {};
             observerSet.contentsCounter = 0;
             observerSet.initialized = true;
             observerSet.first = null;
             observerSet.last = null;
-        } else {
-            // console.log("reused observer set");
         }
 
         if (activeRecorders.length > 0 && recordingPaused === 0) {
@@ -570,9 +446,7 @@
                 return;
             }
 
-            // console.log(observerSet.contentsCounter);
             if (observerSet.contentsCounter === sourcesObserverSetChunkSize && observerSet.last !== null) {
-                // console.log("Going down!");
                 observerSet = observerSet.last;
                 if (typeof(observerSet.contents[recorderId]) !== 'undefined') {
                     return;
@@ -665,17 +539,12 @@
     let transaction = postponeObserverNotification;
 
 
-// Recorders is a map from id => recorder
+    // Recorders is a map from id => recorder
     function notifyChangeObservers(description, observers) {
-        // if (trace) {
-        //     console.log("notifyChangeObservers:" + description);
-        // transaction(function() {
-        // }
         if (observerNotificationNullified > 0) {
             return;
         }
 
-        // console.log(observers);
         let contents = observers.contents;
         for (id in contents) {
             notifyChangeObserver(contents[id]);
@@ -716,9 +585,6 @@
 
 
     function removeObservation(recorder) {
-        if (trace) {
-            console.log("removeFromObservation: " + recorder.id + "." + recorder.description);
-        }
         if (recorder.id == 1) {
             // debugger;
         }
@@ -728,7 +594,11 @@
         recorder.sources.forEach(function (observerSet) { // From observed object
             // console.log("Removing a source");
             // console.log(observerSet[recorder.id]);
-            let observerSetContents = getMap(observerSet, 'contents');
+            // let observerSetContents = getMap(observerSet, 'contents');
+            if (typeof(observerSet['contents'])) {
+                observerSet['contents'] = {};
+            }
+            let observerSetContents = observerSet['contents'];
             delete observerSetContents[recorder.id];
             observerSet.contentsCounter--;
             // console.log(observerSet.contentsCounter);
@@ -785,10 +655,6 @@
     let repeaterId      = 0;
 
     function repeatOnChange() { // description(optional), action
-        if (trace) {
-            console.log("repeatonchange");
-        }
-
         // Arguments
         let repeaterAction;
         let description = '';
@@ -820,9 +686,6 @@
     }
 
     function refreshRepeater(repeater) {
-        if (trace) {
-            console.log("refresh repeater");
-        }
         activeRepeaters.push(repeater);
         repeater.removed     = false;
         repeater.returnValue = uponChangeDo(
@@ -839,9 +702,6 @@
     }
 
     function repeaterDirty(repeater) { // TODO: Add update block on this stage?
-        // if (traceRepetition) {
-        // 	console.log("Repeater dirty: " + repeater.id + "." + repeater.description);
-        // }
         removeSubRepeaters(repeater);
         dirtyRepeaters.push(repeater);
         refreshAllDirtyRepeaters();
@@ -1137,7 +997,7 @@
 
     /************************************************************************
      *
-     *  Splices // getMap
+     *  Splices
      *
      ************************************************************************/
 
@@ -1383,7 +1243,6 @@
         target['clearRepeaterLists'] = clearRepeaterLists;
         target['setCumulativeAssignment'] = setCumulativeAssignment;
         target['cachedCallCount'] = cachedCallCount;
-        target['startTrace'] = startTrace;
         target['infuseCoArrays'] = infuseCoArrays;
         return target;
     }
