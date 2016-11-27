@@ -1061,8 +1061,8 @@
 
         // Helper
         function mapValue(value) {
-            if (typeof(value) === 'object') {
-                if (typeof(value.__infusionId) !== 'undefined') {
+            if (typeof(value) === 'object' && (value !== null)) {
+                if (typeof(value.__infusionId) !== 'undefined' && typeof(idTargetMap[value.__infusionId]) !== 'undefined') {
                     value = idTargetMap[value.__infusionId]; // Reference to the replaced one.
                 }
             }
@@ -1100,7 +1100,7 @@
 
     function getGenericProjectFunction(handler) { // this
         return function () {
-            // console.log(this);
+            console.log("Setup projection");
             // Split argumentsp
             let argumentsList = argumentsToArray(arguments);
             let functionName = argumentsList.shift();
@@ -1113,6 +1113,8 @@
                 // Never encountered these arguments before, make a new cache
                 cacheRecord.repeaterHandler = repeatOnChange(
                     function () {
+                        console.log("Projection repitition");
+                        // console.log(cacheRecord.idObjectMap);
                         let newlyCreated = [];
                         let returnValue;
                         collect(newlyCreated, function() {
@@ -1124,6 +1126,7 @@
                         newlyCreated.forEach(function(newObject) {
                             if (typeof(newObject.__infusionId) !== 'undefined') {
                                 if (typeof(cacheRecord.idObjectMap[newObject.__infusionId]) === 'undefined') {
+                                    console.log("Added object to projection");
                                     cacheRecord.idObjectMap[newObject.__infusionId] = newObject;
                                 }
                             }

@@ -22,6 +22,7 @@ describe("Projections", function(){
         return create({
             flattenPreOrder : function() {
                 let firstNode = createListNode(this.value);
+                firstNode.__infusionId  = this.__id + "_list";
                 let node = firstNode;
 
                 this.children.forEach(function(child) {
@@ -35,7 +36,7 @@ describe("Projections", function(){
                 return firstNode;
             },
             value : value,
-            children : children
+            children : create(children)
         });
     };
 
@@ -74,12 +75,27 @@ describe("Projections", function(){
         ]);
 
         var flattened = tree.project('flattenPreOrder');
-        // console.log(flattened);
-        var number = 1;
-        assert.equal(flattened.value, number++);
-        while(flattened.next !== null) {
-            flattened = flattened.next;
-            assert.equal(flattened.value, number++);
+
+        // Assert original shape
+        var expectedValues = [1, 2, 3, 4, 5, 6, 7];
+        var flattenedNode = flattened;
+        assert.equal(flattenedNode.value, expectedValues.shift());
+        while(flattenedNode.next !== null) {
+            flattenedNode = flattenedNode.next;
+            assert.equal(flattenedNode.value, expectedValues.shift());
+        }
+
+        // Update tree
+        // console.log("Update tree");
+        tree.children[0].children.push(createTreeNode(4.5, []));
+
+        // Assert updated
+        expectedValues = [1, 2, 3, 4, 4.5, 5, 6, 7];
+        flattenedNode = flattened;
+        assert.equal(flattenedNode.value, expectedValues.shift());
+        while(flattenedNode.next !== null) {
+            flattenedNode = flattenedNode.next;
+            assert.equal(flattenedNode.value, expectedValues.shift());
         }
     });
 });
