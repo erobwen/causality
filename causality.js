@@ -1100,6 +1100,7 @@
 
     function getGenericProjectFunction(handler) { // this
         return function () {
+            // console.log(this);
             // Split argumentsp
             let argumentsList = argumentsToArray(arguments);
             let functionName = argumentsList.shift();
@@ -1112,11 +1113,11 @@
                 // Never encountered these arguments before, make a new cache
                 cacheRecord.repeaterHandler = repeatOnChange(
                     function () {
-                        let newlyCrated;
+                        let newlyCreated = [];
                         let returnValue;
-                        collect(newlyCrated, function() {
+                        collect(newlyCreated, function() {
                             returnValue = this[functionName].apply(this, argumentsList);
-                        });
+                        }.bind(this));
 
                         // Infuse everything created during repetition.
                         infuseWithMap(newlyCreated, cacheRecord.idObjectMap);
@@ -1126,7 +1127,7 @@
                                     cacheRecord.idObjectMap[newObject.__infusionId] = newObject;
                                 }
                             }
-                        });
+                        }.bind(this));
 
                         // Replace return value with infused one (if object)
                         if (typeof(returnValue) === 'object' && typeof(this.__infusionId) !== 'undefined') {
@@ -1140,7 +1141,7 @@
                             notifyChangeObservers("functionCache.returnValueObservers", getMap(cacheRecord, 'returnValueObservers'));
                             cacheRecord.returnValue = returnValue;
                         }
-                    }
+                    }.bind(this)
                 );
                 registerAnyChangeObserver("functionCache.returnValueObservers", getMap(cacheRecord, 'returnValueObservers'));
                 return cacheRecord.returnValue;
