@@ -1096,9 +1096,13 @@
                 let target = idTargetMap[source.__infusionId];
                 let sourceWithoutProxy = source.__target;
                 if (sourceWithoutProxy instanceof Array) {
+                    sourceWithoutProxy = sourceWithoutProxy.map(mapValue);
                     let splices = differentialSplices(target.__target, sourceWithoutProxy); // let arrayIndex = 0;
                     splices.forEach(function(splice) {
-                        target.splice(splice.index, splice.removed.length, splice.added.map(mapValue));
+                        let spliceArguments = [];
+                        spliceArguments.push(splice.index, splice.removed.length);
+                        spliceArguments.push.apply(spliceArguments, splice.added); //.map(mapValue))
+                        target.splice.apply(target, spliceArguments);
                     });
                 } else {
                     for (let property in sourceWithoutProxy) {
