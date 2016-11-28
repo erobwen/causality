@@ -89,6 +89,13 @@ describe("Projections", function(){
         // console.log("Update tree");
         tree.children[0].children.push(createTreeNode(4.5, []));
 
+        // flattenedNode = flattened;
+        // flattenedNode.observe(function(event) {console.log(event)});
+        // while(flattenedNode.next !== null) {
+        //     flattenedNode = flattenedNode.next;
+        //     flattenedNode.observe(function(event) {console.log(event)});
+        // }
+
         // Assert updated
         expectedValues = [1, 2, 3, 4, 4.5, 5, 6, 7];
         flattenedNode = flattened;

@@ -251,12 +251,11 @@
                 _propertyObservers: _propertyObservers,
 
                 get: function (target, key) {
-                    if (this.overrides[key]) {
-                        return this.overrides[key];
+                    let keyString = key.toString();
+                    if (this.overrides[keyString]) {
+                        return this.overrides[keyString];
                     } else {
-                        if (typeof(key) !== 'undefined') {
-                            let keyString = key.toString();
-
+                        if (typeof(keyString) !== 'undefined') {
                             if (typeof(this._propertyObservers[keyString]) ===  'undefined') {
                                 this._propertyObservers[keyString] = {};
                             }
@@ -290,11 +289,12 @@
                     postponeObserverNotification(function() {
                         if (undefinedKey) {
                             notifyChangeObservers("_enumerateObservers", this._enumerateObservers);
+                            this._propertyObservers[key] = {};
                         } else {
                             notifyChangeObservers("_propertyObservers." + key, this._propertyObservers[key]);
                         }
                     }.bind(this));
-                    this.emitEvent({type: 'set', newValue: value, oldValue: previousValue})
+                    this.emitEvent({type: 'set', newValue: value, oldValue: previousValue});
                     return true;
                 },
 
@@ -527,23 +527,25 @@
 
     // Recorders is a map from id => recorder
     function notifyChangeObservers(description, observers) {
-        if (observerNotificationNullified > 0) {
-            return;
-        }
+        if (typeof(observers.initialized) !== 'undefined') {
+            if (observerNotificationNullified > 0) {
+                return;
+            }
 
-        let contents = observers.contents;
-        for (id in contents) {
-            notifyChangeObserver(contents[id]);
-        }
+            let contents = observers.contents;
+            for (id in contents) {
+                notifyChangeObserver(contents[id]);
+            }
 
-        if (typeof(observers.first) !== 'undefined') {
-            let chainedObserverChunk = observers.first;
-            while(chainedObserverChunk !== null) {
-                let contents = chainedObserverChunk.contents;
-                for (id in contents) {
-                    notifyChangeObserver(contents[id]);
+            if (typeof(observers.first) !== 'undefined') {
+                let chainedObserverChunk = observers.first;
+                while(chainedObserverChunk !== null) {
+                    let contents = chainedObserverChunk.contents;
+                    for (id in contents) {
+                        notifyChangeObserver(contents[id]);
+                    }
+                    chainedObserverChunk = chainedObserverChunk.next;
                 }
-                chainedObserverChunk = chainedObserverChunk.next;
             }
         }
     }
@@ -571,9 +573,9 @@
         // Clear out previous observations
         recorder.sources.forEach(function (observerSet) { // From observed object
             // let observerSetContents = getMap(observerSet, 'contents');
-            if (typeof(observerSet['contents'])) {
-                observerSet['contents'] = {};
-            }
+            // if (typeof(observerSet['contents'])) { // Should not be needed
+            //     observerSet['contents'] = {};
+            // }
             let observerSetContents = observerSet['contents'];
             delete observerSetContents[recorder.id];
             observerSet.contentsCounter--;
