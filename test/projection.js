@@ -35,14 +35,14 @@ describe("Projections", function(){
 
     var createTreeNode = function(value, children) {
         return create({
-            flattenPreOrder : function() {
+            flattenLinkedPreOrder : function() {
                 let firstNode = createListNode(this.value);
                 firstNode.__infusionId  = this.__id + "_list";
                 let node = firstNode;
 
                 this.children.forEach(function(child) {
-                    // child.projectInProjection('flattenPreOrder');
-                    let childList = child.flattenPreOrder();
+                    // child.projectInProjection('flattenLinkedPreOrder');
+                    let childList = child.flattenLinkedPreOrder();
                     node.next = childList;
                     childList.previous = node;
                     node = childList.last();
@@ -67,7 +67,7 @@ describe("Projections", function(){
             ])
         ]);
 
-        var flattened = tree.flattenPreOrder();
+        var flattened = tree.flattenLinkedPreOrder();
         // console.log(flattened);
         var number = 1;
         assert.equal(flattened.value, number++);
@@ -78,6 +78,7 @@ describe("Projections", function(){
     });
 
     it("Testing non-recursive projection", function(){
+        resetObjectIds();
         var tree = createTreeNode(1, [
             createTreeNode(2, [
                 createTreeNode(3, []),
@@ -89,7 +90,7 @@ describe("Projections", function(){
             ])
         ]);
 
-        var flattened = tree.project('flattenPreOrder');
+        var flattened = tree.project('flattenLinkedPreOrder');
 
         // Assert original shape
         var expectedValues = [1, 2, 3, 4, 5, 6, 7];
@@ -100,7 +101,7 @@ describe("Projections", function(){
             assert.equal(flattenedNode.value, expectedValues.shift());
         }
 
-
+        // Observe all
         let detectedEvents = [];
         flattenedNode = flattened;
         let observedNodes = [];
@@ -113,12 +114,25 @@ describe("Projections", function(){
             detectedEvents.push(event);
         });
 
-
         // Update tree
         // console.log("Update tree");
         tree.children[0].children.push(createTreeNode(4.5, []));
 
-        console.log(detectedEvents);
+        // Assert eventws
+        assert.equal(detectedEvents[0].type, 'set');
+        assert.equal(detectedEvents[0].property, 'next');
+        assert.equal(detectedEvents[0].newValue.value, 4.5);
+        assert.equal(detectedEvents[0].newValue.__infusionId, '23_list');
+        assert.equal(detectedEvents[0].oldValue.value, 5);
+        assert.equal(detectedEvents[0].oldValue.__infusionId, '12_list');
+        assert.equal(detectedEvents[0].objectId, 18);
+        assert.equal(detectedEvents[1].type, 'set');
+        assert.equal(detectedEvents[1].property, 'previous');
+        assert.equal(detectedEvents[1].newValue.value, 4.5);
+        assert.equal(detectedEvents[1].newValue.__infusionId, '23_list');
+        assert.equal(detectedEvents[1].oldValue.value, 4);
+        assert.equal(detectedEvents[1].oldValue.__infusionId, '4_list');
+        assert.equal(detectedEvents[1].objectId, 19);
 
         // Assert updated
         expectedValues = [1, 2, 3, 4, 4.5, 5, 6, 7];
@@ -130,7 +144,6 @@ describe("Projections", function(){
         }
     });
 });
-
 
 // let cnt = 0;
 // const state = create({});
