@@ -2,20 +2,35 @@ const assert = require('assert');
 require('../causality').install();
 
 describe("Projections", function(){
+    var listNodePrototype = {
+        last : function() {
+            if (this.next == null) {
+                return this;
+            } else {
+                return this.next.last();
+            }
+        }
+    };
 
     var createListNode = function(value) {
-        return create({
-            value : value,
-            next: null,
-            previous: null,
-            last : function() {
-                if (this.next == null) {
-                    return this;
-                } else {
-                    return this.next.last();
-                }
-            }
-        });
+        newNode = Object.create(listNodePrototype);
+        newNode.value = value;
+        newNode.next = null;
+        newNode.previous = null;
+
+        return create(newNode);
+        // return create({ // This code somehow generates set events for last. This might have to do with Node.js internals... 
+        //     value : value,
+        //     next: null,
+        //     previous: null,
+        //     last : function() {
+        //         if (this.next == null) {
+        //             return this;
+        //         } else {
+        //             return this.next.last();
+        //         }
+        //     }
+        // });
     };
 
     var createTreeNode = function(value, children) {
@@ -85,16 +100,25 @@ describe("Projections", function(){
             assert.equal(flattenedNode.value, expectedValues.shift());
         }
 
+
+        let detectedEvents = [];
+        flattenedNode = flattened;
+        let observedNodes = [];
+        observedNodes.push(flattenedNode);
+        while(flattenedNode.next !== null) {
+            flattenedNode = flattenedNode.next;
+            observedNodes.push(flattenedNode);
+        }
+        observeAll(observedNodes, function(event) {
+            detectedEvents.push(event);
+        });
+
+
         // Update tree
         // console.log("Update tree");
         tree.children[0].children.push(createTreeNode(4.5, []));
 
-        // flattenedNode = flattened;
-        // flattenedNode.observe(function(event) {console.log(event)});
-        // while(flattenedNode.next !== null) {
-        //     flattenedNode = flattenedNode.next;
-        //     flattenedNode.observe(function(event) {console.log(event)});
-        // }
+        console.log(detectedEvents);
 
         // Assert updated
         expectedValues = [1, 2, 3, 4, 4.5, 5, 6, 7];

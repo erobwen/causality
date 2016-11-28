@@ -11,6 +11,7 @@ describe("Observe", function(){
 
         x.a = 10;
         x.a = 20;
+        x.a = 20;
         let y = x.a;
         console.log(events);
     });

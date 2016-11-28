@@ -148,6 +148,10 @@
     }
 
     let nextId = 1;
+    function resetObjectIds() {
+        nextId = 1;   
+    }
+    
     function create(createdTarget) {
         if (typeof(createdTarget) === 'undefined') {
             createdTarget = {};
@@ -294,7 +298,7 @@
                             notifyChangeObservers("_propertyObservers." + key, this._propertyObservers[key]);
                         }
                     }.bind(this));
-                    this.emitEvent({type: 'set', newValue: value, oldValue: previousValue});
+                    this.emitEvent({type: 'set', property: key, newValue: value, oldValue: previousValue});
                     return true;
                 },
 
@@ -334,6 +338,7 @@
         let proxy = new Proxy(createdTarget, handler);
 
         handler.emitEvent = function(event) {
+            event.objectId = handler.overrides.__id;
             if (typeof(handler.observers) !== 'undefined') {
                 handler.observers.forEach(function(observerFunction) {
                     observerFunction(event);
@@ -373,6 +378,18 @@
     }
 
     let c = create;
+
+    /**********************************
+     *  Observe
+     *
+     *
+     **********************************/
+
+    function observeAll(array, callback) {
+        array.forEach(function(element) {
+            element.observe(callback);
+        });
+    }
 
 
     /**********************************
@@ -1187,10 +1204,14 @@
         target['repeatOnChange']          = repeatOnChange;
         target['withoutRecording']        = withoutRecording;
         target['transaction']        = transaction;
-        target['clearRepeaterLists'] = clearRepeaterLists;
         target['setCumulativeAssignment'] = setCumulativeAssignment;
-        target['cachedCallCount'] = cachedCallCount;
         target['infuseCoArrays'] = infuseCoArrays;
+        target['observeAll'] = observeAll;
+
+        // Debugging and testing
+        target['cachedCallCount'] = cachedCallCount;
+        target['clearRepeaterLists'] = clearRepeaterLists;
+        target['resetObjectIds'] = resetObjectIds;
         return target;
     }
 
