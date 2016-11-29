@@ -8,6 +8,16 @@
         root.causality = factory(); // Support browser global
     }
 }(this, function () {
+    function values(obj) {
+        var vals = [];
+        for( var key in obj ) {
+            if ( obj.hasOwnProperty(key) ) {
+                vals.push(obj[key]);
+            }
+        }
+        return vals;
+    };
+
     // Helper to quickly get a child object (this function was a great idea, but caused performance issues in stress-tests)
     function getMap() {
         let argumentList = argumentsToArray(arguments);
@@ -30,6 +40,10 @@
         if (typeof(object[property]) === 'undefined') {
             object[property] = value;
         }
+    }
+
+    let lastOfArray = function(array) {
+        return array[array.length - 1];
     }
 
     let argumentsToArray = function(arguments) {
@@ -314,7 +328,9 @@
 
                 ownKeys: function (target, key) { // Not inherited?
                     registerAnyChangeObserver("_enumerateObservers", this._enumerateObservers);
-                    return Object.keys(target);
+                    let keys = Object.keys(target);
+                    // keys.push('__id');
+                    return keys;
                 },
 
                 has: function (target, key) {
@@ -727,7 +743,6 @@
         }
 
         removeFromArray(repeater, dirtyRepeaters);
-        removeFromArray(repeater, allRepeaters);
     }
 
     let refreshingAllDirtyRepeaters = false;
@@ -1082,6 +1097,9 @@
         function mapValue(value) {
             if (typeof(value) === 'object' && (value !== null)) {
                 if (typeof(value.__infusionId) !== 'undefined' && typeof(idTargetMap[value.__infusionId]) !== 'undefined') {
+                    // console.log("Mapping!");
+                    // console.log(value.__id);
+                    // console.log(idTargetMap[value.__infusionId].__id);
                     value = idTargetMap[value.__infusionId]; // Reference to the replaced one.
                 }
             }
@@ -1097,8 +1115,13 @@
                 let sourceWithoutProxy = source.__target;
                 if (sourceWithoutProxy instanceof Array) {
                     sourceWithoutProxy = sourceWithoutProxy.map(mapValue);
+                    // console.log("Before differential splices:");
+                    // console.log(target.__target.map((object) => object.__id + " " + object.__infusionId));
+                    // console.log(sourceWithoutProxy.map((object) => object.__id + " " + object.__infusionId));
                     let splices = differentialSplices(target.__target, sourceWithoutProxy); // let arrayIndex = 0;
                     splices.forEach(function(splice) {
+                        // console.log("Splicing!");
+                        // console.log(splice);
                         let spliceArguments = [];
                         spliceArguments.push(splice.index, splice.removed.length);
                         spliceArguments.push.apply(spliceArguments, splice.added); //.map(mapValue))
@@ -1123,44 +1146,59 @@
 
     function getGenericProjectFunction(handler) { // this
         return function () {
-            console.log("Setup projection");
+            // console.log("call projection");
             // Split argumentsp
             let argumentsList = argumentsToArray(arguments);
             let functionName = argumentsList.shift();
             let functionCacher = getFunctionCacher(this, "_projections", functionName, argumentsList);
 
             if (!functionCacher.cacheRecordExists()) {
+                // console.log("init projection ");
                 let cacheRecord = functionCacher.createNewRecord();
                 cacheRecord.idObjectMap = {};
 
                 // Never encountered these arguments before, make a new cache
                 cacheRecord.repeaterHandler = repeatOnChange(
                     function () {
-                        console.log("Projection repitition");
+                        // console.log("Projection repitition");
                         // console.log(cacheRecord.idObjectMap);
                         let newlyCreated = [];
                         let returnValue;
+
+                        // console.log("recursive ...");
                         collect(newlyCreated, function() {
                             returnValue = this[functionName].apply(this, argumentsList);
                         }.bind(this));
+                        // console.log("... recursive");
 
                         // Infuse everything created during repetition.
+                        // console.log(newlyCreated.map((object) => {return object.__id + " " + object.__infusionId}));
+                        // console.log(Object.keys(cacheRecord.idObjectMap));
+                        // console.log(values(cacheRecord.idObjectMap).map((object) => {return object.__id + " " + object.__infusionId}));
                         infuseWithMap(newlyCreated, cacheRecord.idObjectMap);
+                        // console.log(Object.keys(cacheRecord.idObjectMap));
+                        // console.log(values(cacheRecord.idObjectMap).map((object) => {return object.__id + " " + object.__infusionId}));
                         newlyCreated.forEach(function(newObject) {
                             if (typeof(newObject.__infusionId) !== 'undefined') {
                                 if (typeof(cacheRecord.idObjectMap[newObject.__infusionId]) === 'undefined') {
-                                    console.log("Added object to projection");
+                                    // console.log("Added object to projection");
                                     cacheRecord.idObjectMap[newObject.__infusionId] = newObject;
                                 }
                             }
                         }.bind(this));
 
                         // Replace return value with infused one (if object)
-                        if (typeof(returnValue) === 'object' && typeof(this.__infusionId) !== 'undefined') {
-                            if (typeof(cacheRecord.idObjectMap[this.__infusionId]) !== 'undefined') {
-                                returnValue = cacheRecord.idObjectMap[this.__infusionId];
+                        // console.log(values(cacheRecord.idObjectMap).map((object) => {return object.__id + " " + object.__infusionId}));
+                        if (typeof(returnValue) === 'object' && typeof(returnValue.__infusionId) !== 'undefined') {
+                            if (typeof(cacheRecord.idObjectMap[returnValue.__infusionId]) !== 'undefined') {
+                                returnValue = cacheRecord.idObjectMap[returnValue.__infusionId];
                             }
                         }
+                        // console.log(returnValue.__id);
+                        // console.log(returnValue.__infusionId);
+                        // if (returnValue instanceof Array) {
+                        //     console.log(returnValue.map((object) => {return object.__id + " " + object.__infusionId}));
+                        // }
 
                         // See if we need to trigger event on return value
                         if (returnValue !== cacheRecord.returnValue) {

@@ -48,6 +48,20 @@ describe("Projections", function(){
                 return result;
             },
 
+            flattenArrayPreOrderRecursive : function() {
+                // console.log("flattenArrayPreOrderRecursive " + this.__id + "_array");
+                let result = create([]);
+                result.__infusionId = this.__id + "_array";
+                result.push(create({value: value, __infusionId : this.__id + "_node"}));
+
+                this.children.forEach(function(child) {
+                    let childList = child.project('flattenArrayPreOrderRecursive');
+                    result.push.apply(result, childList);
+                });
+
+                return result;
+            },
+
             flattenLinkedPreOrder : function() {
                 let firstNode = createListNode(this.value);
                 firstNode.__infusionId  = this.__id + "_list";
@@ -171,6 +185,45 @@ describe("Projections", function(){
         ]);
 
         var flattened = tree.project('flattenArrayPreOrder');
+
+        // Assert original shape
+        assert.deepEqual(flattened.map((object) => { return object.value; }), [1, 2, 3, 4, 5, 6, 7]);
+
+        // Observe array
+        let detectedEvents = [];
+        flattened.observe(function(event) {
+            detectedEvents.push(event);
+        });
+
+        // Update tree
+        tree.children[0].children.push(createTreeNode(4.5, []));
+
+        // Assert eventws
+        assert.deepEqual(detectedEvents,
+            [ { type: 'splice',
+                index: 4,
+                removed: [],
+                added: [ { value: 4.5, __infusionId: '30_node' } ],
+                objectId: 15 } ]);
+
+        // Assert updated
+        assert.deepEqual(flattened.map((object) => { return object.value; }), [1, 2, 3, 4, 4.5, 5, 6, 7]);
+    });
+
+    it("Testing recursive projection, array version", function(){
+        resetObjectIds();
+        var tree = createTreeNode(1, [
+            createTreeNode(2, [
+                createTreeNode(3, []),
+                createTreeNode(4, [])
+            ]),
+            createTreeNode(5, [
+                createTreeNode(6, []),
+                createTreeNode(7, [])
+            ])
+        ]);
+
+        var flattened = tree.project('flattenArrayPreOrderRecursive');
 
         // Assert original shape
         assert.deepEqual(flattened.map((object) => { return object.value; }), [1, 2, 3, 4, 5, 6, 7]);
