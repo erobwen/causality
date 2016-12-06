@@ -44,7 +44,7 @@
 
     let lastOfArray = function(array) {
         return array[array.length - 1];
-    }
+    };
 
     let argumentsToArray = function(arguments) {
         return Array.prototype.slice.call(arguments);
@@ -1097,9 +1097,7 @@
         function mapValue(value) {
             if (typeof(value) === 'object' && (value !== null)) {
                 if (typeof(value.__infusionId) !== 'undefined' && typeof(idTargetMap[value.__infusionId]) !== 'undefined') {
-                    // console.log("Mapping!");
-                    // console.log(value.__id);
-                    // console.log(idTargetMap[value.__infusionId].__id);
+                    // console.log("Mapping! " + value.__infusionId + " " + value.__id + " ==> " + idTargetMap[value.__infusionId].__id);
                     value = idTargetMap[value.__infusionId]; // Reference to the replaced one.
                 }
             }
@@ -1175,9 +1173,29 @@
                         // console.log(newlyCreated.map((object) => {return object.__id + " " + object.__infusionId}));
                         // console.log(Object.keys(cacheRecord.idObjectMap));
                         // console.log(values(cacheRecord.idObjectMap).map((object) => {return object.__id + " " + object.__infusionId}));
+                        // if (typeof(returnValue.first) !== 'undefined') {
+                        //     // console.log("return value before infusion");
+                        //     // console.log(returnValue.__id);
+                        //     // console.log(returnValue.first.__id);
+                        // }
+
                         infuseWithMap(newlyCreated, cacheRecord.idObjectMap);
                         // console.log(Object.keys(cacheRecord.idObjectMap));
                         // console.log(values(cacheRecord.idObjectMap).map((object) => {return object.__id + " " + object.__infusionId}));
+                        // Replace return value with infused one (if object)
+                        // console.log(values(cacheRecord.idObjectMap).map((object) => {return object.__id + " " + object.__infusionId}));
+                        if (typeof(returnValue) === 'object' && typeof(returnValue.__infusionId) !== 'undefined') {
+                            if (typeof(cacheRecord.idObjectMap[returnValue.__infusionId]) !== 'undefined') {
+                                // console.log("Mapping! " + returnValue.__infusionId + " " + returnValue.__id + " ==> " + cacheRecord.idObjectMap[returnValue.__infusionId].__id);
+                                returnValue = cacheRecord.idObjectMap[returnValue.__infusionId];
+                            }
+                        }
+
+                        // if (typeof(returnValue.first) !== 'undefined') {
+                        //     console.log("return value after infusion");
+                        //     console.log(returnValue.__id);
+                        //     console.log(returnValue.first.__id);
+                        // }
                         newlyCreated.forEach(function(newObject) {
                             if (typeof(newObject.__infusionId) !== 'undefined') {
                                 if (typeof(cacheRecord.idObjectMap[newObject.__infusionId]) === 'undefined') {
@@ -1187,13 +1205,7 @@
                             }
                         }.bind(this));
 
-                        // Replace return value with infused one (if object)
-                        // console.log(values(cacheRecord.idObjectMap).map((object) => {return object.__id + " " + object.__infusionId}));
-                        if (typeof(returnValue) === 'object' && typeof(returnValue.__infusionId) !== 'undefined') {
-                            if (typeof(cacheRecord.idObjectMap[returnValue.__infusionId]) !== 'undefined') {
-                                returnValue = cacheRecord.idObjectMap[returnValue.__infusionId];
-                            }
-                        }
+
                         // console.log(returnValue.__id);
                         // console.log(returnValue.__infusionId);
                         // if (returnValue instanceof Array) {
@@ -1202,6 +1214,7 @@
 
                         // See if we need to trigger event on return value
                         if (returnValue !== cacheRecord.returnValue) {
+                            // console.log("new return value");
                             notifyChangeObservers("functionCache.returnValueObservers", getMap(cacheRecord, 'returnValueObservers'));
                             cacheRecord.returnValue = returnValue;
                         }

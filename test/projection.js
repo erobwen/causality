@@ -33,6 +33,18 @@ describe("Projections", function(){
         // });
     };
 
+    var createTransparentListNode = function(value) {
+        return create({value : value});
+    }
+
+    var createListHead = function() {
+        return create({
+            first: null,
+            last: null
+        });
+    };
+
+
     var createTreeNode = function(value, children) {
         return create({
             flattenArrayPreOrder : function() {
@@ -79,19 +91,29 @@ describe("Projections", function(){
             },
 
             flattenLinkedPreOrderRecursive : function() {
-                let firstNode = createListNode(this.value);
-                firstNode.__infusionId  = this.__id + "_list";
+                // console.log("flattenLinkedPreOrderRecursive " + this.__id + "_head");
+                let listHead = createListHead();
+                listHead.__infusionId = this.__id + "_head";
+
+                let firstNode = createTransparentListNode(this.value);
+                firstNode.__infusionId  = this.__id + "_node";
+
+                listHead.first = firstNode;
+
                 let node = firstNode;
 
                 this.children.forEach(function(child) {
                     // child.projectInProjection('flattenLinkedPreOrder');
-                    let childList = child.project('flattenLinkedPreOrder');
-                    node.next = childList;
-                    childList.previous = node;
-                    node = childList.last();
+                    let childList = child.project('flattenLinkedPreOrderRecursive');
+                    // console.log("linking next and previous together" + node.__id +  " -> " + childList.first.__id);
+                    node.next = childList.first;
+                    // childList.first.previous = node; // No external write yet! This will go wrongish when node is bound for replacement.
+                    node = childList.last;
                 });
 
-                return firstNode;
+                listHead.last = node;
+
+                return listHead;
             },
 
             value : value,
@@ -284,19 +306,19 @@ describe("Projections", function(){
 
         // Assert original shape
         var expectedValues = [1, 2, 3, 4, 5, 6, 7];
-        var flattenedNode = flattened;
+        var flattenedNode = flattened.first;
         assert.equal(flattenedNode.value, expectedValues.shift());
-        while(flattenedNode.next !== null) {
+        while(typeof(flattenedNode.next) !== 'undefined') {
             flattenedNode = flattenedNode.next;
             assert.equal(flattenedNode.value, expectedValues.shift());
         }
 
         // Observe all
         let detectedEvents = [];
-        flattenedNode = flattened;
+        flattenedNode = flattened.first;
         let observedNodes = [];
         observedNodes.push(flattenedNode);
-        while(flattenedNode.next !== null) {
+        while(typeof(flattenedNode.next) !== 'undefined') {
             flattenedNode = flattenedNode.next;
             observedNodes.push(flattenedNode);
         }
@@ -305,35 +327,26 @@ describe("Projections", function(){
         });
 
         // Update tree
-        // console.log("Update tree");
         tree.children[0].children.push(createTreeNode(4.5, []));
 
         // Assert eventws
-        // assert.equal(detectedEvents[0].type, 'set');
-        // assert.equal(detectedEvents[0].property, 'next');
-        // assert.equal(detectedEvents[0].newValue.value, 4.5);
-        // assert.equal(detectedEvents[0].newValue.__infusionId, '23_list');
-        // assert.equal(detectedEvents[0].oldValue.value, 5);
-        // assert.equal(detectedEvents[0].oldValue.__infusionId, '12_list');
-        // assert.equal(detectedEvents[0].objectId, 18);
-        // assert.equal(detectedEvents[1].type, 'set');
-        // assert.equal(detectedEvents[1].property, 'previous');
-        // assert.equal(detectedEvents[1].newValue.value, 4.5);
-        // assert.equal(detectedEvents[1].newValue.__infusionId, '23_list');
-        // assert.equal(detectedEvents[1].oldValue.value, 4);
-        // assert.equal(detectedEvents[1].oldValue.__infusionId, '4_list');
-        // assert.equal(detectedEvents[1].objectId, 19);
+        assert.equal(detectedEvents[0].type, 'set');
+        assert.equal(detectedEvents[0].property, 'next');
+        assert.equal(detectedEvents[0].newValue.value, 4.5);
+        assert.equal(detectedEvents[0].newValue.__infusionId, '30_node');
+        assert.equal(detectedEvents[0].oldValue.value, 5);
+        assert.equal(detectedEvents[0].oldValue.__infusionId, '12_node');
+        assert.equal(detectedEvents[0].objectId, 22);
 
-        // // Assert updated
-        // expectedValues = [1, 2, 3, 4, 4.5, 5, 6, 7];
-        // flattenedNode = flattened;
-        // assert.equal(flattenedNode.value, expectedValues.shift());
-        // while(flattenedNode.next !== null) {
-        //     flattenedNode = flattenedNode.next;
-        //     assert.equal(flattenedNode.value, expectedValues.shift());
-        // }
+        // Assert updated
+        expectedValues = [1, 2, 3, 4, 4.5, 5, 6, 7];
+        flattenedNode = flattened.first;
+        assert.equal(flattenedNode.value, expectedValues.shift());
+        while(typeof(flattenedNode.next) !== 'undefined') {
+            flattenedNode = flattenedNode.next;
+            assert.equal(flattenedNode.value, expectedValues.shift());
+        }
     });
-
 });
 
 // let cnt = 0;
