@@ -376,8 +376,17 @@
                     return this[functionName].apply(this, argumentsArray);
                 }
             },
+            project : getGenericProjectFunction(handler),
+            projectInProjection : function() { // Only project if within another cached call.
+                let argumentsArray = argumentsToArray(arguments);
+                if (inProjection > 0) {
+                    return this.project.apply(this, argumentsArray);
+                } else {
+                    let functionName = argumentsArray.shift();
+                    return this[functionName].apply(this, argumentsArray);
+                }
+            },
             replaceWith : getGenericReplacer(handler),
-            project: getGenericProjectFunction(handler),
             observe: function(observerFunction) {
                 if (typeof(handler.observers) === 'undefined') {
                     handler.observers = [];
@@ -1142,6 +1151,8 @@
      *
      ************************************************************************/
 
+    let inProjection = 0;
+
     function getGenericProjectFunction(handler) { // this
         return function () {
             // console.log("call projection");
@@ -1164,9 +1175,11 @@
                         let returnValue;
 
                         // console.log("recursive ...");
+                        inProjection++;
                         collect(newlyCreated, function() {
                             returnValue = this[functionName].apply(this, argumentsList);
                         }.bind(this));
+                        inProjection--;
                         // console.log("... recursive");
 
                         // Infuse everything created during repetition.
