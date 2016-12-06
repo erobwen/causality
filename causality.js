@@ -16,7 +16,7 @@
             }
         }
         return vals;
-    };
+    }
 
     // Helper to quickly get a child object (this function was a great idea, but caused performance issues in stress-tests)
     function getMap() {
@@ -166,11 +166,7 @@
         nextId = 1;   
     }
 
-    // function infuse() {
-    //
-    // }
-
-    function create(createdTarget) {
+    function create(createdTarget, infusionId) {
         if (typeof(createdTarget) === 'undefined') {
             createdTarget = {};
         }
@@ -223,16 +219,16 @@
                     // }
 
                     // If cumulative assignment, inside recorder and value is undefined, no assignment.
-                    if (cumulativeAssignment && activeRecorders.length > 0 && (isNaN(value) || typeof(value) === 'undefined')) {
+                    if (cumulativeAssignment && inActiveRecording() && (isNaN(value) || typeof(value) === 'undefined')) {
                         return false;
                     }
+                    target[key] = value;
                     if (!isNaN(key)) {
                         if (typeof(key) === 'string') {
                             key = parseInt(key);
                         }
                         this.emitEvent({ type: 'splice', index: key, removed: [target[key]], added: [value] });
                     }
-                    target[key] = value;
                     notifyChangeObservers("_arrayObservers", this._arrayObservers);
                     return true;
                 },
@@ -354,21 +350,19 @@
                     }
 
                     // If cumulative assignment, inside recorder and value is undefined, no assignment.
-                    if (cumulativeAssignment && activeRecorders.length > 0 && (isNaN(value) || typeof(value) === 'undefined')) {
+                    if (cumulativeAssignment && inActiveRecording() && (isNaN(value) || typeof(value) === 'undefined')) {
                         return false;
                     }
 
                     let undefinedKey = !(key in target);
                     let previousValue = target[key]
                     target[key]      = value;
-                    postponeObserverNotification(function() {
-                        if (undefinedKey) {
-                            notifyChangeObservers("_enumerateObservers", this._enumerateObservers);
-                            this._propertyObservers[key] = {};
-                        } else {
-                            notifyChangeObservers("_propertyObservers." + key, this._propertyObservers[key]);
-                        }
-                    }.bind(this));
+                    if (undefinedKey) {
+                        notifyChangeObservers("_enumerateObservers", this._enumerateObservers);
+                        this._propertyObservers[key] = {};
+                    } else {
+                        notifyChangeObservers("_propertyObservers." + key, this._propertyObservers[key]);
+                    }
                     this.emitEvent({type: 'set', property: key, newValue: value, oldValue: previousValue});
                     return true;
                 },
@@ -438,6 +432,7 @@
         let proxy = new Proxy(createdTarget, handler);
 
         handler.emitEvent = function(event) {
+            // console.log(event);
             event.objectId = handler.overrides.__id;
             if (typeof(handler.observers) !== 'undefined') {
                 handler.observers.forEach(function(observerFunction) {
@@ -454,7 +449,7 @@
             cached : getGenericCallAndCacheFunction(handler),
             cachedInCache : function() { // Only cache if within another cached call.
                 let argumentsArray = argumentsToArray(arguments);
-                if (inCachedCall > 0) {
+                if (inCachedCall() > 0) {
                     return this.cached.apply(this, argumentsArray);
                 } else {
                     let functionName = argumentsArray.shift();
@@ -464,7 +459,7 @@
             project : getGenericProjectFunction(handler),
             projectInProjection : function() { // Only project if within another cached call.
                 let argumentsArray = argumentsToArray(arguments);
-                if (inProjection > 0) {
+                if (inProjection() > 0) {
                     return this.project.apply(this, argumentsArray);
                 } else {
                     let functionName = argumentsArray.shift();
@@ -484,10 +479,98 @@
         if (collecting.length > 0) {
             collecting[collecting.length - 1].push(proxy);
         }
-        return proxy;
+
+        if (typeof(infusionId) !== 'undefined') {
+            let infusionTarget = null; // Get target
+            infusionTarget.overlay = proxy;
+            return infusionTarget;   // Borrow identity of infusion target.
+        } else {
+            return proxy;
+        }
     }
 
     let c = create;
+
+
+    /**********************************
+     *  Causality Global stack
+     *
+     *
+     **********************************/
+
+    let causalityStack = [];
+    let context = null;
+    let microContext = null;
+
+    let nextIsMicroContext = false;
+
+    function inCachedCall() {
+        if (context === null) {
+            return false;
+        } else {
+            return context.type === "cached_call";
+        }
+    }
+
+    function inProjection() {
+        if (context === null) {
+            return false;
+        } else {
+            return context.type === "projection";
+        }
+    }
+
+    function inActiveRecording() {
+        return (microContext === null) ? false : ((microContext.type === "recording") && recordingPaused === 0);
+    }
+
+    function getActiveRecording() {
+        if ((microContext === null) ? false : ((microContext.type === "recording") && recordingPaused === 0)) {
+            return microContext;
+        } else {
+            return null;
+        }
+    }
+
+
+    function enterContextNextIsTransparent(type, enteredContext) {
+        nextIsMicroContext = true;
+        enterContext(type, enteredContext);
+    }
+
+    // recording, repeater_refreshing, cached_call, projection, 
+    function enterContext(type, enteredContext) {
+        enteredContext.type = type;
+        if (enteredContext.parent !== null) {
+            enteredContext.parent = nextIsMicroContext ? context : null
+            nextIsMicroContext = false;
+        }
+
+        let scannedContext = enteredContext;
+        while (scannedContext.parent !== null) {
+            scannedContext = scannedContext.parent
+        }
+        context = scannedContext;
+        microContext = enteredContext;
+        causalityStack.push(enteredContext);
+        return enteredContext;
+    }
+
+    function leaveContext() {
+        let leftContext = causalityStack.pop();
+        if (causalityStack.length > 0) {
+            microContext = causalityStack[causalityStack.length - 1];
+            let scannedContext = microContext;
+            while (scannedContext.parent !== null) {
+                scannedContext = scannedContext.parent;
+            }
+            context = scannedContext;
+        } else {
+            context = null;
+            microContext = null;
+        }
+    }
+
 
     /**********************************
      *  Observe
@@ -508,9 +591,6 @@
      *  Upon change do
      **********************************/
 
-    // Recorder stack
-    let activeRecorders = [];
-
     let recorderId = 0;
 
     function uponChangeDo() { // description(optional), doFirst, doAfterChange. doAfterChange cannot modify model, if needed, use a repeater instead. (for guaranteed consistency)
@@ -527,19 +607,16 @@
             doAfterChange = arguments[1];
         }
 
-        // Recorder structure
-        let recorder = {
+        // Recorder context
+        enterContext('recording', {
             nextToNotify: null,
             id: recorderId++,
             description: description,
             sources: [],
             uponChangeAction: doAfterChange
-        };
-
-        // Start recording, do first action then stop recording.
-        activeRecorders.push(recorder);
+        });
         let returnValue = doFirst();
-        activeRecorders.pop();
+        leaveContext();
 
         return returnValue;
     }
@@ -563,8 +640,8 @@
             observerSet.last = null;
         }
 
-        if (activeRecorders.length > 0 && recordingPaused === 0) {
-            let activeRecorder = activeRecorders[activeRecorders.length - 1];
+        let activeRecorder = getActiveRecording();
+        if (activeRecorder !== null) {
             let recorderId = activeRecorder.id;
 
             if (typeof(observerSet.contents[recorderId]) !== 'undefined') {
@@ -678,7 +755,7 @@
     }
 
     function notifyChangeObserver(observer) {
-        if (observer != activeRecorders[activeRecorders.length - 1]) {
+        if (observer != microContext) {
             removeObservation(observer); // Cannot be any more dirty than it already is!
             if (observerNotificationPostponed > 0) {
                 if (lastObserverToNotifyChange !== null) {
@@ -783,8 +860,10 @@
     }
 
     function refreshRepeater(repeater) {
-        activeRepeaters.push(repeater);
+        // activeRepeaters.push(repeater);
         repeater.removed     = false;
+        enterContext('repeater_refreshing', repeater);
+        nextIsMicroContext = true;
         repeater.returnValue = uponChangeDo(
             repeater.action,
             function () {
@@ -795,7 +874,8 @@
                 // });
             }
         );
-        activeRepeaters.pop();
+        leaveContext();
+        // activeRepeaters.pop();
     }
 
     function repeaterDirty(repeater) { // TODO: Add update block on this stage?
@@ -1026,7 +1106,7 @@
      * (even if the parent does not actually use/read any return value)
      ************************************************************************/
 
-    let inCachedCall = 0;
+    // let inCachedCall = 0;
 
     function getGenericCallAndCacheFunction(handler) { // this
         return function () {
@@ -1036,15 +1116,19 @@
             let functionCacher = getFunctionCacher(this, "cachedCalls", functionName, argumentsList); // wierd, does not work with this inestead of handler...
 
             if (!functionCacher.cacheRecordExists()) {
+                let cacheRecord = functionCacher.createNewRecord();
+
                 cachedCalls++;
+                enterContext('cached_call', cacheRecord);
+                nextIsMicroContext = true;
                 // Never encountered these arguments before, make a new cache
                 let returnValue = uponChangeDo(
                     function () {
                         let returnValue;
                         // blockSideEffects(function() {
-                        inCachedCall++;
+                        // inCachedCall++;
                         returnValue = this[functionName].apply(this, argumentsList);
-                        inCachedCall--;
+                        // inCachedCall--;
                         // }.bind(this));
                         return returnValue;
                     }.bind(this),
@@ -1053,7 +1137,7 @@
                         let cacheRecord = functionCacher.deleteExistingRecord();
                         notifyChangeObservers("functionCache.observers", cacheRecord.observers);
                     }.bind(this));
-                let cacheRecord = functionCacher.createNewRecord();
+                leaveContext();
                 cacheRecord.returnValue = returnValue;
                 cacheRecord.observers = {};
                 registerAnyChangeObserver("functionCache.observers", cacheRecord.observers);
@@ -1236,8 +1320,6 @@
      *
      ************************************************************************/
 
-    let inProjection = 0;
-
     function getGenericProjectFunction(handler) { // this
         return function () {
             // console.log("call projection");
@@ -1252,6 +1334,8 @@
                 cacheRecord.idObjectMap = {};
 
                 // Never encountered these arguments before, make a new cache
+                enterContext('projection', cacheRecord);
+                nextIsMicroContext = true;
                 cacheRecord.repeaterHandler = repeatOnChange(
                     function () {
                         // console.log("Projection repitition");
@@ -1260,11 +1344,11 @@
                         let returnValue;
 
                         // console.log("recursive ...");
-                        inProjection++;
+                        // inProjection++;
                         collect(newlyCreated, function() {
                             returnValue = this[functionName].apply(this, argumentsList);
                         }.bind(this));
-                        inProjection--;
+                        // inProjection--;
                         // console.log("... recursive");
 
                         // Infuse everything created during repetition.
@@ -1318,6 +1402,7 @@
                         }
                     }.bind(this)
                 );
+                leaveContext();
                 registerAnyChangeObserver("functionCache.returnValueObservers", getMap(cacheRecord, 'returnValueObservers'));
                 return cacheRecord.returnValue;
             } else {
