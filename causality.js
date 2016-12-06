@@ -165,7 +165,11 @@
     function resetObjectIds() {
         nextId = 1;   
     }
-    
+
+    // function infuse() {
+    //
+    // }
+
     function create(createdTarget) {
         if (typeof(createdTarget) === 'undefined') {
             createdTarget = {};
@@ -184,6 +188,12 @@
                 // construct: function () {},
 
                 get: function (target, key) {
+                    if (this.overlay !== null) {
+                        if (key === "overlay") return this.overlay;
+                        let overlayHandler = this.overlay.__target;
+                        return overlayHandler.get.apply(overlayHandler, [target, key, value]);
+                    }
+
                     if (staticArrayOverrides[key]) {
                         return staticArrayOverrides[key].bind(this);
                     } else if (this.overrides[key]) {
@@ -195,6 +205,15 @@
                 },
 
                 set: function (target, key, value) {
+                    if (this.overlay !== null) {
+                        if (key === "overlay") {
+                            return this.overlay = value;
+                        } else {
+                            let overlayHandler = this.overlay.__target;
+                            return overlayHandler.set.apply(overlayHandler, [target, key, value]);
+                        }
+                    }
+
                     // If same value as already set, do nothing.
                     // if (!!isNaN(key) && key in target) {
                     //     let previousValue = target[key];
@@ -219,6 +238,11 @@
                 },
 
                 deleteProperty: function (target, key) {
+                    if (this.overlay !== null) {
+                        let overlayHandler = this.overlay.__target;
+                        return overlayHandler.deleteProperty.apply(overlayHandler, [target, key]);
+                    }
+
                     if (!(key in target)) {
                         return false;
                     } else {
@@ -229,25 +253,43 @@
                 },
 
                 ownKeys: function (target) {
+                    if (this.overlay !== null) {
+                        let overlayHandler = this.overlay.__target;
+                        return overlayHandler.ownKeys.apply(overlayHandler, [overlayHandler]);
+                    }
+
                     registerAnyChangeObserver("_arrayObservers", this._arrayObservers);
                     let result   = Object.keys(target);
-                    if ((target instanceof Array)) {
-                        result.push('length');
-                    }
+                    result.push('length');
                     return result;
                 },
 
                 has: function (target, key) {
+                    if (this.overlay !== null) {
+                        let overlayHandler = this.overlay.__target;
+                        return overlayHandler.has.apply(overlayHandler, [target, key]);
+                    }
+
                     registerAnyChangeObserver("_arrayObservers", this._arrayObservers);
                     return key in target;
                 },
 
                 defineProperty: function (target, key, oDesc) {
+                    if (this.overlay !== null) {
+                        let overlayHandler = this.overlay.__target;
+                        return overlayHandler.defineProperty.apply(overlayHandler, [target, key, oDesc]);
+                    }
+
                     notifyChangeObservers("_arrayObservers", this._arrayObservers);
                     return target;
                 },
 
                 getOwnPropertyDescriptor: function (target, key) {
+                    if (this.overlay !== null) {
+                        let overlayHandler = this.overlay.__target;
+                        return overlayHandler.getOwnPropertyDescriptor.apply(overlayHandler, [target, key]);
+                    }
+
                     registerAnyChangeObserver("_arrayObservers", this._arrayObservers);
                     return Object.getOwnPropertyDescriptor(target, key);
                 }
@@ -269,6 +311,12 @@
                 _propertyObservers: _propertyObservers,
 
                 get: function (target, key) {
+                    if (this.overlay !== null) {
+                        if (key === "overlay") return this.overlay;
+                        let overlayHandler = this.overlay.__handler;
+                        return overlayHandler.get.apply(overlayHandler, [target, key, value]);
+                    }
+
                     let keyString = key.toString();
                     if (this.overrides[keyString]) {
                         return this.overrides[keyString];
@@ -288,6 +336,15 @@
                 },
 
                 set: function (target, key, value) {
+                    if (this.overlay !== null) {
+                        if (key === "overlay") {
+                            return this.overlay = value;
+                        } else {
+                            let overlayHandler = this.overlay.__target;
+                            return overlayHandler.set.apply(overlayHandler, [target, key, value]);
+                        }
+                    }
+
                     // If same value as already set, do nothing.
                     if (key in target) {
                         let previousValue = target[key];
@@ -317,6 +374,11 @@
                 },
 
                 deleteProperty: function (target, key) {
+                    if (this.overlay !== null) {
+                        let overlayHandler = this.overlay.__target;
+                        return overlayHandler.deleteProperty.apply(overlayHandler, [target, key]);
+                    }
+
                     if (!(key in target)) {
                         return false;
                     } else {
@@ -327,6 +389,11 @@
                 },
 
                 ownKeys: function (target, key) { // Not inherited?
+                    if (this.overlay !== null) {
+                        let overlayHandler = this.overlay.__target;
+                        return overlayHandler.ownKeys.apply(overlayHandler, [target, key]);
+                    }
+
                     registerAnyChangeObserver("_enumerateObservers", this._enumerateObservers);
                     let keys = Object.keys(target);
                     // keys.push('__id');
@@ -334,21 +401,38 @@
                 },
 
                 has: function (target, key) {
+                    if (this.overlay !== null) {
+                        let overlayHandler = this.overlay.__target;
+                        return overlayHandler.has.apply(overlayHandler, [target, key]);
+                    }
+
                     registerAnyChangeObserver("_enumerateObservers", this._enumerateObservers);
                     return key in target;
                 },
 
                 defineProperty: function (target, key, descriptor) {
+                    if (this.overlay !== null) {
+                        let overlayHandler = this.overlay.__target;
+                        return overlayHandler.defineProperty.apply(overlayHandler, [target, key]);
+                    }
+
                     notifyChangeObservers("_enumerateObservers", this._enumerateObservers);
                     return Reflect.defineProperty(target, key, descriptor);
                 },
 
                 getOwnPropertyDescriptor: function (target, key) {
+                    if (this.overlay !== null) {
+                        let overlayHandler = this.overlay.__target;
+                        return overlayHandler.deleteProperty.apply(overlayHandler, [target, key]);
+                    }
+
                     registerAnyChangeObserver("_enumerateObservers", this._enumerateObservers);
                     return Object.getOwnPropertyDescriptor(target, key);
                 }
             };
         }
+
+        handler.overlay = null;
         handler.target = createdTarget;
 
         let proxy = new Proxy(createdTarget, handler);
@@ -365,6 +449,7 @@
         handler.overrides = {
             __id: nextId++,
             __target: createdTarget,
+            __handler : handler,
             repeat :  getGenericRepeatFunction(handler),
             cached : getGenericCallAndCacheFunction(handler),
             cachedInCache : function() { // Only cache if within another cached call.
