@@ -164,10 +164,10 @@ describe("observe arrays", function(){
         );
 
 		observedArray[1] = 'z';
-		assert.deepEqual( result, { type: 'splice', index: 1, removed: ['b'], added: [ 'z' ] } );
+		assert.deepEqual( result, { type: 'splice', index: 1, removed: ['b'], added: [ 'z' ], objectId: 51} );
 
 		observedArray.push('last');
-		assert.deepEqual( result, { type: 'splice', index: 3, removed: [], added: [ 'last' ] } );
+		assert.deepEqual( result, { type: 'splice', index: 3, removed: [], added: [ 'last' ], objectId: 51} );
 
 	})
 });
