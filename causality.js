@@ -222,15 +222,24 @@
                     if (cumulativeAssignment && inActiveRecording() && (isNaN(value) || typeof(value) === 'undefined')) {
                         return false;
                     }
-                    target[key] = value;
                     if (!isNaN(key)) {
+                        // Number index
+                        let previousValue = target[key];
                         if (typeof(key) === 'string') {
                             key = parseInt(key);
                         }
-                        this.emitEvent({ type: 'splice', index: key, removed: [target[key]], added: [value] });
+                        target[key] = value;
+                        this.emitEvent({ type: 'splice', index: key, removed: [previousValue], added: [value] });
+                        notifyChangeObservers("_arrayObservers", this._arrayObservers);
+                        return true;
+                    } else {
+                        // String index
+                        let previousValue = target[key];
+                        target[key] = value;
+                        this.emitEvent({ type: 'set', property: key, oldValue: previousValue, newValue: value });
+                        notifyChangeObservers("_arrayObservers", this._arrayObservers);
+                        return true;
                     }
-                    notifyChangeObservers("_arrayObservers", this._arrayObservers);
-                    return true;
                 },
 
                 deleteProperty: function (target, key) {

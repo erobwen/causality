@@ -154,6 +154,7 @@ require('../causality').install();
 
 describe("observe arrays", function(){
 	it('should report changes', function(){
+		resetObjectIds();
 
 		var result;
 		var observedArray = c(['a', 'b', 'c']);
@@ -164,10 +165,10 @@ describe("observe arrays", function(){
         );
 
 		observedArray[1] = 'z';
-		assert.deepEqual( result, { type: 'splice', index: 1, removed: ['b'], added: [ 'z' ], objectId: 51} );
+		assert.deepEqual( result, { type: 'splice', index: 1, removed: ['b'], added: [ 'z' ], objectId: 1} );
 
 		observedArray.push('last');
-		assert.deepEqual( result, { type: 'splice', index: 3, removed: [], added: [ 'last' ], objectId: 51} );
+		assert.deepEqual( result, { type: 'splice', index: 3, removed: [], added: [ 'last' ], objectId: 1} );
 
 	})
 });
