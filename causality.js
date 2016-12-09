@@ -559,6 +559,10 @@
         }
     }
 
+    function noContext() {
+        return context === null;
+    }
+
     function inActiveRecording() {
         return (microContext === null) ? false : ((microContext.type === "recording") && recordingPaused === 0);
     }
@@ -1015,6 +1019,12 @@
             if (!functionCacher.cacheRecordExists()) {
                 // Never encountered these arguments before, make a new cache
                 let cacheRecord = functionCacher.createNewRecord();
+
+                // Is this call non-automatic
+                if (noContext()) {
+                    cacheRecord.directlyInvokedByApplication = true;
+                }
+
                 cacheRecord.repeaterHandle = repeatOnChange(function() {
                     returnValue = this[functionName].apply(this, argumentsList);
                 });
@@ -1186,6 +1196,11 @@
 
             if (!functionCacher.cacheRecordExists()) {
                 let cacheRecord = functionCacher.createNewRecord();
+
+                // Is this call non-automatic
+                if (noContext()) {
+                    cacheRecord.directlyInvokedByApplication = true;
+                }
 
                 cachedCalls++;
                 enterContext('cached_call', cacheRecord);
@@ -1435,6 +1450,11 @@
                 // console.log("init reCache ");
                 let cacheRecord = functionCacher.createNewRecord();
                 cacheRecord.infusionIdObjectMap = {};
+
+                // Is this call non-automatic
+                if (noContext()) {
+                    cacheRecord.directlyInvokedByApplication = true;
+                }
 
                 // Never encountered these arguments before, make a new cache
                 enterContext('reCache', cacheRecord);
