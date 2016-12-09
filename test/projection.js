@@ -204,143 +204,146 @@ describe("Projections", function(){
         }
     });
 
-    // it("Testing non-recursive projection, array version", function(){
-    //     resetObjectIds();
-    //     var tree = createTreeNode(1, [
-    //         createTreeNode(2, [
-    //             createTreeNode(3, []),
-    //             createTreeNode(4, [])
-    //         ]),
-    //         createTreeNode(5, [
-    //             createTreeNode(6, []),
-    //             createTreeNode(7, [])
-    //         ])
-    //     ]);
-    //
-    //     var flattened = tree.project('flattenArrayPreOrder');
-    //
-    //     // Assert original shape
-    //     assert.deepEqual(flattened.map((object) => { return object.value; }), [1, 2, 3, 4, 5, 6, 7]);
-    //
-    //     // Observe array
-    //     let detectedEvents = [];
-    //     flattened.observe(function(event) {
-    //         detectedEvents.push(event);
-    //     });
-    //
-    //     // Update tree
-    //     tree.children[0].children.push(createTreeNode(4.5, []));
-    //
-    //     // Assert eventws
-    //     assert.deepEqual(detectedEvents,
-    //         [ { type: 'splice',
-    //             index: 4,
-    //             removed: [],
-    //             added: [ { value: 4.5, __infusionId: '30_node' } ],
-    //             objectId: 15 } ]);
-    //
-    //     // Assert updated
-    //     assert.deepEqual(flattened.map((object) => { return object.value; }), [1, 2, 3, 4, 4.5, 5, 6, 7]);
-    // });
-    //
-    // it("Testing recursive projection, array version", function(){
-    //     resetObjectIds();
-    //     var tree = createTreeNode(1, [
-    //         createTreeNode(2, [
-    //             createTreeNode(3, []),
-    //             createTreeNode(4, [])
-    //         ]),
-    //         createTreeNode(5, [
-    //             createTreeNode(6, []),
-    //             createTreeNode(7, [])
-    //         ])
-    //     ]);
-    //
-    //     var flattened = tree.project('flattenArrayPreOrderRecursive');
-    //
-    //     // Assert original shape
-    //     assert.deepEqual(flattened.map((object) => { return object.value; }), [1, 2, 3, 4, 5, 6, 7]);
-    //
-    //     // Observe array
-    //     let detectedEvents = [];
-    //     flattened.observe(function(event) {
-    //         detectedEvents.push(event);
-    //     });
-    //
-    //     // Update tree
-    //     tree.children[0].children.push(createTreeNode(4.5, []));
-    //
-    //     // Assert eventws
-    //     assert.deepEqual(detectedEvents,
-    //         [ { type: 'splice',
-    //             index: 4,
-    //             removed: [],
-    //             added: [ { value: 4.5, __infusionId: '30_node' } ],
-    //             objectId: 15 } ]);
-    //
-    //     // Assert updated
-    //     assert.deepEqual(flattened.map((object) => { return object.value; }), [1, 2, 3, 4, 4.5, 5, 6, 7]);
-    // });
-    //
-    //
-    // it("Testing recursive projection, linked list version", function(){
-    //     resetObjectIds();
-    //     var tree = createTreeNode(1, [
-    //         createTreeNode(2, [
-    //             createTreeNode(3, []),
-    //             createTreeNode(4, [])
-    //         ]),
-    //         createTreeNode(5, [
-    //             createTreeNode(6, []),
-    //             createTreeNode(7, [])
-    //         ])
-    //     ]);
-    //
-    //     var flattened = tree.project('flattenLinkedPreOrderRecursive');
-    //
-    //     // Assert original shape
-    //     var expectedValues = [1, 2, 3, 4, 5, 6, 7];
-    //     var flattenedNode = flattened.first;
-    //     assert.equal(flattenedNode.value, expectedValues.shift());
-    //     while(typeof(flattenedNode.next) !== 'undefined') {
-    //         flattenedNode = flattenedNode.next;
-    //         assert.equal(flattenedNode.value, expectedValues.shift());
-    //     }
-    //
-    //     // Observe all
-    //     let detectedEvents = [];
-    //     flattenedNode = flattened.first;
-    //     let observedNodes = [];
-    //     observedNodes.push(flattenedNode);
-    //     while(typeof(flattenedNode.next) !== 'undefined') {
-    //         flattenedNode = flattenedNode.next;
-    //         observedNodes.push(flattenedNode);
-    //     }
-    //     observeAll(observedNodes, function(event) {
-    //         detectedEvents.push(event);
-    //     });
-    //
-    //     // Update tree
-    //     tree.children[0].children.push(createTreeNode(4.5, []));
-    //
-    //     // Assert eventws
-    //     assert.equal(detectedEvents[0].type, 'set');
-    //     assert.equal(detectedEvents[0].property, 'next');
-    //     assert.equal(detectedEvents[0].newValue.value, 4.5);
-    //     assert.equal(detectedEvents[0].newValue.__infusionId, '30_node');
-    //     assert.equal(detectedEvents[0].oldValue.value, 5);
-    //     assert.equal(detectedEvents[0].oldValue.__infusionId, '12_node');
-    //     assert.equal(detectedEvents[0].objectId, 22);
-    //
-    //     // Assert updated
-    //     expectedValues = [1, 2, 3, 4, 4.5, 5, 6, 7];
-    //     flattenedNode = flattened.first;
-    //     assert.equal(flattenedNode.value, expectedValues.shift());
-    //     while(typeof(flattenedNode.next) !== 'undefined') {
-    //         flattenedNode = flattenedNode.next;
-    //         assert.equal(flattenedNode.value, expectedValues.shift());
-    //     }
-    // });
+    it("Testing non-recursive projection, array version", function(){
+        resetObjectIds();
+        var tree = createTreeNode(1, [
+            createTreeNode(2, [
+                createTreeNode(3, []),
+                createTreeNode(4, [])
+            ]),
+            createTreeNode(5, [
+                createTreeNode(6, []),
+                createTreeNode(7, [])
+            ])
+        ]);
+
+        var flattened = tree.project('flattenArrayPreOrder');
+
+        // Assert original shape
+        assert.deepEqual(flattened.map((object) => { return object.value; }), [1, 2, 3, 4, 5, 6, 7]);
+
+        // Observe array
+        let detectedEvents = [];
+        flattened.observe(function(event) {
+            detectedEvents.push(event);
+        });
+
+        // Update tree
+        // console.log("=======================================================");
+        tree.children[0].children.push(createTreeNode(4.5, []));
+        // console.log("=======================================================");
+
+        // Assert eventws
+        assert.deepEqual(detectedEvents,
+            [ { type: 'splice',
+                index: 4,
+                removed: [],
+                added: [ { value: 4.5 } ],
+                objectId: 15 } ]);
+
+        // Assert updated
+        assert.deepEqual(flattened.map((object) => { return object.value; }), [1, 2, 3, 4, 4.5, 5, 6, 7]);
+    });
+
+
+    it("Testing recursive projection, array version", function(){
+        resetObjectIds();
+        var tree = createTreeNode(1, [
+            createTreeNode(2, [
+                createTreeNode(3, []),
+                createTreeNode(4, [])
+            ]),
+            createTreeNode(5, [
+                createTreeNode(6, []),
+                createTreeNode(7, [])
+            ])
+        ]);
+
+        var flattened = tree.project('flattenArrayPreOrderRecursive');
+
+        // Assert original shape
+        assert.deepEqual(flattened.map((object) => { return object.value; }), [1, 2, 3, 4, 5, 6, 7]);
+
+        // Observe array
+        let detectedEvents = [];
+        flattened.observe(function(event) {
+            detectedEvents.push(event);
+        });
+
+        // Update tree
+        tree.children[0].children.push(createTreeNode(4.5, []));
+
+        // Assert eventws
+        assert.deepEqual(detectedEvents,
+            [ { type: 'splice',
+                index: 4,
+                removed: [],
+                added: [ { value: 4.5 } ],
+                objectId: 15 } ]);
+
+        // Assert updated
+        assert.deepEqual(flattened.map((object) => { return object.value; }), [1, 2, 3, 4, 4.5, 5, 6, 7]);
+    });
+
+
+    it("Testing recursive projection, linked list version", function(){
+        resetObjectIds();
+        var tree = createTreeNode(1, [
+            createTreeNode(2, [
+                createTreeNode(3, []),
+                createTreeNode(4, [])
+            ]),
+            createTreeNode(5, [
+                createTreeNode(6, []),
+                createTreeNode(7, [])
+            ])
+        ]);
+
+        var flattened = tree.project('flattenLinkedPreOrderRecursive');
+
+        // Assert original shape
+        var expectedValues = [1, 2, 3, 4, 5, 6, 7];
+        var flattenedNode = flattened.first;
+        assert.equal(flattenedNode.value, expectedValues.shift());
+        while(typeof(flattenedNode.next) !== 'undefined') {
+            flattenedNode = flattenedNode.next;
+            assert.equal(flattenedNode.value, expectedValues.shift());
+        }
+
+        // Observe all
+        let detectedEvents = [];
+        flattenedNode = flattened.first;
+        let observedNodes = [];
+        observedNodes.push(flattenedNode);
+        while(typeof(flattenedNode.next) !== 'undefined') {
+            flattenedNode = flattenedNode.next;
+            observedNodes.push(flattenedNode);
+        }
+        observeAll(observedNodes, function(event) {
+            detectedEvents.push(event);
+        });
+
+        // Update tree
+        tree.children[0].children.push(createTreeNode(4.5, []));
+
+        // Assert eventws
+        assert.equal(detectedEvents[0].type, 'set');
+        assert.equal(detectedEvents[0].property, 'next');
+        assert.equal(detectedEvents[0].newValue.value, 4.5);
+        assert.equal(detectedEvents[0].newValue.__infusionId, '30_node');
+        assert.equal(detectedEvents[0].oldValue.value, 5);
+        assert.equal(detectedEvents[0].oldValue.__infusionId, '12_node');
+        assert.equal(detectedEvents[0].objectId, 22);
+
+        // Assert updated
+        expectedValues = [1, 2, 3, 4, 4.5, 5, 6, 7];
+        flattenedNode = flattened.first;
+        assert.equal(flattenedNode.value, expectedValues.shift());
+        while(typeof(flattenedNode.next) !== 'undefined') {
+            flattenedNode = flattenedNode.next;
+            assert.equal(flattenedNode.value, expectedValues.shift());
+        }
+    });
 });
 
 // let cnt = 0;

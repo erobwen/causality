@@ -194,7 +194,7 @@
 
                     if (staticArrayOverrides[key]) {
                         return staticArrayOverrides[key].bind(this);
-                    } else if (this.overrides[key]) {
+                    } else if (typeof(this.overrides[key]) !== 'undefined') {
                         return this.overrides[key];
                     } else {
                         registerAnyChangeObserver("_arrayObservers", this._arrayObservers);//object
@@ -497,24 +497,30 @@
         };
 
         if (inProjection()) {
-            console.log(infusionId);
+            // console.log(infusionId);
             if (infusionId !== null &&  typeof(context.infusionIdObjectMap[infusionId]) !== 'undefined') {
                 // Overlay previously created
-                console.log("creating overlay");
+                // console.log("creating overlay");
                 let infusionTarget = context.infusionIdObjectMap[infusionId];
                 if (infusionTarget === proxy) {
                     throw "WTF";
+                }
+                if (infusionTarget === 'undefined') {
+                    throw new Error("Wtf!");
+                }
+                if (typeof(infusionTarget) === 'undefined') {
+                    throw new Error("Wtf!");
                 }
                 infusionTarget.__handler.overrides.__overlay = proxy;
                 context.newlyCreated.push(infusionTarget);
                 return infusionTarget;   // Borrow identity of infusion target.
             } else {
                 // Newly created in this projection cycle. Including overlaid ones.
-                console.log("creating fresh");
-                console.log(infusionId);
-                console.log(context.type);
+                // console.log("creating fresh");
+                // console.log(infusionId);
+                // console.log(context.type);
                 // console.log(context);
-                console.log(typeof(context.infusionIdObjectMap[infusionId]));
+                // console.log(typeof(context.infusionIdObjectMap[infusionId]));
                 context.newlyCreated.push(proxy);
             }
         }
@@ -585,7 +591,7 @@
 
         // Connect with previous context
         if (enteredContext.parent === null) {
-            console.log("Connect with parent");
+            // console.log("Connect with parent");
             enteredContext.parent = nextIsMicroContext ? microContext : null
             nextIsMicroContext = false;
         }
@@ -597,8 +603,7 @@
             parents.unshift(parent);
             parent = parent.parent;
         }
-        console.log("====== enterContext ========" + parents.map((context) => { return context.type; }).join("->"));
-
+        // console.log("====== enterContext ======== " + causalityStack.length + " =" + parents.map((context) => { return context.type; }).join("->"));
 
         let scannedContext = enteredContext;
         while (scannedContext.parent !== null) {
@@ -607,8 +612,8 @@
 
         context = scannedContext;
         microContext = enteredContext;
-        console.log("context: " + context.type);
-        console.log("microContext: " + microContext.type);
+        // console.log("context: " + context.type);
+        // console.log("microContext: " + microContext.type);
         causalityStack.push(enteredContext);
         return enteredContext;
     }
@@ -626,7 +631,7 @@
             context = null;
             microContext = null;
         }
-        console.log("====== leaveContext ========" + leftContext.type);
+        // console.log("====== leaveContext ========" + leftContext.type);
     }
 
 
@@ -1377,31 +1382,34 @@
 
     function mergeInto(source, target) {
         // console.log("mergeInto");
-        // console.log(source);
+        // console.log(source.__infusionId);
+        // console.log(target.__infusionId);
         // console.log(target);
         if (source instanceof Array) {
-            let splices = differentialSplices(object.__target, source.__target);
+            let splices = differentialSplices(target.__target, source.__target);
+            // console.log(splices);
             splices.forEach(function(splice) {
                 let spliceArguments = [];
                 spliceArguments.push(splice.index, splice.removed.length);
                 spliceArguments.push.apply(spliceArguments, splice.added); //.map(mapValue))
-                object.splice.apply(target, spliceArguments);
+                target.splice.apply(target, spliceArguments);
             });
             for (property in source) {
                 if (isNaN(property)) {
-                    object[property] = source[property];
+                    target[property] = source[property];
                 }
             }
         } else {
             for (property in source) {
-                object[property] = source[property];
+                target[property] = source[property];
             }
         }
     }
 
     function infuseOverlayIntoObject(object) {
-        console.log("infusing");
+        // console.log("infusing");
         let overlay = object.__overlay;
+        // console.log(overlay);
         object.__overlay = null;
         mergeInto(overlay, object);
     }
@@ -1421,7 +1429,7 @@
             let functionCacher = getFunctionCacher(this, "_projections", functionName, argumentsList);
 
             if (!functionCacher.cacheRecordExists()) {
-                console.log("init projection ");
+                // console.log("init projection ");
                 let cacheRecord = functionCacher.createNewRecord();
                 cacheRecord.infusionIdObjectMap = {};
 
@@ -1432,21 +1440,21 @@
                     function () {
                         cacheRecord.newlyCreated = [];
                         let newReturnValue;
-                        console.log("better be true");
-                        console.log(inProjection());
+                        // console.log("better be true");
+                        // console.log(inProjection());
                         newReturnValue = this[functionName].apply(this, argumentsList);
-                        console.log(cacheRecord.newlyCreated);
+                        // console.log(cacheRecord.newlyCreated);
 
-                        console.log("Assimilating:");
+                        // console.log("Assimilating:");
                         withoutRecording(function() { // Do not observe reads from the overlays
                             cacheRecord.newlyCreated.forEach(function(created) {
                                 if (created.__overlay !== null) {
-                                    console.log("Has overlay!");
-                                    console.log(created.__overlay);
+                                    // console.log("Has overlay!");
+                                    // console.log(created.__overlay);
                                     infuseOverlayIntoObject(created);
                                 } else {
-                                    console.log("Infusion id of newly created:");
-                                    console.log(created.__infusionId);
+                                    // console.log("Infusion id of newly created:");
+                                    // console.log(created.__infusionId);
                                     if (created.__infusionId !== null) {
 
                                         cacheRecord.infusionIdObjectMap[created.__infusionId] = created;
