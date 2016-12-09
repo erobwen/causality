@@ -170,6 +170,9 @@
         if (typeof(createdTarget) === 'undefined') {
             createdTarget = {};
         }
+        if (typeof(infusionId) === 'undefined') {
+            infusionId = null;
+        }
 
         let handler;
         if (createdTarget instanceof Array) {
@@ -184,10 +187,9 @@
                 // construct: function () {},
 
                 get: function (target, key) {
-                    if (this.overlay !== null) {
-                        if (key === "overlay") return this.overlay;
-                        let overlayHandler = this.overlay.__target;
-                        return overlayHandler.get.apply(overlayHandler, [target, key, value]);
+                    if (this.overrides.__overlay !== null && key !== "__overlay") {
+                        let overlayHandler = this.overrides.__overlay.__handler;
+                        return overlayHandler.get.apply(overlayHandler, [target, key]);
                     }
 
                     if (staticArrayOverrides[key]) {
@@ -201,11 +203,11 @@
                 },
 
                 set: function (target, key, value) {
-                    if (this.overlay !== null) {
-                        if (key === "overlay") {
-                            return this.overlay = value;
+                    if (this.overrides.__overlay !== null) {
+                        if (key === "__overlay") {
+                            return this.overrides.__overlay = value;
                         } else {
-                            let overlayHandler = this.overlay.__target;
+                            let overlayHandler = this.overrides.__overlay.__handler;
                             return overlayHandler.set.apply(overlayHandler, [target, key, value]);
                         }
                     }
@@ -243,8 +245,8 @@
                 },
 
                 deleteProperty: function (target, key) {
-                    if (this.overlay !== null) {
-                        let overlayHandler = this.overlay.__target;
+                    if (this.overrides.__overlay !== null) {
+                        let overlayHandler = this.overrides.__overlay.__handler;
                         return overlayHandler.deleteProperty.apply(overlayHandler, [target, key]);
                     }
 
@@ -258,8 +260,8 @@
                 },
 
                 ownKeys: function (target) {
-                    if (this.overlay !== null) {
-                        let overlayHandler = this.overlay.__target;
+                    if (this.overrides.__overlay !== null) {
+                        let overlayHandler = this.overrides.__overlay.__handler;
                         return overlayHandler.ownKeys.apply(overlayHandler, [overlayHandler]);
                     }
 
@@ -270,8 +272,8 @@
                 },
 
                 has: function (target, key) {
-                    if (this.overlay !== null) {
-                        let overlayHandler = this.overlay.__target;
+                    if (this.overrides.__overlay !== null) {
+                        let overlayHandler = this.overrides.__overlay.__handler;
                         return overlayHandler.has.apply(overlayHandler, [target, key]);
                     }
 
@@ -280,8 +282,8 @@
                 },
 
                 defineProperty: function (target, key, oDesc) {
-                    if (this.overlay !== null) {
-                        let overlayHandler = this.overlay.__target;
+                    if (this.overrides.__overlay !== null) {
+                        let overlayHandler = this.overrides.__overlay.__handler;
                         return overlayHandler.defineProperty.apply(overlayHandler, [target, key, oDesc]);
                     }
 
@@ -290,8 +292,8 @@
                 },
 
                 getOwnPropertyDescriptor: function (target, key) {
-                    if (this.overlay !== null) {
-                        let overlayHandler = this.overlay.__target;
+                    if (this.overrides.__overlay !== null) {
+                        let overlayHandler = this.overrides.__overlay.__handler;
                         return overlayHandler.getOwnPropertyDescriptor.apply(overlayHandler, [target, key]);
                     }
 
@@ -316,14 +318,13 @@
                 _propertyObservers: _propertyObservers,
 
                 get: function (target, key) {
-                    if (this.overlay !== null) {
-                        if (key === "overlay") return this.overlay;
-                        let overlayHandler = this.overlay.__handler;
-                        return overlayHandler.get.apply(overlayHandler, [target, key, value]);
+                    if (this.overrides.__overlay !== null && key !== "__overlay") {
+                        let overlayHandler = this.overrides.__overlay.__handler;
+                        return overlayHandler.get.apply(overlayHandler, [target, key]);
                     }
 
                     let keyString = key.toString();
-                    if (this.overrides[keyString]) {
+                    if (typeof(this.overrides[keyString]) !== 'undefined') {
                         return this.overrides[keyString];
                     } else {
                         if (typeof(keyString) !== 'undefined') {
@@ -341,11 +342,11 @@
                 },
 
                 set: function (target, key, value) {
-                    if (this.overlay !== null) {
+                    if (this.overrides.__overlay !== null) {
                         if (key === "overlay") {
-                            return this.overlay = value;
+                            return this.overrides.__overlay = value; // Setting a new overlay, should not be possible?
                         } else {
-                            let overlayHandler = this.overlay.__target;
+                            let overlayHandler = this.overrides.__overlay.__handler;
                             return overlayHandler.set.apply(overlayHandler, [target, key, value]);
                         }
                     }
@@ -377,8 +378,8 @@
                 },
 
                 deleteProperty: function (target, key) {
-                    if (this.overlay !== null) {
-                        let overlayHandler = this.overlay.__target;
+                    if (this.overrides.__overlay !== null) {
+                        let overlayHandler = this.overrides.__overlay.__handler;
                         return overlayHandler.deleteProperty.apply(overlayHandler, [target, key]);
                     }
 
@@ -392,8 +393,8 @@
                 },
 
                 ownKeys: function (target, key) { // Not inherited?
-                    if (this.overlay !== null) {
-                        let overlayHandler = this.overlay.__target;
+                    if (this.overrides.__overlay !== null) {
+                        let overlayHandler = this.overrides.__overlay.__handler;
                         return overlayHandler.ownKeys.apply(overlayHandler, [target, key]);
                     }
 
@@ -404,8 +405,8 @@
                 },
 
                 has: function (target, key) {
-                    if (this.overlay !== null) {
-                        let overlayHandler = this.overlay.__target;
+                    if (this.overrides.__overlay !== null) {
+                        let overlayHandler = this.overrides.__overlay.__handler;
                         return overlayHandler.has.apply(overlayHandler, [target, key]);
                     }
 
@@ -414,8 +415,8 @@
                 },
 
                 defineProperty: function (target, key, descriptor) {
-                    if (this.overlay !== null) {
-                        let overlayHandler = this.overlay.__target;
+                    if (this.overrides.__overlay !== null) {
+                        let overlayHandler = this.overrides.__overlay.__handler;
                         return overlayHandler.defineProperty.apply(overlayHandler, [target, key]);
                     }
 
@@ -424,8 +425,8 @@
                 },
 
                 getOwnPropertyDescriptor: function (target, key) {
-                    if (this.overlay !== null) {
-                        let overlayHandler = this.overlay.__target;
+                    if (this.overrides.__overlay !== null) {
+                        let overlayHandler = this.overrides.__overlay.__handler;
                         return overlayHandler.deleteProperty.apply(overlayHandler, [target, key]);
                     }
 
@@ -435,7 +436,6 @@
             };
         }
 
-        handler.overlay = null;
         handler.target = createdTarget;
 
         let proxy = new Proxy(createdTarget, handler);
@@ -451,9 +451,12 @@
         };
 
         handler.overrides = {
+            __overlay : null, 
+            __infusionId : infusionId,
             __id: nextId++,
             __target: createdTarget,
             __handler : handler,
+            
             repeat :  getGenericRepeatFunction(handler),
             cached : getGenericCallAndCacheFunction(handler),
             cachedInCache : function() { // Only cache if within another cached call.
@@ -475,6 +478,7 @@
                     return this[functionName].apply(this, argumentsArray);
                 }
             },
+            // subProjectionInProjectoin
             replaceWith : getGenericReplacer(handler),
             observe: function(observerFunction) {
                 if (typeof(handler.observers) === 'undefined') {
@@ -484,18 +488,30 @@
             }
         };
 
-        // Collect newly created
-        if (collecting.length > 0) {
-            collecting[collecting.length - 1].push(proxy);
+        if (inProjection()) {
+            console.log(infusionId);
+            if (infusionId !== null &&  typeof(context.infusionIdObjectMap[infusionId]) !== 'undefined') {
+                // Overlay previously created
+                console.log("creating overlay");
+                let infusionTarget = context.infusionIdObjectMap[infusionId];
+                if (infusionTarget === proxy) {
+                    throw "WTF";
+                }
+                infusionTarget.__handler.overrides.__overlay = proxy;
+                context.newlyCreated.push(infusionTarget);
+                return infusionTarget;   // Borrow identity of infusion target.
+            } else {
+                // Newly created in this projection cycle. Including overlaid ones.
+                console.log("creating fresh");
+                console.log(infusionId);
+                console.log(context.type);
+                // console.log(context);
+                console.log(typeof(context.infusionIdObjectMap[infusionId]));
+                context.newlyCreated.push(proxy);
+            }
         }
 
-        if (typeof(infusionId) !== 'undefined') {
-            let infusionTarget = null; // Get target
-            infusionTarget.overlay = proxy;
-            return infusionTarget;   // Borrow identity of infusion target.
-        } else {
-            return proxy;
-        }
+        return proxy;
     }
 
     let c = create;
@@ -542,25 +558,49 @@
     }
 
 
-    function enterContextNextIsTransparent(type, enteredContext) {
+    function enterContextAndConnectWithNextContext(type, enteredContext) {
         nextIsMicroContext = true;
         enterContext(type, enteredContext);
     }
 
-    // recording, repeater_refreshing, cached_call, projection, 
+    function initializeContext(type, context) {
+        if (typeof(context.initialized) === 'undefined') {
+            context.type = type;
+            context.parent = null;
+            context.initialized = true;
+        }
+    }
+
+    // occuring types: recording, repeater_refreshing, cached_call, projection,
     function enterContext(type, enteredContext) {
-        enteredContext.type = type;
-        if (enteredContext.parent !== null) {
-            enteredContext.parent = nextIsMicroContext ? context : null
+        initializeContext(type, enteredContext);
+
+        // Connect with previous context
+        if (enteredContext.parent === null) {
+            console.log("Connect with parent");
+            enteredContext.parent = nextIsMicroContext ? microContext : null
             nextIsMicroContext = false;
         }
+
+        // Debug printout of parent hierarchy
+        let parents = [enteredContext];
+        let parent =  enteredContext.parent;
+        while(parent !== null) {
+            parents.unshift(parent);
+            parent = parent.parent;
+        }
+        console.log("====== enterContext ========" + parents.map((context) => { return context.type; }).join("->"));
+
 
         let scannedContext = enteredContext;
         while (scannedContext.parent !== null) {
             scannedContext = scannedContext.parent
         }
+
         context = scannedContext;
         microContext = enteredContext;
+        console.log("context: " + context.type);
+        console.log("microContext: " + microContext.type);
         causalityStack.push(enteredContext);
         return enteredContext;
     }
@@ -578,6 +618,7 @@
             context = null;
             microContext = null;
         }
+        console.log("====== leaveContext ========" + leftContext.type);
     }
 
 
@@ -872,6 +913,8 @@
         // activeRepeaters.push(repeater);
         repeater.removed     = false;
         enterContext('repeater_refreshing', repeater);
+        // console.log("parent context type: " + repeater.parent.type);
+        // console.log("context type: " + repeater.type);
         nextIsMicroContext = true;
         repeater.returnValue = uponChangeDo(
             repeater.action,
@@ -1249,79 +1292,110 @@
 
         return splices;
     }
-
-
-    /************************************************************************
-     *
-     *  Infusion
-     *
-     ************************************************************************/
-
+    //
+    //
+    // /************************************************************************
+    //  *
+    //  *  Infusion
+    //  *
+    //  ************************************************************************/
+    //
     function getGenericReplacer(handler) { // this
         return function(otherObject) {
-            infuseCoArrays([otherObject], [this]);
+            mergeInto(otherObject, this);
         }
     }
+    //
+    // function infuseCoArrays(sources, targets) {
+    //
+    //     // Setup id target map and ids.
+    //     let index = 0;
+    //     idTargetMap = {};
+    //     while (index < sources.length) {
+    //         sources[index].__infusionId = index;
+    //         targets[index].__infusionId = index;
+    //         idTargetMap[index] = targets[index];
+    //         index++;
+    //     }
+    //
+    //     infuseWithMap(sources, idTargetMap);
+    // }
+    //
+    // function infuseWithMap(sources, idTargetMap) {
+    //
+    //     // Helper
+    //     function mapValue(value) {
+    //         if (typeof(value) === 'object' && (value !== null)) {
+    //             if (typeof(value.__infusionId) !== 'undefined' && typeof(idTargetMap[value.__infusionId]) !== 'undefined') {
+    //                 // console.log("Mapping! " + value.__infusionId + " " + value.__id + " ==> " + idTargetMap[value.__infusionId].__id);
+    //                 value = idTargetMap[value.__infusionId]; // Reference to the replaced one.
+    //             }
+    //         }
+    //         return value;
+    //     }
+    //
+    //     // Setup id target map and ids.
+    //     let index = 0;
+    //     while (index < sources.length) {
+    //         let source = sources[index];
+    //         if (typeof(source.__infusionId) !== 'undefined' && typeof(idTargetMap[source.__infusionId]) !== 'undefined') {
+    //             let target = idTargetMap[source.__infusionId];
+    //             let sourceWithoutProxy = source.__target;
+    //             if (sourceWithoutProxy instanceof Array) {
+    //                 sourceWithoutProxy = sourceWithoutProxy.map(mapValue);
+    //                 // console.log("Before differential splices:");
+    //                 // console.log(target.__target.map((object) => object.__id + " " + object.__infusionId));
+    //                 // console.log(sourceWithoutProxy.map((object) => object.__id + " " + object.__infusionId));
+    //                 let splices = differentialSplices(target.__target, sourceWithoutProxy); // let arrayIndex = 0;
+    //                 splices.forEach(function(splice) {
+    //                     // console.log("Splicing!");
+    //                     // console.log(splice);
+    //                     let spliceArguments = [];
+    //                     spliceArguments.push(splice.index, splice.removed.length);
+    //                     spliceArguments.push.apply(spliceArguments, splice.added); //.map(mapValue))
+    //                     target.splice.apply(target, spliceArguments);
+    //                 });
+    //             } else {
+    //                 for (let property in sourceWithoutProxy) {
+    //                     target[property]  = mapValue(sourceWithoutProxy[property]);
+    //                 }
+    //             }
+    //         }
+    //         index++;
+    //     }
+    // }
 
-    function infuseCoArrays(sources, targets) {
 
-        // Setup id target map and ids.
-        let index = 0;
-        idTargetMap = {};
-        while (index < sources.length) {
-            sources[index].__infusionId = index;
-            targets[index].__infusionId = index;
-            idTargetMap[index] = targets[index];
-            index++;
-        }
-
-        infuseWithMap(sources, idTargetMap);
-    }
-
-    function infuseWithMap(sources, idTargetMap) {
-
-        // Helper
-        function mapValue(value) {
-            if (typeof(value) === 'object' && (value !== null)) {
-                if (typeof(value.__infusionId) !== 'undefined' && typeof(idTargetMap[value.__infusionId]) !== 'undefined') {
-                    // console.log("Mapping! " + value.__infusionId + " " + value.__id + " ==> " + idTargetMap[value.__infusionId].__id);
-                    value = idTargetMap[value.__infusionId]; // Reference to the replaced one.
+    function mergeInto(source, target) {
+        // console.log("mergeInto");
+        // console.log(source);
+        // console.log(target);
+        if (source instanceof Array) {
+            let splices = differentialSplices(object.__target, source.__target);
+            splices.forEach(function(splice) {
+                let spliceArguments = [];
+                spliceArguments.push(splice.index, splice.removed.length);
+                spliceArguments.push.apply(spliceArguments, splice.added); //.map(mapValue))
+                object.splice.apply(target, spliceArguments);
+            });
+            for (property in source) {
+                if (isNaN(property)) {
+                    object[property] = source[property];
                 }
             }
-            return value;
-        }
-
-        // Setup id target map and ids.
-        let index = 0;
-        while (index < sources.length) {
-            let source = sources[index];
-            if (typeof(source.__infusionId) !== 'undefined' && typeof(idTargetMap[source.__infusionId]) !== 'undefined') {
-                let target = idTargetMap[source.__infusionId];
-                let sourceWithoutProxy = source.__target;
-                if (sourceWithoutProxy instanceof Array) {
-                    sourceWithoutProxy = sourceWithoutProxy.map(mapValue);
-                    // console.log("Before differential splices:");
-                    // console.log(target.__target.map((object) => object.__id + " " + object.__infusionId));
-                    // console.log(sourceWithoutProxy.map((object) => object.__id + " " + object.__infusionId));
-                    let splices = differentialSplices(target.__target, sourceWithoutProxy); // let arrayIndex = 0;
-                    splices.forEach(function(splice) {
-                        // console.log("Splicing!");
-                        // console.log(splice);
-                        let spliceArguments = [];
-                        spliceArguments.push(splice.index, splice.removed.length);
-                        spliceArguments.push.apply(spliceArguments, splice.added); //.map(mapValue))
-                        target.splice.apply(target, spliceArguments);
-                    });
-                } else {
-                    for (let property in sourceWithoutProxy) {
-                        target[property]  = mapValue(sourceWithoutProxy[property]);
-                    }
-                }
+        } else {
+            for (property in source) {
+                object[property] = source[property];
             }
-            index++;
         }
     }
 
+    function infuseOverlayIntoObject(object) {
+        console.log("infusing");
+        let overlay = object.__overlay;
+        object.__overlay = null;
+        mergeInto(overlay, object);
+    }
 
     /************************************************************************
      *
@@ -1338,76 +1412,44 @@
             let functionCacher = getFunctionCacher(this, "_projections", functionName, argumentsList);
 
             if (!functionCacher.cacheRecordExists()) {
-                // console.log("init projection ");
+                console.log("init projection ");
                 let cacheRecord = functionCacher.createNewRecord();
-                cacheRecord.idObjectMap = {};
+                cacheRecord.infusionIdObjectMap = {};
 
                 // Never encountered these arguments before, make a new cache
                 enterContext('projection', cacheRecord);
                 nextIsMicroContext = true;
                 cacheRecord.repeaterHandler = repeatOnChange(
                     function () {
-                        // console.log("Projection repitition");
-                        // console.log(cacheRecord.idObjectMap);
-                        let newlyCreated = [];
-                        let returnValue;
+                        cacheRecord.newlyCreated = [];
+                        let newReturnValue;
+                        console.log("better be true");
+                        console.log(inProjection());
+                        newReturnValue = this[functionName].apply(this, argumentsList);
+                        console.log(cacheRecord.newlyCreated);
 
-                        // console.log("recursive ...");
-                        // inProjection++;
-                        collect(newlyCreated, function() {
-                            returnValue = this[functionName].apply(this, argumentsList);
-                        }.bind(this));
-                        // inProjection--;
-                        // console.log("... recursive");
+                        console.log("Assimilating:");
+                        withoutRecording(function() { // Do not observe reads from the overlays
+                            cacheRecord.newlyCreated.forEach(function(created) {
+                                if (created.__overlay !== null) {
+                                    console.log("Has overlay!");
+                                    console.log(created.__overlay);
+                                    infuseOverlayIntoObject(created);
+                                } else {
+                                    console.log("Infusion id of newly created:");
+                                    console.log(created.__infusionId);
+                                    if (created.__infusionId !== null) {
 
-                        // Infuse everything created during repetition.
-                        // console.log(newlyCreated.map((object) => {return object.__id + " " + object.__infusionId}));
-                        // console.log(Object.keys(cacheRecord.idObjectMap));
-                        // console.log(values(cacheRecord.idObjectMap).map((object) => {return object.__id + " " + object.__infusionId}));
-                        // if (typeof(returnValue.first) !== 'undefined') {
-                        //     // console.log("return value before infusion");
-                        //     // console.log(returnValue.__id);
-                        //     // console.log(returnValue.first.__id);
-                        // }
-
-                        infuseWithMap(newlyCreated, cacheRecord.idObjectMap);
-                        // console.log(Object.keys(cacheRecord.idObjectMap));
-                        // console.log(values(cacheRecord.idObjectMap).map((object) => {return object.__id + " " + object.__infusionId}));
-                        // Replace return value with infused one (if object)
-                        // console.log(values(cacheRecord.idObjectMap).map((object) => {return object.__id + " " + object.__infusionId}));
-                        if (typeof(returnValue) === 'object' && typeof(returnValue.__infusionId) !== 'undefined') {
-                            if (typeof(cacheRecord.idObjectMap[returnValue.__infusionId]) !== 'undefined') {
-                                // console.log("Mapping! " + returnValue.__infusionId + " " + returnValue.__id + " ==> " + cacheRecord.idObjectMap[returnValue.__infusionId].__id);
-                                returnValue = cacheRecord.idObjectMap[returnValue.__infusionId];
-                            }
-                        }
-
-                        // if (typeof(returnValue.first) !== 'undefined') {
-                        //     console.log("return value after infusion");
-                        //     console.log(returnValue.__id);
-                        //     console.log(returnValue.first.__id);
-                        // }
-                        newlyCreated.forEach(function(newObject) {
-                            if (typeof(newObject.__infusionId) !== 'undefined') {
-                                if (typeof(cacheRecord.idObjectMap[newObject.__infusionId]) === 'undefined') {
-                                    // console.log("Added object to projection");
-                                    cacheRecord.idObjectMap[newObject.__infusionId] = newObject;
+                                        cacheRecord.infusionIdObjectMap[created.__infusionId] = created;
+                                    }
                                 }
-                            }
+                            });
                         }.bind(this));
-
-
-                        // console.log(returnValue.__id);
-                        // console.log(returnValue.__infusionId);
-                        // if (returnValue instanceof Array) {
-                        //     console.log(returnValue.map((object) => {return object.__id + " " + object.__infusionId}));
-                        // }
 
                         // See if we need to trigger event on return value
-                        if (returnValue !== cacheRecord.returnValue) {
-                            // console.log("new return value");
+                        if (newReturnValue !== cacheRecord.returnValue) {
+                            cacheRecord.returnValue = newReturnValue;
                             notifyChangeObservers("functionCache.returnValueObservers", getMap(cacheRecord, 'returnValueObservers'));
-                            cacheRecord.returnValue = returnValue;
                         }
                     }.bind(this)
                 );
@@ -1452,7 +1494,6 @@
         target['withoutRecording']        = withoutRecording;
         target['transaction']        = transaction;
         target['setCumulativeAssignment'] = setCumulativeAssignment;
-        target['infuseCoArrays'] = infuseCoArrays;
         target['observeAll'] = observeAll;
 
         // Debugging and testing
