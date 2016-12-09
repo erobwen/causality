@@ -465,7 +465,7 @@
             __target: createdTarget,
             __handler : handler,
             
-            repeat :  getGenericRepeatFunction(handler),
+            repeat : getGenericRepeatFunction(handler),
             cached : getGenericCallAndCacheFunction(handler),
             cachedInCache : function() { // Only cache if within another cached call.
                 let argumentsArray = argumentsToArray(arguments);
@@ -843,24 +843,48 @@
 
     function removeObservation(recorder) {
         // Clear out previous observations
-        recorder.sources.forEach(function (observerSet) { // From observed object
+        recorder.sources.forEach(function(observerSet) { // From observed object
             // let observerSetContents = getMap(observerSet, 'contents');
             // if (typeof(observerSet['contents'])) { // Should not be needed
             //     observerSet['contents'] = {};
             // }
             let observerSetContents = observerSet['contents'];
             delete observerSetContents[recorder.id];
+            let noMoreObservers = false;
             observerSet.contentsCounter--;
-            if (observerSet.contentsCounter == 0 && isDefined(observerSet, 'parent')) {
-                if (observerSet.next !== null) {
-                    observerSet.next.previous = observerSet.previous;
+            if (observerSet.contentsCounter == 0) {
+                if (observerSet.isRoot) {
+                    if (observerSet.first === null && observerSet.last === null) {
+                        noMoreObservers = true;
+                    }
+                } else {
+                    if (observerSet.parent.first === observerSet) {
+                        observerSet.parent.first === observerSet.next;
+                    }
+                    
+                    if (observerSet.parent.last === observerSet) {
+                        observerSet.parent.last === observerSet.previous;
+                    }
+                        
+                    if (observerSet.next !== null) {
+                        observerSet.next.previous = observerSet.previous;
+                    }
+                    
+                    if (observerSet.previous !== null) {
+                        observerSet.previous.next = observerSet.next;
+                    }
+                    
+                    // observerSet.previous = null;
+                    // observerSet.next = null;
+                    
+                    if (observerSet.parent.first === null && observerSet.parent.last === null) {
+                        noMoreObservers = true;
+                    }
                 }
-                if (observerSet.previous !== null) {
-                    observerSet.previous.next = observerSet.next;
-                }
-                observerSet.previous = null;
-                observerSet.next = null;
 
+                if (noMoreObservers && typeof(observerSet.noMoreObserversCallback) !== 'undefined') {
+                    observerSet.noMoreObserversCallback();
+                }
                 // TODO: detect if there are no more observers left at all on recorder...
                 // in some situations we need to do something then. Perhaps remove cache.
             }
