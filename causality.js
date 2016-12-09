@@ -189,7 +189,7 @@
                 get: function (target, key) {
                     if (this.overrides.__overlay !== null && key !== "__overlay") {
                         let overlayHandler = this.overrides.__overlay.__handler;
-                        return overlayHandler.get.apply(overlayHandler, [target, key]);
+                        return overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
                     }
 
                     if (staticArrayOverrides[key]) {
@@ -208,7 +208,7 @@
                             return this.overrides.__overlay = value;
                         } else {
                             let overlayHandler = this.overrides.__overlay.__handler;
-                            return overlayHandler.set.apply(overlayHandler, [target, key, value]);
+                            return overlayHandler.set.apply(overlayHandler, [overlayHandler.target, key, value]);
                         }
                     }
 
@@ -247,7 +247,7 @@
                 deleteProperty: function (target, key) {
                     if (this.overrides.__overlay !== null) {
                         let overlayHandler = this.overrides.__overlay.__handler;
-                        return overlayHandler.deleteProperty.apply(overlayHandler, [target, key]);
+                        return overlayHandler.deleteProperty.apply(overlayHandler, [overlayHandler.target, key]);
                     }
 
                     if (!(key in target)) {
@@ -262,7 +262,7 @@
                 ownKeys: function (target) {
                     if (this.overrides.__overlay !== null) {
                         let overlayHandler = this.overrides.__overlay.__handler;
-                        return overlayHandler.ownKeys.apply(overlayHandler, [overlayHandler]);
+                        return overlayHandler.ownKeys.apply(overlayHandler, [overlayHandler.target]);
                     }
 
                     registerAnyChangeObserver("_arrayObservers", this._arrayObservers);
@@ -284,7 +284,7 @@
                 defineProperty: function (target, key, oDesc) {
                     if (this.overrides.__overlay !== null) {
                         let overlayHandler = this.overrides.__overlay.__handler;
-                        return overlayHandler.defineProperty.apply(overlayHandler, [target, key, oDesc]);
+                        return overlayHandler.defineProperty.apply(overlayHandler, [overlayHandler.target, key, oDesc]);
                     }
 
                     notifyChangeObservers("_arrayObservers", this._arrayObservers);
@@ -294,7 +294,7 @@
                 getOwnPropertyDescriptor: function (target, key) {
                     if (this.overrides.__overlay !== null) {
                         let overlayHandler = this.overrides.__overlay.__handler;
-                        return overlayHandler.getOwnPropertyDescriptor.apply(overlayHandler, [target, key]);
+                        return overlayHandler.getOwnPropertyDescriptor.apply(overlayHandler, [overlayHandler.target, key]);
                     }
 
                     registerAnyChangeObserver("_arrayObservers", this._arrayObservers);
@@ -318,36 +318,44 @@
                 _propertyObservers: _propertyObservers,
 
                 get: function (target, key) {
+                    key = key.toString();
                     if (this.overrides.__overlay !== null && key !== "__overlay") {
+                        // console.log(this.overrides.__target.name + ": Getting overlay:" + key);
+                        // console.log(this.overrides.__overlay);
+                        // console.log(this.overrides.__overlay.__handler);
                         let overlayHandler = this.overrides.__overlay.__handler;
-                        return overlayHandler.get.apply(overlayHandler, [target, key]);
+                        // console.log(overlayHandler);
+                        let result = overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
+                        // console.log("result");
+                        // console.log(result);
+                        // console.log("--");
+                        return result;
                     }
 
-                    let keyString = key.toString();
-                    if (typeof(this.overrides[keyString]) !== 'undefined') {
-                        return this.overrides[keyString];
+                    if (typeof(this.overrides[key]) !== 'undefined') {
+                        return this.overrides[key];
                     } else {
-                        if (typeof(keyString) !== 'undefined') {
-                            if (typeof(this._propertyObservers[keyString]) ===  'undefined') {
-                                this._propertyObservers[keyString] = {};
+                        if (typeof(key) !== 'undefined') {
+                            if (typeof(this._propertyObservers[key]) ===  'undefined') {
+                                this._propertyObservers[key] = {};
                             }
-                            if (keyString in target) {
-                                registerAnyChangeObserver("_propertyObservers." + keyString, this._propertyObservers[keyString]);
+                            if (key in target) {
+                                registerAnyChangeObserver("_propertyObservers." + key, this._propertyObservers[key]);
                             } else {
-                                registerAnyChangeObserver("_enumerateObservers." + keyString, this._enumerateObservers);
+                                registerAnyChangeObserver("_enumerateObservers." + key, this._enumerateObservers);
                             }
-                            return target[keyString];
+                            return target[key];
                         }
                     }
                 },
 
                 set: function (target, key, value) {
                     if (this.overrides.__overlay !== null) {
-                        if (key === "overlay") {
+                        if (key === "__overlay") {
                             return this.overrides.__overlay = value; // Setting a new overlay, should not be possible?
                         } else {
                             let overlayHandler = this.overrides.__overlay.__handler;
-                            return overlayHandler.set.apply(overlayHandler, [target, key, value]);
+                            return overlayHandler.set.apply(overlayHandler, [overlayHandler.target, key, value]);
                         }
                     }
 
@@ -380,7 +388,7 @@
                 deleteProperty: function (target, key) {
                     if (this.overrides.__overlay !== null) {
                         let overlayHandler = this.overrides.__overlay.__handler;
-                        return overlayHandler.deleteProperty.apply(overlayHandler, [target, key]);
+                        return overlayHandler.deleteProperty.apply(overlayHandler, [overlayHandler.target, key]);
                     }
 
                     if (!(key in target)) {
@@ -395,7 +403,7 @@
                 ownKeys: function (target, key) { // Not inherited?
                     if (this.overrides.__overlay !== null) {
                         let overlayHandler = this.overrides.__overlay.__handler;
-                        return overlayHandler.ownKeys.apply(overlayHandler, [target, key]);
+                        return overlayHandler.ownKeys.apply(overlayHandler, [overlayHandler.target, key]);
                     }
 
                     registerAnyChangeObserver("_enumerateObservers", this._enumerateObservers);
@@ -407,7 +415,7 @@
                 has: function (target, key) {
                     if (this.overrides.__overlay !== null) {
                         let overlayHandler = this.overrides.__overlay.__handler;
-                        return overlayHandler.has.apply(overlayHandler, [target, key]);
+                        return overlayHandler.has.apply(overlayHandler, [overlayHandler.target, key]);
                     }
 
                     registerAnyChangeObserver("_enumerateObservers", this._enumerateObservers);
@@ -417,7 +425,7 @@
                 defineProperty: function (target, key, descriptor) {
                     if (this.overrides.__overlay !== null) {
                         let overlayHandler = this.overrides.__overlay.__handler;
-                        return overlayHandler.defineProperty.apply(overlayHandler, [target, key]);
+                        return overlayHandler.defineProperty.apply(overlayHandler, [overlayHandler.target, key]);
                     }
 
                     notifyChangeObservers("_enumerateObservers", this._enumerateObservers);
@@ -427,7 +435,7 @@
                 getOwnPropertyDescriptor: function (target, key) {
                     if (this.overrides.__overlay !== null) {
                         let overlayHandler = this.overrides.__overlay.__handler;
-                        return overlayHandler.deleteProperty.apply(overlayHandler, [target, key]);
+                        return overlayHandler.getOwnPropertyDescriptor.apply(overlayHandler, [overlayHandler.target, key]);
                     }
 
                     registerAnyChangeObserver("_enumerateObservers", this._enumerateObservers);
@@ -681,17 +689,18 @@
 
     let sourcesObserverSetChunkSize = 500;
     function registerAnyChangeObserver(description, observerSet) { // instance can be a cached method if observing its return value, object & definition only needed for debugging.
-        if (typeof(observerSet.initialized) === 'undefined') {
-            observerSet.isRoot = true;
-            observerSet.contents = {};
-            observerSet.contentsCounter = 0;
-            observerSet.initialized = true;
-            observerSet.first = null;
-            observerSet.last = null;
-        }
-
         let activeRecorder = getActiveRecording();
         if (activeRecorder !== null) {
+            // console.log(activeRecorder);
+            if (typeof(observerSet.initialized) === 'undefined') {
+                observerSet.isRoot = true;
+                observerSet.contents = {};
+                observerSet.contentsCounter = 0;
+                observerSet.initialized = true;
+                observerSet.first = null;
+                observerSet.last = null;
+            }
+
             let recorderId = activeRecorder.id;
 
             if (typeof(observerSet.contents[recorderId]) !== 'undefined') {
