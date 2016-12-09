@@ -856,6 +856,9 @@
                 }
                 observerSet.previous = null;
                 observerSet.next = null;
+
+                // TODO: detect if there are no more observers left at all on recorder...
+                // in some situations we need to do something then. Perhaps remove cache.
             }
         });
         recorder.sources.lenght = 0;  // From repeater itself.
