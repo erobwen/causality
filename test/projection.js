@@ -101,7 +101,7 @@ describe("Projections", function(){
                     let childList = child.project('flattenLinkedPreOrderRecursive');
                     // console.log("linking next and previous together" + node.__id +  " -> " + childList.first.__id);
                     node.next = childList.first;
-                    // childList.first.previous = node; // No external write yet! This will go wrongish when node is bound for replacement.
+                    childList.first.previous = node;
                     node = childList.last;
                 });
 
@@ -334,6 +334,13 @@ describe("Projections", function(){
         assert.equal(detectedEvents[0].oldValue.value, 5);
         assert.equal(detectedEvents[0].oldValue.__infusionId, '12_node');
         assert.equal(detectedEvents[0].objectId, 22);
+        assert.equal(detectedEvents[1].type, 'set');
+        assert.equal(detectedEvents[1].property, 'previous');
+        assert.equal(detectedEvents[1].newValue.value, 4.5);
+        assert.equal(detectedEvents[1].newValue.__infusionId, '30_node');
+        assert.equal(detectedEvents[1].oldValue.value, 4);
+        assert.equal(detectedEvents[1].oldValue.__infusionId, '4_node');
+        assert.equal(detectedEvents[1].objectId, 24);
 
         // Assert updated
         expectedValues = [1, 2, 3, 4, 4.5, 5, 6, 7];
