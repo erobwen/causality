@@ -476,11 +476,11 @@
                     return this[functionName].apply(this, argumentsArray);
                 }
             },
-            project : getGenericProjectFunction(handler),
-            projectInProjection : function() { // Only project if within another cached call.
+            reCached : getGenericReCacheFunction(handler),
+            reCachedInCache : function() { // Only project if within another cached call.
                 let argumentsArray = argumentsToArray(arguments);
-                if (inProjection() > 0) {
-                    return this.project.apply(this, argumentsArray);
+                if (inReCache() > 0) {
+                    return this.reCached.apply(this, argumentsArray);
                 } else {
                     let functionName = argumentsArray.shift();
                     return this[functionName].apply(this, argumentsArray);
@@ -496,7 +496,7 @@
             }
         };
 
-        if (inProjection()) {
+        if (inReCache()) {
             // console.log(infusionId);
             if (infusionId !== null &&  typeof(context.infusionIdObjectMap[infusionId]) !== 'undefined') {
                 // Overlay previously created
@@ -515,7 +515,7 @@
                 context.newlyCreated.push(infusionTarget);
                 return infusionTarget;   // Borrow identity of infusion target.
             } else {
-                // Newly created in this projection cycle. Including overlaid ones.
+                // Newly created in this reCache cycle. Including overlaid ones.
                 // console.log("creating fresh");
                 // console.log(infusionId);
                 // console.log(context.type);
@@ -551,11 +551,11 @@
         }
     }
 
-    function inProjection() {
+    function inReCache() {
         if (context === null) {
             return false;
         } else {
-            return context.type === "projection";
+            return context.type === "reCache";
         }
     }
 
@@ -585,7 +585,7 @@
         }
     }
 
-    // occuring types: recording, repeater_refreshing, cached_call, projection,
+    // occuring types: recording, repeater_refreshing, cached_call, reCache,
     function enterContext(type, enteredContext) {
         initializeContext(type, enteredContext);
 
@@ -1423,28 +1423,28 @@
      *
      ************************************************************************/
 
-    function getGenericProjectFunction(handler) { // this
+    function getGenericReCacheFunction(handler) { // this
         return function () {
-            // console.log("call projection");
+            // console.log("call reCache");
             // Split argumentsp
             let argumentsList = argumentsToArray(arguments);
             let functionName = argumentsList.shift();
-            let functionCacher = getFunctionCacher(this, "_projections", functionName, argumentsList);
+            let functionCacher = getFunctionCacher(this, "_reCaches", functionName, argumentsList);
 
             if (!functionCacher.cacheRecordExists()) {
-                // console.log("init projection ");
+                // console.log("init reCache ");
                 let cacheRecord = functionCacher.createNewRecord();
                 cacheRecord.infusionIdObjectMap = {};
 
                 // Never encountered these arguments before, make a new cache
-                enterContext('projection', cacheRecord);
+                enterContext('reCache', cacheRecord);
                 nextIsMicroContext = true;
                 cacheRecord.repeaterHandler = repeatOnChange(
                     function () {
                         cacheRecord.newlyCreated = [];
                         let newReturnValue;
                         // console.log("better be true");
-                        // console.log(inProjection());
+                        // console.log(inReCache());
                         newReturnValue = this[functionName].apply(this, argumentsList);
                         // console.log(cacheRecord.newlyCreated);
 
