@@ -1045,9 +1045,7 @@
                 let cacheRecord = functionCacher.createNewRecord();
 
                 // Is this call non-automatic
-                if (noContext()) {
-                    cacheRecord.directlyInvokedByApplication = true;
-                }
+                cacheRecord.directlyInvokedByApplication = noContext();
 
                 cacheRecord.repeaterHandle = repeatOnChange(function() {
                     returnValue = this[functionName].apply(this, argumentsList);
@@ -1209,6 +1207,7 @@
      * (even if the parent does not actually use/read any return value)
      ************************************************************************/
 
+    let cachedFunctionsScheduledForDestruction = [];
     // let inCachedCall = 0;
 
     function getGenericCallAndCacheFunction(handler) { // this
@@ -1222,9 +1221,7 @@
                 let cacheRecord = functionCacher.createNewRecord();
 
                 // Is this call non-automatic
-                if (noContext()) {
-                    cacheRecord.directlyInvokedByApplication = true;
-                }
+                let directlyInvokedByApplication = noContext();
 
                 cachedCalls++;
                 enterContext('cached_call', cacheRecord);
@@ -1247,7 +1244,13 @@
                     }.bind(this));
                 leaveContext();
                 cacheRecord.returnValue = returnValue;
-                cacheRecord.observers = {};
+                cacheRecord.observers = {
+                    noMoreObserversCallback : function() {
+                        if (!directlyInvokedByApplication) {
+                            cachedFunctionsScheduledForDestruction.push(cacheRecord);
+                        }
+                    }
+                };
                 registerAnyChangeObserver("functionCache.observers", cacheRecord.observers);
                 return returnValue;
             } else {
@@ -1462,6 +1465,8 @@
      *
      ************************************************************************/
 
+    let reCachedFunctionsScheduledForDestruction = [];
+
     function getGenericReCacheFunction(handler) { // this
         return function () {
             // console.log("call reCache");
@@ -1476,13 +1481,18 @@
                 cacheRecord.infusionIdObjectMap = {};
 
                 // Is this call non-automatic
-                if (noContext()) {
-                    cacheRecord.directlyInvokedByApplication = true;
-                }
+                let directlyInvokedByApplication = noContext();
 
                 // Never encountered these arguments before, make a new cache
                 enterContext('reCache', cacheRecord);
                 nextIsMicroContext = true;
+                cacheRecord.returnValueObservers = {
+                    noMoreObserversCallback : function() {
+                        if (directlyInvokedByApplication) {
+                            reCachedFunctionsScheduledForDestruction.push(cacheRecord);
+                        }
+                    }
+                };
                 cacheRecord.repeaterHandler = repeatOnChange(
                     function () {
                         cacheRecord.newlyCreated = [];
@@ -1513,17 +1523,17 @@
                         // See if we need to trigger event on return value
                         if (newReturnValue !== cacheRecord.returnValue) {
                             cacheRecord.returnValue = newReturnValue;
-                            notifyChangeObservers("functionCache.returnValueObservers", getMap(cacheRecord, 'returnValueObservers'));
+                            notifyChangeObservers("functionCache.returnValueObservers", cacheRecord.returnValueObservers);
                         }
                     }.bind(this)
                 );
                 leaveContext();
-                registerAnyChangeObserver("functionCache.returnValueObservers", getMap(cacheRecord, 'returnValueObservers'));
+                registerAnyChangeObserver("functionCache.returnValueObservers", cacheRecord.returnValueObservers);
                 return cacheRecord.returnValue;
             } else {
                 // Encountered these arguments before, reuse previous repeater
                 let cacheRecord = functionCacher.getExistingRecord();
-                registerAnyChangeObserver("functionCache.returnValueObservers", getMap(cacheRecord, 'returnValueObservers'));
+                registerAnyChangeObserver("functionCache.returnValueObservers", cacheRecord.returnValueObservers);
                 return cacheRecord.returnValue;
             }
         };
