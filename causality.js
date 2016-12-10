@@ -575,6 +575,18 @@
         }
     }
 
+    function inActiveRepetition() {
+        return (microContext === null) ? false : ((microContext.type === "repeater") && recordingPaused === 0);
+    }
+
+    function getActiveRepeater() {
+        if ((microContext === null) ? false : ((microContext.type === "repeater") && recordingPaused === 0)) {
+            return microContext;
+        } else {
+            return null;
+        }
+    }
+
 
     function enterContextAndConnectWithNextContext(type, enteredContext) {
         nextIsMicroContext = true;
@@ -899,30 +911,14 @@
      *
      **********************************/
 
-    function isRefreshingRepeater() {
-        return activeRepeaters.length > 0;
-    }
-
-
-    function activeRepeater() {
-        return lastOfArray(activeRepeaters);
-    }
-
-
-    // Debugging
     let dirtyRepeaters = [];
-
-    // Repeater stack
-    let activeRepeaters = [];
 
     function clearRepeaterLists() {
         recorderId = 0;
         dirtyRepeaters = [];
-        activeRepeaters = [];
     }
 
-    let repeaterId      = 0;
-
+    let repeaterId = 0;
     function repeatOnChange() { // description(optional), action
         // Arguments
         let repeaterAction;
@@ -943,8 +939,8 @@
         };
 
         // Attatch to parent repeater.
-        if (activeRepeaters.length > 0) {
-            let parentRepeater = lastOfArray(activeRepeaters);
+        let parentRepeater = getActiveRepeater();
+        if (parentRepeater !== null) {
             parentRepeater.childRepeaters.push(repeater);
         }
 
@@ -1364,7 +1360,7 @@
             mergeInto(otherObject, this);
         }
     }
-    //
+
     // function infuseCoArrays(sources, targets) {
     //
     //     // Setup id target map and ids.
@@ -1423,7 +1419,6 @@
     //         index++;
     //     }
     // }
-
 
     function mergeInto(source, target) {
         // console.log("mergeInto");
