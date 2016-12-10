@@ -324,7 +324,9 @@ describe("Projections", function(){
         });
 
         // Update tree
-        tree.children[0].children.push(createTreeNode(4.5, []));
+        transaction(function() {
+            tree.children[0].children.push(createTreeNode(4.5, []));
+        });
 
         // Assert eventws
         assert.equal(detectedEvents[0].type, 'set');

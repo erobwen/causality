@@ -665,6 +665,45 @@
 
 
     /**********************************
+     *  Transactions
+     *
+     *  Upon change do
+     **********************************/
+
+    let transaction = postponeObserverNotification;
+
+    function postponeObserverNotification(callback) {
+        observerNotificationPostponed++;
+        callback();
+        observerNotificationPostponed--;
+        proceedWithPostponedNotifications();
+        postPulseCleanup();
+    }
+
+    function postPulseCleanup() {
+        reCachedFunctionsScheduledForDestruction.forEach(function(cacheRecord) {
+            if (!cacheRecord.directlyInvokedByApplication) {
+                let returnValueObservers = cacheRecord.returnValueObservers;
+                if (returnValueObservers.contentsCounter === 0 && returnValueObservers.first === null) {
+                    console.log("cleanup:");
+                    console.log(cacheRecord);
+                }
+            }
+        });
+        reCachedFunctionsScheduledForDestruction = [];
+        cachedFunctionsScheduledForDestruction.forEach(function(cacheRecord) {
+            if (!cacheRecord.directlyInvokedByApplication) {
+                let returnValueObservers = cacheRecord.returnValueObservers;
+                if (returnValueObservers.contentsCounter === 0 && returnValueObservers.first === null) {
+                    console.log("cleanup:");
+                    console.log(cacheRecord);
+                }
+            }
+        });
+        cachedFunctionsScheduledForDestruction = [];
+    }
+
+    /**********************************
      *  Dependency recording
      *
      *  Upon change do
@@ -800,14 +839,6 @@
         observerNotificationNullified--;
     }
 
-    function postponeObserverNotification(callback) {
-        observerNotificationPostponed++;
-        callback();
-        observerNotificationPostponed--;
-        proceedWithPostponedNotifications();
-    }
-
-    let transaction = postponeObserverNotification;
 
     // Recorders is a map from id => recorder
     function notifyChangeObservers(description, observers) {
@@ -1217,7 +1248,7 @@
                 let cacheRecord = functionCacher.createNewRecord();
 
                 // Is this call non-automatic
-                let directlyInvokedByApplication = noContext();
+                cacheRecord.directlyInvokedByApplication = noContext();
 
                 cachedCalls++;
                 enterContext('cached_call', cacheRecord);
@@ -1236,23 +1267,23 @@
                     function () {
                         // Delete function cache and notify
                         let cacheRecord = functionCacher.deleteExistingRecord();
-                        notifyChangeObservers("functionCache.observers", cacheRecord.observers);
+                        notifyChangeObservers("functionCache.returnValueObservers", cacheRecord.returnValueObservers);
                     }.bind(this));
                 leaveContext();
                 cacheRecord.returnValue = returnValue;
-                cacheRecord.observers = {
+                cacheRecord.returnValueObservers = {
                     noMoreObserversCallback : function() {
-                        if (!directlyInvokedByApplication) {
+                        if (!cacheRecord.directlyInvokedByApplication) {
                             cachedFunctionsScheduledForDestruction.push(cacheRecord);
                         }
                     }
                 };
-                registerAnyChangeObserver("functionCache.observers", cacheRecord.observers);
+                registerAnyChangeObserver("functionCache.returnValueObservers", cacheRecord.returnValueObservers);
                 return returnValue;
             } else {
                 // Encountered these arguments before, reuse previous repeater
                 let cacheRecord = functionCacher.getExistingRecord();
-                registerAnyChangeObserver("functionCache.observers", cacheRecord.observers);
+                registerAnyChangeObserver("functionCache.returnValueObservers", cacheRecord.returnValueObservers);
                 return cacheRecord.returnValue;
             }
         };
@@ -1476,14 +1507,14 @@
                 cacheRecord.infusionIdObjectMap = {};
 
                 // Is this call non-automatic
-                let directlyInvokedByApplication = noContext();
+                cacheRecord.directlyInvokedByApplication = noContext();
 
                 // Never encountered these arguments before, make a new cache
                 enterContext('reCache', cacheRecord);
                 nextIsMicroContext = true;
                 cacheRecord.returnValueObservers = {
                     noMoreObserversCallback : function() {
-                        if (directlyInvokedByApplication) {
+                        if (cacheRecord.directlyInvokedByApplication) {
                             reCachedFunctionsScheduledForDestruction.push(cacheRecord);
                         }
                     }
