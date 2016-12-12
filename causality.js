@@ -46,6 +46,19 @@
         return array[array.length - 1];
     };
 
+    function removeFromArray(object, array) {
+        // console.log(object);
+        for (let i = 0; i < array.length; i++) {
+            // console.log("Searching!");
+            // console.log(array[i]);
+            if (array[i] === object) {
+                // console.log("found it!");
+                array.splice(i, 1);
+                break;
+            }
+        }
+    }
+
     let argumentsToArray = function(arguments) {
         return Array.prototype.slice.call(arguments);
     };
@@ -734,7 +747,55 @@
             id: recorderId++,
             description: description,
             sources: [],
-            uponChangeAction: doAfterChange
+            uponChangeAction: doAfterChange,
+            remove : function() {
+                // Clear out previous observations
+                this.sources.forEach(function(observerSet) { // From observed object
+                    // let observerSetContents = getMap(observerSet, 'contents');
+                    // if (typeof(observerSet['contents'])) { // Should not be needed
+                    //     observerSet['contents'] = {};
+                    // }
+                    let observerSetContents = observerSet['contents'];
+                    delete observerSetContents[this.id];
+                    let noMoreObservers = false;
+                    observerSet.contentsCounter--;
+                    if (observerSet.contentsCounter == 0) {
+                        if (observerSet.isRoot) {
+                            if (observerSet.first === null && observerSet.last === null) {
+                                noMoreObservers = true;
+                            }
+                        } else {
+                            if (observerSet.parent.first === observerSet) {
+                                observerSet.parent.first === observerSet.next;
+                            }
+
+                            if (observerSet.parent.last === observerSet) {
+                                observerSet.parent.last === observerSet.previous;
+                            }
+
+                            if (observerSet.next !== null) {
+                                observerSet.next.previous = observerSet.previous;
+                            }
+
+                            if (observerSet.previous !== null) {
+                                observerSet.previous.next = observerSet.next;
+                            }
+
+                            observerSet.previous = null;
+                            observerSet.next = null;
+
+                            if (observerSet.parent.first === null && observerSet.parent.last === null) {
+                                noMoreObservers = true;
+                            }
+                        }
+
+                        if (noMoreObservers && typeof(observerSet.noMoreObserversCallback) !== 'undefined') {
+                            observerSet.noMoreObserversCallback();
+                        }
+                    }
+                });
+                this.sources.lenght = 0;  // From repeater itself.
+            }
         });
         let returnValue = doFirst();
         leaveContext();
@@ -870,7 +931,7 @@
 
     function notifyChangeObserver(observer) {
         if (observer != microContext) {
-            removeObservation(observer); // Cannot be any more dirty than it already is!
+            observer.remove(); // Cannot be any more dirty than it already is!
             if (observerNotificationPostponed > 0) {
                 if (lastObserverToNotifyChange !== null) {
                     lastObserverToNotifyChange.nextToNotify = observer;
@@ -884,58 +945,6 @@
                 // });
             }
         }
-    }
-
-
-    function removeObservation(recorder) {
-        // Clear out previous observations
-        recorder.sources.forEach(function(observerSet) { // From observed object
-            // let observerSetContents = getMap(observerSet, 'contents');
-            // if (typeof(observerSet['contents'])) { // Should not be needed
-            //     observerSet['contents'] = {};
-            // }
-            let observerSetContents = observerSet['contents'];
-            delete observerSetContents[recorder.id];
-            let noMoreObservers = false;
-            observerSet.contentsCounter--;
-            if (observerSet.contentsCounter == 0) {
-                if (observerSet.isRoot) {
-                    if (observerSet.first === null && observerSet.last === null) {
-                        noMoreObservers = true;
-                    }
-                } else {
-                    if (observerSet.parent.first === observerSet) {
-                        observerSet.parent.first === observerSet.next;
-                    }
-                    
-                    if (observerSet.parent.last === observerSet) {
-                        observerSet.parent.last === observerSet.previous;
-                    }
-                        
-                    if (observerSet.next !== null) {
-                        observerSet.next.previous = observerSet.previous;
-                    }
-                    
-                    if (observerSet.previous !== null) {
-                        observerSet.previous.next = observerSet.next;
-                    }
-                    
-                    // observerSet.previous = null;
-                    // observerSet.next = null;
-                    
-                    if (observerSet.parent.first === null && observerSet.parent.last === null) {
-                        noMoreObservers = true;
-                    }
-                }
-
-                if (noMoreObservers && typeof(observerSet.noMoreObserversCallback) !== 'undefined') {
-                    observerSet.noMoreObserversCallback();
-                }
-                // TODO: detect if there are no more observers left at all on recorder...
-                // in some situations we need to do something then. Perhaps remove cache.
-            }
-        });
-        recorder.sources.lenght = 0;  // From repeater itself.
     }
 
 
@@ -1017,19 +1026,6 @@
                 removeRepeater(repeater);
             });
             repeater.childRepeaters = [];
-        }
-    }
-
-    function removeFromArray(object, array) {
-        // console.log(object);
-        for (let i = 0; i < array.length; i++) {
-            // console.log("Searching!");
-            // console.log(array[i]);
-            if (array[i] === object) {
-                // console.log("found it!");
-                array.splice(i, 1);
-                break;
-            }
         }
     }
 
