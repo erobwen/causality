@@ -981,21 +981,28 @@
             repeaterAction = arguments[0];
         }
 
-        let repeater = {
+        // Activate!
+        return refreshRepeater({
             id: repeaterId++,
             description: description,
             removed: false,
-            action: repeaterAction
-        };
+            action: repeaterAction,
+            remove: function() {
+                // console.log("removeRepeater: " + repeater.id + "." + repeater.description);
+                this.removed = true; // In order to block any lingering recorder that triggers change
+                if (typeof(this.children) !== 'undefined' && this.children.length > 0) {
+                    this.children.forEach(function (repeater) {
+                        repeater.remove();
+                    });
+                    this.children.length = 0;
+                }
 
-        // Activate!
-        refreshRepeater(repeater);
-
-        return repeater;
+                removeFromArray(this, dirtyRepeaters);
+            }
+        });
     }
 
     function refreshRepeater(repeater) {
-        // activeRepeaters.push(repeater);
         repeater.removed     = false;
         enterContext('repeater_refreshing', repeater);
         // console.log("parent context type: " + repeater.parent.type);
@@ -1012,7 +1019,7 @@
             }
         );
         leaveContext();
-        // activeRepeaters.pop();
+        return repeater;
     }
 
     function repeaterDirty(repeater) { // TODO: Add update block on this stage?
@@ -1024,23 +1031,11 @@
     function removeSubRepeaters(repeater) {
         if (typeof(repeater.children) !== 'undefined' && repeater.children.length > 0) {
             repeater.children.forEach(function (repeater) {
-                removeRepeater(repeater);
+                repeater.remove();
+                // removeRepeater(repeater);
             });
             repeater.children = [];
         }
-    }
-
-    function removeRepeater(repeater) {
-        // console.log("removeRepeater: " + repeater.id + "." + repeater.description);
-        repeater.removed = true; // In order to block any lingering recorder that triggers change
-        if (typeof(repeater.children) !== 'undefined' && repeater.children.length > 0) {
-            repeater.children.forEach(function (repeater) {
-                removeRepeater(repeater);
-            });
-            repeater.children.length = 0;
-        }
-
-        removeFromArray(repeater, dirtyRepeaters);
     }
 
     let refreshingAllDirtyRepeaters = false;
