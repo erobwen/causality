@@ -607,6 +607,15 @@
     }
 
 
+    function removeChildContexts(context) {
+        if (typeof(context.children) !== 'undefined' && context.children.length > 0) {
+            context.children.forEach(function (child) {
+                child.remove();
+            });
+            context.children = [];
+        }
+    }
+
     // occuring types: recording, repeater_refreshing, cached_call, reCache,
     function enterContext(type, enteredContext) {
         if (typeof(enteredContext.initialized) === 'undefined') {
@@ -618,6 +627,7 @@
             if (nextIsMicroContext) {
                 // Build a micro context
                 enteredContext.macro = microContext;
+                microContext.micro = enteredContext;
                 nextIsMicroContext = false;
             } else {
                 // Build a new macro context
@@ -996,6 +1006,7 @@
                     });
                     this.children.length = 0;
                 }
+                this.micro.remove(); // Remove recorder!
 
                 removeFromArray(this, dirtyRepeaters);
             }
@@ -1023,20 +1034,11 @@
     }
 
     function repeaterDirty(repeater) { // TODO: Add update block on this stage?
-        removeSubRepeaters(repeater);
+        removeChildContexts(repeater);
         dirtyRepeaters.push(repeater);
         refreshAllDirtyRepeaters();
     }
 
-    function removeSubRepeaters(repeater) {
-        if (typeof(repeater.children) !== 'undefined' && repeater.children.length > 0) {
-            repeater.children.forEach(function (repeater) {
-                repeater.remove();
-                // removeRepeater(repeater);
-            });
-            repeater.children = [];
-        }
-    }
 
     let refreshingAllDirtyRepeaters = false;
 
@@ -1065,7 +1067,8 @@
             if (!functionCacher.cacheRecordExists()) {
                 // Never encountered these arguments before, make a new cache
                 let cacheRecord = functionCacher.createNewRecord();
-
+                cacheRecord.remove = function() {}; // Never removed directly, only when no observers & no direct application call
+                // TODO: add context here to prevent direct removal of the repeater.
                 cacheRecord.repeaterHandle = repeatOnChange(function() {
                     returnValue = this[functionName].apply(this, argumentsList);
                 });
@@ -1234,11 +1237,12 @@
             if (!functionCacher.cacheRecordExists()) {
                 // console.log("Cache anew: " + functionName);
                 let cacheRecord = functionCacher.createNewRecord();
+                cacheRecord.remove = function() {}; // Never removed directly, only when no observers & no direct application call
 
                 // Is this call non-automatic
                 cacheRecord.delete = function() {
                     functionCacher.deleteExistingRecord();
-                    // cacheRecord
+                    cacheRecord.micro.remove(); // Remove recorder
                 };
 
                 // console.log("increasing");
@@ -1498,6 +1502,12 @@
                 // console.log("init reCache ");
                 let cacheRecord = functionCacher.createNewRecord();
                 cacheRecord.infusionIdObjectMap = {};
+                cacheRecord.remove = function() {}; // Never removed directly, only when no observers & no direct application call
+
+                cacheRecord.delete = function() {
+                    functionCacher.deleteExistingRecord();
+                    cacheRecord.micro.remove(); // Remove recorder
+                };
 
                 // Is this call non-automatic
                 cacheRecord.directlyInvokedByApplication = noContext();
