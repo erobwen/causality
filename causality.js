@@ -588,7 +588,7 @@
     }
 
 
-    function enterContextAndConnectWithNextContext(type, enteredContext) {
+    function enterContextAndExpectMicroContext(type, enteredContext) {
         nextIsMicroContext = true;
         enterContext(type, enteredContext);
     }
@@ -596,7 +596,7 @@
     function initializeContext(type, context) {
         if (typeof(context.initialized) === 'undefined') {
             context.type = type;
-            context.parent = null;
+            context.macro = null;
             context.initialized = true;
         }
     }
@@ -604,29 +604,30 @@
     // occuring types: recording, repeater_refreshing, cached_call, reCache,
     function enterContext(type, enteredContext) {
         initializeContext(type, enteredContext);
+        enteredContext.directlyInvokedByApplication = (context === null);
 
         // Connect with previous context
-        if (enteredContext.parent === null) {
-            // console.log("Connect with parent");
-            enteredContext.parent = nextIsMicroContext ? microContext : null
+        if (enteredContext.macro === null) {
+            // console.log("Connect with macro");
+            enteredContext.macro = nextIsMicroContext ? microContext : null
             nextIsMicroContext = false;
         }
 
-        // Debug printout of parent hierarchy
-        let parents = [enteredContext];
-        let parent =  enteredContext.parent;
-        while(parent !== null) {
-            parents.unshift(parent);
-            parent = parent.parent;
+        // Debug printout of macro hierarchy
+        let macros = [enteredContext];
+        let macro =  enteredContext.macro;
+        while(macro !== null) {
+            macros.unshift(macro);
+            macro = macro.macro;
         }
-        // console.log("====== enterContext ======== " + causalityStack.length + " =" + parents.map((context) => { return context.type; }).join("->"));
+        // console.log("====== enterContext ======== " + causalityStack.length + " =" + macros.map((context) => { return context.type; }).join("->"));
 
-        let scannedContext = enteredContext;
-        while (scannedContext.parent !== null) {
-            scannedContext = scannedContext.parent
+        let primaryContext = enteredContext;
+        while (primaryContext.macro !== null) {
+            primaryContext = primaryContext.macro
         }
 
-        context = scannedContext;
+        context = primaryContext;
         microContext = enteredContext;
         // console.log("context: " + context.type);
         // console.log("microContext: " + microContext.type);
@@ -639,8 +640,8 @@
         if (causalityStack.length > 0) {
             microContext = causalityStack[causalityStack.length - 1];
             let scannedContext = microContext;
-            while (scannedContext.parent !== null) {
-                scannedContext = scannedContext.parent;
+            while (scannedContext.macro !== null) {
+                scannedContext = scannedContext.macro;
             }
             context = scannedContext;
         } else {
@@ -687,6 +688,7 @@
                 if (returnValueObservers.contentsCounter === 0 && returnValueObservers.first === null) {
                     console.log("cleanup:");
                     console.log(cacheRecord);
+                    cacheRecord.delete();
                 }
             }
         });
@@ -697,6 +699,7 @@
                 if (returnValueObservers.contentsCounter === 0 && returnValueObservers.first === null) {
                     console.log("cleanup:");
                     console.log(cacheRecord);
+                    cacheRecord.delete();
                 }
             }
         });
@@ -1249,6 +1252,10 @@
 
                 // Is this call non-automatic
                 cacheRecord.directlyInvokedByApplication = noContext();
+                cacheRecord.delete = function() {
+                    functionCacher.deleteExistingRecord();
+                    // cacheRecord
+                };
 
                 cachedCalls++;
                 enterContext('cached_call', cacheRecord);
