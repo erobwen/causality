@@ -606,48 +606,56 @@
         enterContext(type, enteredContext);
     }
 
-    function initializeContext(type, context) {
-        if (typeof(context.initialized) === 'undefined') {
-            context.type = type;
-            context.macro = null;
-            context.initialized = true;
-        }
-    }
 
     // occuring types: recording, repeater_refreshing, cached_call, reCache,
     function enterContext(type, enteredContext) {
-        initializeContext(type, enteredContext);
-        enteredContext.directlyInvokedByApplication = (context === null);
+        if (typeof(enteredContext.initialized) === 'undefined') {
+            // Enter new context
+            enteredContext.type = type;
+            enteredContext.macro = null;
 
-        // Connect with previous context
-        if (enteredContext.macro === null) {
-            // console.log("Connect with macro");
-            enteredContext.macro = nextIsMicroContext ? microContext : null
-            nextIsMicroContext = false;
+            enteredContext.directlyInvokedByApplication = (context === null);
+            if (nextIsMicroContext) {
+                // Build a micro context
+                enteredContext.macro = microContext;
+                nextIsMicroContext = false;
+            } else {
+                // Build a new macro context
+                enteredContext.children = [];
+
+                if (context !== null) {
+                    context.children.push(enteredContext);
+                }
+                context = enteredContext;
+            }
+            microContext = enteredContext;
+
+            enteredContext.initialized = true;
+        } else {
+            // Re-enter context
+            let primaryContext = enteredContext;
+            while (primaryContext.macro !== null) {
+                primaryContext = primaryContext.macro
+            }
+            context = primaryContext;
+
+            microContext = enteredContext;
         }
 
         // Debug printout of macro hierarchy
-        let macros = [enteredContext];
-        let macro =  enteredContext.macro;
-        while(macro !== null) {
-            macros.unshift(macro);
-            macro = macro.macro;
-        }
+        // let macros = [enteredContext];
+        // let macro =  enteredContext.macro;
+        // while(macro !== null) {
+        //     macros.unshift(macro);
+        //     macro = macro.macro;
+        // }
         // console.log("====== enterContext ======== " + causalityStack.length + " =" + macros.map((context) => { return context.type; }).join("->"));
 
-        let primaryContext = enteredContext;
-        while (primaryContext.macro !== null) {
-            primaryContext = primaryContext.macro
-        }
-
-        context = primaryContext;
-        microContext = enteredContext;
-        // console.log("context: " + context.type);
-        // console.log("microContext: " + microContext.type);
         causalityStack.push(enteredContext);
         return enteredContext;
     }
 
+    
     function leaveContext() {
         let leftContext = causalityStack.pop();
         if (causalityStack.length > 0) {
@@ -976,16 +984,9 @@
         let repeater = {
             id: repeaterId++,
             description: description,
-            childRepeaters: [],
             removed: false,
             action: repeaterAction
         };
-
-        // Attatch to parent repeater.
-        let parentRepeater = getActiveRepeater();
-        if (parentRepeater !== null) {
-            parentRepeater.childRepeaters.push(repeater);
-        }
 
         // Activate!
         refreshRepeater(repeater);
@@ -1021,22 +1022,22 @@
     }
 
     function removeSubRepeaters(repeater) {
-        if (repeater.childRepeaters.length > 0) {
-            repeater.childRepeaters.forEach(function (repeater) {
+        if (typeof(repeater.children) !== 'undefined' && repeater.children.length > 0) {
+            repeater.children.forEach(function (repeater) {
                 removeRepeater(repeater);
             });
-            repeater.childRepeaters = [];
+            repeater.children = [];
         }
     }
 
     function removeRepeater(repeater) {
         // console.log("removeRepeater: " + repeater.id + "." + repeater.description);
         repeater.removed = true; // In order to block any lingering recorder that triggers change
-        if (repeater.childRepeaters.length > 0) {
-            repeater.childRepeaters.forEach(function (repeater) {
+        if (typeof(repeater.children) !== 'undefined' && repeater.children.length > 0) {
+            repeater.children.forEach(function (repeater) {
                 removeRepeater(repeater);
             });
-            repeater.childRepeaters.length = 0;
+            repeater.children.length = 0;
         }
 
         removeFromArray(repeater, dirtyRepeaters);
@@ -1069,9 +1070,6 @@
             if (!functionCacher.cacheRecordExists()) {
                 // Never encountered these arguments before, make a new cache
                 let cacheRecord = functionCacher.createNewRecord();
-
-                // Is this call non-automatic
-                cacheRecord.directlyInvokedByApplication = noContext();
 
                 cacheRecord.repeaterHandle = repeatOnChange(function() {
                     returnValue = this[functionName].apply(this, argumentsList);
@@ -1206,11 +1204,6 @@
                     if (typeof(functionCaches[argumentsHash]) === 'undefined') {
                         functionCaches[argumentsHash] = {};
                     }
-                    if (typeof(functionCaches[argumentsHash]) === 'undefined') {
-                        console.log("WTF!!!");
-                        console.log(functionCaches);
-                        console.log("End wtf");
-                    }
                     return functionCaches[argumentsHash];
                     // return getMap(functionCaches, argumentsHash)
                 } else {
@@ -1244,15 +1237,16 @@
             let functionCacher = getFunctionCacher(this, "cachedCalls", functionName, argumentsList); // wierd, does not work with this inestead of handler...
 
             if (!functionCacher.cacheRecordExists()) {
+                // console.log("Cache anew: " + functionName);
                 let cacheRecord = functionCacher.createNewRecord();
 
                 // Is this call non-automatic
-                cacheRecord.directlyInvokedByApplication = noContext();
                 cacheRecord.delete = function() {
                     functionCacher.deleteExistingRecord();
                     // cacheRecord
                 };
 
+                // console.log("increasing");
                 cachedCalls++;
                 enterContext('cached_call', cacheRecord);
                 nextIsMicroContext = true;
@@ -1284,6 +1278,7 @@
                 registerAnyChangeObserver("functionCache.returnValueObservers", cacheRecord.returnValueObservers);
                 return returnValue;
             } else {
+                // console.log("Exists");
                 // Encountered these arguments before, reuse previous repeater
                 let cacheRecord = functionCacher.getExistingRecord();
                 registerAnyChangeObserver("functionCache.returnValueObservers", cacheRecord.returnValueObservers);
