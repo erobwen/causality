@@ -47,12 +47,8 @@
     };
 
     function removeFromArray(object, array) {
-        // console.log(object);
         for (let i = 0; i < array.length; i++) {
-            // console.log("Searching!");
-            // console.log(array[i]);
             if (array[i] === object) {
-                // console.log("found it!");
                 array.splice(i, 1);
                 break;
             }
@@ -63,13 +59,19 @@
         return Array.prototype.slice.call(arguments);
     };
 
+
+    /***************************************************************
+     *
+     *  Array overrides
+     *
+     ***************************************************************/
+
     let staticArrayOverrides = {
         pop : function() {
-            let result;
             let index = this.target.length - 1;
-            nullifyObserverNotification(function() {
-                result = this.target.pop();
-            }.bind(this));
+            observerNotificationNullified++;
+            let result = this.target.pop();
+            observerNotificationNullified--;
             notifyChangeObservers("_arrayObservers", this._arrayObservers);
             this.emitEvent({type: 'splice', index: index, removed: [result], added: null});
             return result;
@@ -78,19 +80,18 @@
         push : function() {
             let index = this.target.length;
             let argumentsArray = argumentsToArray(arguments);
-            nullifyObserverNotification(function() {
-                this.target.push.apply(this.target, argumentsArray);
-            }.bind(this));
+            observerNotificationNullified++;
+            this.target.push.apply(this.target, argumentsArray);
+            observerNotificationNullified--;
             notifyChangeObservers("_arrayObservers", this._arrayObservers);
             this.emitEvent({type: 'splice', index: index, removed: [], added: argumentsArray});
             return this.target.length;
         },
 
         shift : function() {
-            let result;
-            nullifyObserverNotification(function() {
-                result = this.target.shift();
-            }.bind(this));
+            observerNotificationNullified++;
+            let result = this.target.shift();
+            observerNotificationNullified--;
             notifyChangeObservers("_arrayObservers", this._arrayObservers);
             this.emitEvent({type: 'splice', index: 0, removed: [result], added: null});
             return result;
@@ -100,9 +101,9 @@
         unshift : function() {
             let index = this.target.length;
             let argumentsArray = argumentsToArray(arguments);
-            nullifyObserverNotification(function() {
-                this.target.unshift.apply(this.target, argumentsArray);
-            }.bind(this));
+            observerNotificationNullified++;
+            this.target.unshift.apply(this.target, argumentsArray);
+            observerNotificationNullified--;
             notifyChangeObservers("_arrayObservers", this._arrayObservers);
             this.emitEvent({type: 'splice', index: 0, removed: [], added: argumentsArray});
             return this.target.length;
@@ -114,10 +115,9 @@
             let removedCount = argumentsArray[1];
             let added = argumentsArray.slice(2);
             let removed = this.target.slice(index, index + removedCount);
-            let result;
-            nullifyObserverNotification(function() {
-                result = this.target.splice.apply(this.target, argumentsArray);
-            }.bind(this));
+            observerNotificationNullified++;
+            let result = this.target.splice.apply(this.target, argumentsArray);
+            observerNotificationNullified--;
             notifyChangeObservers("_arrayObservers", this._arrayObservers);
             this.emitEvent({type: 'splice', index: index, removed: removed, added: added});
             return result; // equivalent to removed
@@ -135,10 +135,9 @@
             let removed = this.target.slice(index, index + end - start);
             let added = this.target.slice(start, end);
 
-            let result;
-            nullifyObserverNotification(function() {
-                result = this.target.copyWithin(target, start, end);
-            }.bind(this));
+            observerNotificationNullified++;
+            let result = this.target.copyWithin(target, start, end);
+            observerNotificationNullified--;
             notifyChangeObservers("_arrayObservers", this._arrayObservers);
 
             this.emitEvent({action: 'splice', index: target, added: added, removed: removed});
@@ -151,10 +150,9 @@
             let argumentsArray = argumentsToArray(arguments);
             let removed = this.target.slice(0);
 
-            let result;
-            nullifyObserverNotification(function() {
-                result = this.target[functionName].apply(this.target, argumentsArray);
-            }.bind(this));
+            observerNotificationNullified++;
+            let result = this.target[functionName].apply(this.target, argumentsArray);
+            observerNotificationNullified--;
             notifyChangeObservers("_arrayObservers", this._arrayObservers);
             this.emitEvent({type: 'splice', index: 0, removed: removed, added: this.target.slice(0)});
             return result;
@@ -176,143 +174,295 @@
 
     let nextId = 1;
     function resetObjectIds() {
-        nextId = 1;   
+        nextId = 1;
     }
 
-    function create(createdTarget, infusionId) {
+
+    /***************************************************************
+     *
+     *  Array Handlers
+     *
+     ***************************************************************/
+
+    function getHandlerArray(target, key) {
+        if (this.overrides.__overlay !== null && key !== "__overlay") {
+            let overlayHandler = this.overrides.__overlay.__handler;
+            return overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
+        }
+
+        if (staticArrayOverrides[key]) {
+            return staticArrayOverrides[key].bind(this);
+        } else if (typeof(this.overrides[key]) !== 'undefined') {
+            return this.overrides[key];
+        } else {
+            registerAnyChangeObserver("_arrayObservers", this._arrayObservers);//object
+            return target[key];
+        }
+    }
+
+    function setHandlerArray(target, key, value) {
+        if (this.overrides.__overlay !== null) {
+            if (key === "__overlay") {
+                return this.overrides.__overlay = value;
+            } else {
+                let overlayHandler = this.overrides.__overlay.__handler;
+                return overlayHandler.set.apply(overlayHandler, [overlayHandler.target, key, value]);
+            }
+        }
+
+        // If same value as already set, do nothing.
+        // if (isNaN(key) && key in target) {
+        //     let previousValue = target[key];
+        //     if (previousValue === value || ( typeof(previousValue) === 'number' && isNaN(previousValue) && typeof(value) === 'number' && isNaN(value))) {
+        //         return false;
+        //     }
+        // }
+
+        // If cumulative assignment, inside recorder and value is undefined, no assignment.
+        if (cumulativeAssignment && inActiveRecording() && (isNaN(value) || typeof(value) === 'undefined')) {
+            return false;
+        }
+        if (!isNaN(key)) {
+            // Number index
+            let previousValue = target[key];
+            if (typeof(key) === 'string') {
+                key = parseInt(key);
+            }
+            target[key] = value;
+            this.emitEvent({ type: 'splice', index: key, removed: [previousValue], added: [value] });
+            notifyChangeObservers("_arrayObservers", this._arrayObservers);
+            return true;
+        } else {
+            // String index
+            let previousValue = target[key];
+            target[key] = value;
+            this.emitEvent({ type: 'set', property: key, oldValue: previousValue, newValue: value });
+            notifyChangeObservers("_arrayObservers", this._arrayObservers);
+            return true;
+        }
+    }
+
+    function deletePropertyHandlerArray(target, key) {
+        if (this.overrides.__overlay !== null) {
+            let overlayHandler = this.overrides.__overlay.__handler;
+            return overlayHandler.deleteProperty.apply(overlayHandler, [overlayHandler.target, key]);
+        }
+
+        if (!(key in target)) {
+            return false;
+        } else {
+            delete target[key];
+            notifyChangeObservers("_arrayObservers", this._arrayObservers);
+            return true;
+        }
+    }
+
+    function ownKeysHandlerArray(target) {
+        if (this.overrides.__overlay !== null) {
+            let overlayHandler = this.overrides.__overlay.__handler;
+            return overlayHandler.ownKeys.apply(overlayHandler, [overlayHandler.target]);
+        }
+
+        registerAnyChangeObserver("_arrayObservers", this._arrayObservers);
+        let result   = Object.keys(target);
+        result.push('length');
+        return result;
+    }
+
+    function hasHandlerArray(target, key) {
+        if (this.overrides.__overlay !== null) {
+            let overlayHandler = this.overrides.__overlay.__handler;
+            return overlayHandler.has.apply(overlayHandler, [target, key]);
+        }
+
+        registerAnyChangeObserver("_arrayObservers", this._arrayObservers);
+        return key in target;
+    }
+
+    function definePropertyHandlerArray(target, key, oDesc) {
+        if (this.overrides.__overlay !== null) {
+            let overlayHandler = this.overrides.__overlay.__handler;
+            return overlayHandler.defineProperty.apply(overlayHandler, [overlayHandler.target, key, oDesc]);
+        }
+
+        notifyChangeObservers("_arrayObservers", this._arrayObservers);
+        return target;
+    }
+
+    function getOwnPropertyDescriptorHandlerArray(target, key) {
+        if (this.overrides.__overlay !== null) {
+            let overlayHandler = this.overrides.__overlay.__handler;
+            return overlayHandler.getOwnPropertyDescriptor.apply(overlayHandler, [overlayHandler.target, key]);
+        }
+
+        registerAnyChangeObserver("_arrayObservers", this._arrayObservers);
+        return Object.getOwnPropertyDescriptor(target, key);
+    }
+
+
+    /***************************************************************
+     *
+     *  Object Handlers
+     *
+     ***************************************************************/
+
+    function getHandlerObject(target, key) {
+        key = key.toString();
+        if (this.overrides.__overlay !== null && key !== "__overlay") {
+            // console.log(this.overrides.__target.name + ": Getting overlay:" + key);
+            // console.log(this.overrides.__overlay);
+            // console.log(this.overrides.__overlay.__handler);
+            let overlayHandler = this.overrides.__overlay.__handler;
+            // console.log(overlayHandler);
+            let result = overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
+            // console.log("result");
+            // console.log(result);
+            // console.log("--");
+            return result;
+        }
+
+        if (typeof(this.overrides[key]) !== 'undefined') {
+            return this.overrides[key];
+        } else {
+            if (typeof(key) !== 'undefined') {
+                if (typeof(this._propertyObservers[key]) ===  'undefined') {
+                    this._propertyObservers[key] = {};
+                }
+                if (key in target) {
+                    registerAnyChangeObserver("_propertyObservers." + key, this._propertyObservers[key]);
+                } else {
+                    registerAnyChangeObserver("_enumerateObservers." + key, this._enumerateObservers);
+                }
+                return target[key];
+            }
+        }
+    }
+
+    function setHandlerObject(target, key, value) {
+        if (this.overrides.__overlay !== null) {
+            if (key === "__overlay") {
+                return this.overrides.__overlay = value; // Setting a new overlay, should not be possible?
+            } else {
+                let overlayHandler = this.overrides.__overlay.__handler;
+                return overlayHandler.set.apply(overlayHandler, [overlayHandler.target, key, value]);
+            }
+        }
+
+        // If same value as already set, do nothing.
+        if (key in target) {
+            let previousValue = target[key];
+            if (previousValue === value || ( typeof(previousValue) === 'number' && isNaN(previousValue) && typeof(value) === 'number' && isNaN(value))) {
+                return false;
+            }
+        }
+
+        // If cumulative assignment, inside recorder and value is undefined, no assignment.
+        if (cumulativeAssignment && inActiveRecording() && (isNaN(value) || typeof(value) === 'undefined')) {
+            return false;
+        }
+
+        let undefinedKey = !(key in target);
+        let previousValue = target[key]
+        target[key]      = value;
+        if (undefinedKey) {
+            notifyChangeObservers("_enumerateObservers", this._enumerateObservers);
+            this._propertyObservers[key] = {};
+        } else {
+            notifyChangeObservers("_propertyObservers." + key, this._propertyObservers[key]);
+        }
+        this.emitEvent({type: 'set', property: key, newValue: value, oldValue: previousValue});
+        return true;
+    }
+
+    function deletePropertyHandlerObject(target, key) {
+        if (this.overrides.__overlay !== null) {
+            let overlayHandler = this.overrides.__overlay.__handler;
+            return overlayHandler.deleteProperty.apply(overlayHandler, [overlayHandler.target, key]);
+        }
+
+        if (!(key in target)) {
+            return false;
+        } else {
+            delete target[key];
+            notifyChangeObservers("_enumerateObservers", this._enumerateObservers);
+            return true;
+        }
+    }
+
+    function ownKeysHandlerObject(target, key) { // Not inherited?
+        if (this.overrides.__overlay !== null) {
+            let overlayHandler = this.overrides.__overlay.__handler;
+            return overlayHandler.ownKeys.apply(overlayHandler, [overlayHandler.target, key]);
+        }
+
+        registerAnyChangeObserver("_enumerateObservers", this._enumerateObservers);
+        let keys = Object.keys(target);
+        // keys.push('__id');
+        return keys;
+    }
+
+    function hasHandlerObject(target, key) {
+        if (this.overrides.__overlay !== null) {
+            let overlayHandler = this.overrides.__overlay.__handler;
+            return overlayHandler.has.apply(overlayHandler, [overlayHandler.target, key]);
+        }
+
+        registerAnyChangeObserver("_enumerateObservers", this._enumerateObservers);
+        return key in target;
+    }
+
+    function definePropertyHandlerObject(target, key, descriptor) {
+        if (this.overrides.__overlay !== null) {
+            let overlayHandler = this.overrides.__overlay.__handler;
+            return overlayHandler.defineProperty.apply(overlayHandler, [overlayHandler.target, key]);
+        }
+
+        notifyChangeObservers("_enumerateObservers", this._enumerateObservers);
+        return Reflect.defineProperty(target, key, descriptor);
+    }
+
+    function getOwnPropertyDescriptorHandlerObject(target, key) {
+        if (this.overrides.__overlay !== null) {
+            let overlayHandler = this.overrides.__overlay.__handler;
+            return overlayHandler.getOwnPropertyDescriptor.apply(overlayHandler, [overlayHandler.target, key]);
+        }
+
+        registerAnyChangeObserver("_enumerateObservers", this._enumerateObservers);
+        return Object.getOwnPropertyDescriptor(target, key);
+    }
+
+
+    /***************************************************************
+     *
+     *  Create
+     *
+     ***************************************************************/
+
+    function create(createdTarget, cacheId) {
         if (typeof(createdTarget) === 'undefined') {
             createdTarget = {};
         }
-        if (typeof(infusionId) === 'undefined') {
-            infusionId = null;
+        if (typeof(cacheId) === 'undefined') {
+            cacheId = null;
         }
 
         let handler;
         if (createdTarget instanceof Array) {
             handler = {
                 _arrayObservers : {},
-
                 // getPrototypeOf: function () {},
                 // setPrototypeOf: function () {},
                 // isExtensible: function () {},
                 // preventExtensions: function () {},
                 // apply: function () {},
                 // construct: function () {},
-
-                get: function (target, key) {
-                    if (this.overrides.__overlay !== null && key !== "__overlay") {
-                        let overlayHandler = this.overrides.__overlay.__handler;
-                        return overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
-                    }
-
-                    if (staticArrayOverrides[key]) {
-                        return staticArrayOverrides[key].bind(this);
-                    } else if (typeof(this.overrides[key]) !== 'undefined') {
-                        return this.overrides[key];
-                    } else {
-                        registerAnyChangeObserver("_arrayObservers", this._arrayObservers);//object
-                        return target[key];
-                    }
-                },
-
-                set: function (target, key, value) {
-                    if (this.overrides.__overlay !== null) {
-                        if (key === "__overlay") {
-                            return this.overrides.__overlay = value;
-                        } else {
-                            let overlayHandler = this.overrides.__overlay.__handler;
-                            return overlayHandler.set.apply(overlayHandler, [overlayHandler.target, key, value]);
-                        }
-                    }
-
-                    // If same value as already set, do nothing.
-                    // if (!!isNaN(key) && key in target) {
-                    //     let previousValue = target[key];
-                    //     if (previousValue === value || ( typeof(previousValue) === 'number' && isNaN(previousValue) && typeof(value) === 'number' && isNaN(value))) {
-                    //         return false;
-                    //     }
-                    // }
-
-                    // If cumulative assignment, inside recorder and value is undefined, no assignment.
-                    if (cumulativeAssignment && inActiveRecording() && (isNaN(value) || typeof(value) === 'undefined')) {
-                        return false;
-                    }
-                    if (!isNaN(key)) {
-                        // Number index
-                        let previousValue = target[key];
-                        if (typeof(key) === 'string') {
-                            key = parseInt(key);
-                        }
-                        target[key] = value;
-                        this.emitEvent({ type: 'splice', index: key, removed: [previousValue], added: [value] });
-                        notifyChangeObservers("_arrayObservers", this._arrayObservers);
-                        return true;
-                    } else {
-                        // String index
-                        let previousValue = target[key];
-                        target[key] = value;
-                        this.emitEvent({ type: 'set', property: key, oldValue: previousValue, newValue: value });
-                        notifyChangeObservers("_arrayObservers", this._arrayObservers);
-                        return true;
-                    }
-                },
-
-                deleteProperty: function (target, key) {
-                    if (this.overrides.__overlay !== null) {
-                        let overlayHandler = this.overrides.__overlay.__handler;
-                        return overlayHandler.deleteProperty.apply(overlayHandler, [overlayHandler.target, key]);
-                    }
-
-                    if (!(key in target)) {
-                        return false;
-                    } else {
-                        delete target[key];
-                        notifyChangeObservers("_arrayObservers", this._arrayObservers);
-                        return true;
-                    }
-                },
-
-                ownKeys: function (target) {
-                    if (this.overrides.__overlay !== null) {
-                        let overlayHandler = this.overrides.__overlay.__handler;
-                        return overlayHandler.ownKeys.apply(overlayHandler, [overlayHandler.target]);
-                    }
-
-                    registerAnyChangeObserver("_arrayObservers", this._arrayObservers);
-                    let result   = Object.keys(target);
-                    result.push('length');
-                    return result;
-                },
-
-                has: function (target, key) {
-                    if (this.overrides.__overlay !== null) {
-                        let overlayHandler = this.overrides.__overlay.__handler;
-                        return overlayHandler.has.apply(overlayHandler, [target, key]);
-                    }
-
-                    registerAnyChangeObserver("_arrayObservers", this._arrayObservers);
-                    return key in target;
-                },
-
-                defineProperty: function (target, key, oDesc) {
-                    if (this.overrides.__overlay !== null) {
-                        let overlayHandler = this.overrides.__overlay.__handler;
-                        return overlayHandler.defineProperty.apply(overlayHandler, [overlayHandler.target, key, oDesc]);
-                    }
-
-                    notifyChangeObservers("_arrayObservers", this._arrayObservers);
-                    return target;
-                },
-
-                getOwnPropertyDescriptor: function (target, key) {
-                    if (this.overrides.__overlay !== null) {
-                        let overlayHandler = this.overrides.__overlay.__handler;
-                        return overlayHandler.getOwnPropertyDescriptor.apply(overlayHandler, [overlayHandler.target, key]);
-                    }
-
-                    registerAnyChangeObserver("_arrayObservers", this._arrayObservers);
-                    return Object.getOwnPropertyDescriptor(target, key);
-                }
+                get: getHandlerArray,
+                set: setHandlerArray,
+                deleteProperty: deletePropertyHandlerArray,
+                ownKeys: ownKeysHandlerArray,
+                has: hasHandlerArray,
+                defineProperty: definePropertyHandlerArray,
+                getOwnPropertyDescriptor: getOwnPropertyDescriptorHandlerArray
             };
         } else {
             let _propertyObservers = {};
@@ -326,134 +476,15 @@
                 // preventExtensions: function () {},
                 // apply: function () {},
                 // construct: function () {},
-
                 _enumerateObservers : {},
                 _propertyObservers: _propertyObservers,
-
-                get: function (target, key) {
-                    key = key.toString();
-                    if (this.overrides.__overlay !== null && key !== "__overlay") {
-                        // console.log(this.overrides.__target.name + ": Getting overlay:" + key);
-                        // console.log(this.overrides.__overlay);
-                        // console.log(this.overrides.__overlay.__handler);
-                        let overlayHandler = this.overrides.__overlay.__handler;
-                        // console.log(overlayHandler);
-                        let result = overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
-                        // console.log("result");
-                        // console.log(result);
-                        // console.log("--");
-                        return result;
-                    }
-
-                    if (typeof(this.overrides[key]) !== 'undefined') {
-                        return this.overrides[key];
-                    } else {
-                        if (typeof(key) !== 'undefined') {
-                            if (typeof(this._propertyObservers[key]) ===  'undefined') {
-                                this._propertyObservers[key] = {};
-                            }
-                            if (key in target) {
-                                registerAnyChangeObserver("_propertyObservers." + key, this._propertyObservers[key]);
-                            } else {
-                                registerAnyChangeObserver("_enumerateObservers." + key, this._enumerateObservers);
-                            }
-                            return target[key];
-                        }
-                    }
-                },
-
-                set: function (target, key, value) {
-                    if (this.overrides.__overlay !== null) {
-                        if (key === "__overlay") {
-                            return this.overrides.__overlay = value; // Setting a new overlay, should not be possible?
-                        } else {
-                            let overlayHandler = this.overrides.__overlay.__handler;
-                            return overlayHandler.set.apply(overlayHandler, [overlayHandler.target, key, value]);
-                        }
-                    }
-
-                    // If same value as already set, do nothing.
-                    if (key in target) {
-                        let previousValue = target[key];
-                        if (previousValue === value || ( typeof(previousValue) === 'number' && isNaN(previousValue) && typeof(value) === 'number' && isNaN(value))) {
-                            return false;
-                        }
-                    }
-
-                    // If cumulative assignment, inside recorder and value is undefined, no assignment.
-                    if (cumulativeAssignment && inActiveRecording() && (isNaN(value) || typeof(value) === 'undefined')) {
-                        return false;
-                    }
-
-                    let undefinedKey = !(key in target);
-                    let previousValue = target[key]
-                    target[key]      = value;
-                    if (undefinedKey) {
-                        notifyChangeObservers("_enumerateObservers", this._enumerateObservers);
-                        this._propertyObservers[key] = {};
-                    } else {
-                        notifyChangeObservers("_propertyObservers." + key, this._propertyObservers[key]);
-                    }
-                    this.emitEvent({type: 'set', property: key, newValue: value, oldValue: previousValue});
-                    return true;
-                },
-
-                deleteProperty: function (target, key) {
-                    if (this.overrides.__overlay !== null) {
-                        let overlayHandler = this.overrides.__overlay.__handler;
-                        return overlayHandler.deleteProperty.apply(overlayHandler, [overlayHandler.target, key]);
-                    }
-
-                    if (!(key in target)) {
-                        return false;
-                    } else {
-                        delete target[key];
-                        notifyChangeObservers("_enumerateObservers", this._enumerateObservers);
-                        return true;
-                    }
-                },
-
-                ownKeys: function (target, key) { // Not inherited?
-                    if (this.overrides.__overlay !== null) {
-                        let overlayHandler = this.overrides.__overlay.__handler;
-                        return overlayHandler.ownKeys.apply(overlayHandler, [overlayHandler.target, key]);
-                    }
-
-                    registerAnyChangeObserver("_enumerateObservers", this._enumerateObservers);
-                    let keys = Object.keys(target);
-                    // keys.push('__id');
-                    return keys;
-                },
-
-                has: function (target, key) {
-                    if (this.overrides.__overlay !== null) {
-                        let overlayHandler = this.overrides.__overlay.__handler;
-                        return overlayHandler.has.apply(overlayHandler, [overlayHandler.target, key]);
-                    }
-
-                    registerAnyChangeObserver("_enumerateObservers", this._enumerateObservers);
-                    return key in target;
-                },
-
-                defineProperty: function (target, key, descriptor) {
-                    if (this.overrides.__overlay !== null) {
-                        let overlayHandler = this.overrides.__overlay.__handler;
-                        return overlayHandler.defineProperty.apply(overlayHandler, [overlayHandler.target, key]);
-                    }
-
-                    notifyChangeObservers("_enumerateObservers", this._enumerateObservers);
-                    return Reflect.defineProperty(target, key, descriptor);
-                },
-
-                getOwnPropertyDescriptor: function (target, key) {
-                    if (this.overrides.__overlay !== null) {
-                        let overlayHandler = this.overrides.__overlay.__handler;
-                        return overlayHandler.getOwnPropertyDescriptor.apply(overlayHandler, [overlayHandler.target, key]);
-                    }
-
-                    registerAnyChangeObserver("_enumerateObservers", this._enumerateObservers);
-                    return Object.getOwnPropertyDescriptor(target, key);
-                }
+                get: getHandlerObject,
+                set: setHandlerObject,
+                deleteProperty: deletePropertyHandlerObject,
+                ownKeys: ownKeysHandlerObject,
+                has: hasHandlerObject,
+                defineProperty: definePropertyHandlerObject,
+                getOwnPropertyDescriptor: getOwnPropertyDescriptorHandlerObject
             };
         }
 
@@ -472,49 +503,39 @@
         };
 
         handler.overrides = {
-            __overlay : null, 
-            __infusionId : infusionId,
             __id: nextId++,
+            __cacheId : cacheId,
+            __overlay : null,
             __target: createdTarget,
             __handler : handler,
-            
-            repeat : getGenericRepeatFunction(handler),
-            cached : getGenericCallAndCacheFunction(handler),
-            cachedInCache : function() { // Only cache if within another cached call.
-                let argumentsArray = argumentsToArray(arguments);
-                if (inCachedCall() > 0) {
-                    return this.cached.apply(this, argumentsArray);
-                } else {
-                    let functionName = argumentsArray.shift();
-                    return this[functionName].apply(this, argumentsArray);
-                }
-            },
-            reCached : getGenericReCacheFunction(handler),
-            reCachedInCache : function() { // Only project if within another cached call.
-                let argumentsArray = argumentsToArray(arguments);
-                if (inReCache() > 0) {
-                    return this.reCached.apply(this, argumentsArray);
-                } else {
-                    let functionName = argumentsArray.shift();
-                    return this[functionName].apply(this, argumentsArray);
-                }
-            },
-            // subProjectionInProjectoin
-            replaceWith : getGenericReplacer(handler),
-            observe: function(observerFunction) {
-                if (typeof(handler.observers) === 'undefined') {
-                    handler.observers = [];
-                }
-                handler.observers.push(observerFunction);
-            }
+
+            // This inside these functions will be the Proxy. Change to handler?
+            repeat : genericRepeatFunction,
+            tryStopRepeat : genericStopRepeatFunction,
+
+            cached : genericCallAndCacheFunction,
+            cachedInCache : genericCallAndCacheInCacheFunction,
+            reCached : genericReCacheFunction,
+            reCachedInCache : genericReCacheInCacheFunction,
+
+            // Aliases
+            project : genericReCacheFunction,
+            projectInProjectionOrCache : genericReCacheInCacheFunction,
+
+            tryUncache : genericUnCacheFunction,
+            replaceWith : genericReplacer,
+            observe: genericObserveFunction
+
+            // forwardTo : getGenericForwarder(),
+            // removeForwarding : getGenericRemoveForwarding()
         };
 
         if (inReCache()) {
-            // console.log(infusionId);
-            if (infusionId !== null &&  typeof(context.infusionIdObjectMap[infusionId]) !== 'undefined') {
+            // console.log(cacheId);
+            if (cacheId !== null &&  typeof(context.cacheIdObjectMap[cacheId]) !== 'undefined') {
                 // Overlay previously created
                 // console.log("creating overlay");
-                let infusionTarget = context.infusionIdObjectMap[infusionId];
+                let infusionTarget = context.cacheIdObjectMap[cacheId];
                 if (infusionTarget === proxy) {
                     throw "WTF";
                 }
@@ -530,10 +551,10 @@
             } else {
                 // Newly created in this reCache cycle. Including overlaid ones.
                 // console.log("creating fresh");
-                // console.log(infusionId);
+                // console.log(cacheId);
                 // console.log(context.type);
                 // console.log(context);
-                // console.log(typeof(context.infusionIdObjectMap[infusionId]));
+                // console.log(typeof(context.cacheIdObjectMap[cacheId]));
                 context.newlyCreated.push(proxy);
             }
         }
@@ -541,12 +562,11 @@
         return proxy;
     }
 
-    let c = create;
 
 
     /**********************************
-     *  Causality Global stack
      *
+     *   Causality Global stack
      *
      **********************************/
 
@@ -633,7 +653,7 @@
                 // Build a new macro context
                 enteredContext.children = [];
 
-                if (context !== null) {
+                if (context !== null && typeof(context.independent) === 'undefined') {
                     context.children.push(enteredContext);
                 }
                 context = enteredContext;
@@ -665,7 +685,7 @@
         return enteredContext;
     }
 
-    
+
     function leaveContext() {
         let leftContext = causalityStack.pop();
         if (causalityStack.length > 0) {
@@ -680,19 +700,6 @@
             microContext = null;
         }
         // console.log("====== leaveContext ========" + leftContext.type);
-    }
-
-
-    /**********************************
-     *  Observe
-     *
-     *
-     **********************************/
-
-    function observeAll(array, callback) {
-        array.forEach(function(element) {
-            element.observe(callback);
-        });
     }
 
 
@@ -712,30 +719,40 @@
         postPulseCleanup();
     }
 
+    let contextsScheduledForPossibleDestruction = [];
+
     function postPulseCleanup() {
-        reCachedFunctionsScheduledForDestruction.forEach(function(cacheRecord) {
-            if (!cacheRecord.directlyInvokedByApplication) {
-                let returnValueObservers = cacheRecord.returnValueObservers;
-                if (returnValueObservers.contentsCounter === 0 && returnValueObservers.first === null) {
-                    console.log("cleanup:");
-                    console.log(cacheRecord);
-                    cacheRecord.delete();
+        contextsScheduledForPossibleDestruction.forEach(function(context) {
+            if (!context.directlyInvokedByApplication) {
+                if (emptyObserverSet(context.contextObservers)) {
+                    context.remove();
                 }
             }
         });
-        reCachedFunctionsScheduledForDestruction = [];
-        cachedFunctionsScheduledForDestruction.forEach(function(cacheRecord) {
-            if (!cacheRecord.directlyInvokedByApplication) {
-                let returnValueObservers = cacheRecord.returnValueObservers;
-                if (returnValueObservers.contentsCounter === 0 && returnValueObservers.first === null) {
-                    console.log("cleanup:");
-                    console.log(cacheRecord);
-                    cacheRecord.delete();
-                }
-            }
-        });
-        cachedFunctionsScheduledForDestruction = [];
+        contextsScheduledForPossibleDestruction = [];
     }
+
+
+    /**********************************
+     *  Observe
+     *
+     *
+     **********************************/
+
+    function observeAll(array, callback) {
+        array.forEach(function(element) {
+            element.observe(callback);
+        });
+    }
+
+    function genericObserveFunction(observerFunction) {
+        let handler = this.__handler;
+        if (typeof(handler.observers) === 'undefined') {
+            handler.observers = [];
+        }
+        handler.observers.push(observerFunction);
+    }
+
 
     /**********************************
      *  Dependency recording
@@ -827,6 +844,10 @@
         recordingPaused++;
         action();
         recordingPaused--;
+    }
+
+    function emptyObserverSet(observerSet) {
+        return observerSet.contentsCounter === 0 && observerSet.first === null;
     }
 
     let sourcesObserverSetChunkSize = 500;
@@ -999,15 +1020,8 @@
             action: repeaterAction,
             remove: function() {
                 // console.log("removeRepeater: " + repeater.id + "." + repeater.description);
-                this.removed = true; // In order to block any lingering recorder that triggers change
-                if (typeof(this.children) !== 'undefined' && this.children.length > 0) {
-                    this.children.forEach(function (repeater) {
-                        repeater.remove();
-                    });
-                    this.children.length = 0;
-                }
+                removeChildContexts(this);
                 this.micro.remove(); // Remove recorder!
-
                 removeFromArray(this, dirtyRepeaters);
             }
         });
@@ -1054,29 +1068,6 @@
                 refreshingAllDirtyRepeaters = false;
             }
         }
-    }
-
-
-    function getGenericRepeatFunction(handler) {
-        return function () {
-            // Split arguments
-            let argumentsList = argumentsToArray(arguments);
-            let functionName = argumentsList.shift();
-            let functionCacher = getFunctionCacher(this, "_repeaters", functionName, argumentsList);
-
-            if (!functionCacher.cacheRecordExists()) {
-                // Never encountered these arguments before, make a new cache
-                let cacheRecord = functionCacher.createNewRecord();
-                cacheRecord.remove = function() {}; // Never removed directly, only when no observers & no direct application call
-                // TODO: add context here to prevent direct removal of the repeater.
-                cacheRecord.repeaterHandle = repeatOnChange(function() {
-                    returnValue = this[functionName].apply(this, argumentsList);
-                });
-                return cacheRecord.repeaterHandle;
-            } else {
-                return functionCacher.getExistingRecord().repeaterHandle;
-            }
-        };
     }
 
 
@@ -1216,6 +1207,56 @@
 
 
     /************************************************************************
+     *
+     *                    Generic repeat function
+     *
+     ************************************************************************/
+
+
+    function genericRepeatFunction() {
+        // Split arguments
+        let argumentsList = argumentsToArray(arguments);
+        let functionName = argumentsList.shift();
+        let functionCacher = getFunctionCacher(this, "_repeaters", functionName, argumentsList);
+
+        if (!functionCacher.cacheRecordExists()) {
+            // Never encountered these arguments before, make a new cache
+            let cacheRecord = functionCacher.createNewRecord();
+            cacheRecord.independent = true; // Do not delete together with parent
+            cacheRecord.contextObservers = {
+                noMoreObserversCallback : function() {
+                    contextsScheduledForPossibleDestruction.push(cacheRecord);
+                }
+            };
+
+            cacheRecord.remove = function() {}; // Never removed directly, only when no observers & no direct application call
+            cacheRecord.repeaterHandle = repeatOnChange(function() {
+                returnValue = this[functionName].apply(this, argumentsList);
+            });
+            registerAnyChangeObserver("functionCache.contextObservers", cacheRecord.contextObservers);
+            return cacheRecord.repeaterHandle;
+        } else {
+            registerAnyChangeObserver("functionCache.contextObservers", cacheRecord.contextObservers);
+            return functionCacher.getExistingRecord().repeaterHandle;
+        }
+    }
+
+    function genericStopRepeatFunction() {
+        // Split arguments
+        let argumentsList = argumentsToArray(arguments);
+        let functionName = argumentsList.shift();
+        let functionCacher = getFunctionCacher(this, "_repeaters", functionName, argumentsList);
+
+        if (functionCacher.cacheRecordExists()) {
+            let cacheRecord = functionCacher.getExistingRecord();
+            if (emptyObserverSet(cacheRecord.contextObservers)) {
+                functionCacher.deleteExistingRecord();
+            }
+        }
+    }
+
+
+    /************************************************************************
      *  Cached methods
      *
      * A cached method will not reevaluate for the same arguments, unless
@@ -1224,66 +1265,88 @@
      * (even if the parent does not actually use/read any return value)
      ************************************************************************/
 
-    let cachedFunctionsScheduledForDestruction = [];
-    // let inCachedCall = 0;
+    function genericCallAndCacheInCacheFunction() {
+        let argumentsArray = argumentsToArray(arguments);
+        if (inCachedCall() > 0) {
+            return this.cached.apply(this, argumentsArray);
+        } else {
+            let functionName = argumentsArray.shift();
+            return this[functionName].apply(this, argumentsArray);
+        }
+    }
 
-    function getGenericCallAndCacheFunction(handler) { // this
-        return function () {
-            // Split arguments
-            let argumentsList = argumentsToArray(arguments);
-            let functionName = argumentsList.shift();
-            let functionCacher = getFunctionCacher(this, "cachedCalls", functionName, argumentsList); // wierd, does not work with this inestead of handler...
+    function genericCallAndCacheFunction() {
+        // Split arguments
+        let argumentsList = argumentsToArray(arguments);
+        let functionName = argumentsList.shift();
+        let functionCacher = getFunctionCacher(this, "_cachedCalls", functionName, argumentsList); // wierd, does not work with this inestead of handler...
 
-            if (!functionCacher.cacheRecordExists()) {
-                // console.log("Cache anew: " + functionName);
-                let cacheRecord = functionCacher.createNewRecord();
-                cacheRecord.remove = function() {}; // Never removed directly, only when no observers & no direct application call
+        if (!functionCacher.cacheRecordExists()) {
+            let cacheRecord = functionCacher.createNewRecord();
+            cacheRecord.independent = true; // Do not delete together with parent
 
-                // Is this call non-automatic
-                cacheRecord.delete = function() {
-                    functionCacher.deleteExistingRecord();
-                    cacheRecord.micro.remove(); // Remove recorder
-                };
+            // Is this call non-automatic
+            cacheRecord.remove = function() {
+                functionCacher.deleteExistingRecord();
+                cacheRecord.micro.remove(); // Remove recorder
+            };
 
-                // console.log("increasing");
-                cachedCalls++;
-                enterContext('cached_call', cacheRecord);
-                nextIsMicroContext = true;
-                // Never encountered these arguments before, make a new cache
-                let returnValue = uponChangeDo(
-                    function () {
-                        let returnValue;
-                        // blockSideEffects(function() {
-                        // inCachedCall++;
-                        returnValue = this[functionName].apply(this, argumentsList);
-                        // inCachedCall--;
-                        // }.bind(this));
-                        return returnValue;
-                    }.bind(this),
-                    function () {
-                        // Delete function cache and notify
-                        let cacheRecord = functionCacher.deleteExistingRecord();
-                        notifyChangeObservers("functionCache.returnValueObservers", cacheRecord.returnValueObservers);
-                    }.bind(this));
-                leaveContext();
-                cacheRecord.returnValue = returnValue;
-                cacheRecord.returnValueObservers = {
-                    noMoreObserversCallback : function() {
-                        if (!cacheRecord.directlyInvokedByApplication) {
-                            cachedFunctionsScheduledForDestruction.push(cacheRecord);
-                        }
-                    }
-                };
-                registerAnyChangeObserver("functionCache.returnValueObservers", cacheRecord.returnValueObservers);
-                return returnValue;
-            } else {
-                // console.log("Exists");
-                // Encountered these arguments before, reuse previous repeater
-                let cacheRecord = functionCacher.getExistingRecord();
-                registerAnyChangeObserver("functionCache.returnValueObservers", cacheRecord.returnValueObservers);
-                return cacheRecord.returnValue;
-            }
-        };
+            cachedCalls++;
+            enterContext('cached_call', cacheRecord);
+            nextIsMicroContext = true;
+            // Never encountered these arguments before, make a new cache
+            let returnValue = uponChangeDo(
+                function () {
+                    let returnValue;
+                    // blockSideEffects(function() {
+                    returnValue = this[functionName].apply(this, argumentsList);
+                    // }.bind(this));
+                    return returnValue;
+                }.bind(this),
+                function () {
+                    // Delete function cache and notify
+                    let cacheRecord = functionCacher.deleteExistingRecord();
+                    notifyChangeObservers("functionCache.contextObservers", cacheRecord.contextObservers);
+                }.bind(this));
+            leaveContext();
+            cacheRecord.returnValue = returnValue;
+            cacheRecord.contextObservers = {
+                noMoreObserversCallback : function() {
+                    contextsScheduledForPossibleDestruction.push(cacheRecord);
+                }
+            };
+            registerAnyChangeObserver("functionCache.contextObservers", cacheRecord.contextObservers);
+            return returnValue;
+        } else {
+            // Encountered these arguments before, reuse previous repeater
+            let cacheRecord = functionCacher.getExistingRecord();
+            registerAnyChangeObserver("functionCache.contextObservers", cacheRecord.contextObservers);
+            return cacheRecord.returnValue;
+        }
+    }
+
+    function genericUnCacheFunction() {
+        // Split arguments
+        let argumentsList = argumentsToArray(arguments);
+        let functionName = argumentsList.shift();
+
+        // Cached
+        let functionCacher = getFunctionCacher(this, "_cachedCalls", functionName, argumentsList);
+
+        if (functionCacher.cacheRecordExists()) {
+            let cacheRecord = functionCacher.getExistingRecord();
+            cacheRecord.directlyInvokedByApplication = false;
+            contextsScheduledForPossibleDestruction.push(cacheRecord);
+        }
+
+        // Re cached
+        functionCacher = getFunctionCacher(this, "_reCachedCalls", functionName, argumentsList);
+
+        if (functionCacher.cacheRecordExists()) {
+            let cacheRecord = functionCacher.getExistingRecord();
+            cacheRecord.directlyInvokedByApplication = false;
+            contextsScheduledForPossibleDestruction.push(cacheRecord);
+        }
     }
 
     /************************************************************************
@@ -1375,87 +1438,21 @@
 
         return splices;
     }
-    //
-    //
-    // /************************************************************************
-    //  *
-    //  *  Infusion
-    //  *
-    //  ************************************************************************/
-    //
-    function getGenericReplacer(handler) { // this
-        return function(otherObject) {
-            mergeInto(otherObject, this);
-        }
+
+
+    /************************************************************************
+     *
+     *  Merge into
+     *
+     ************************************************************************/
+
+    function genericReplacer(otherObject) { // this
+        mergeInto(otherObject, this);
     }
 
-    // function infuseCoArrays(sources, targets) {
-    //
-    //     // Setup id target map and ids.
-    //     let index = 0;
-    //     idTargetMap = {};
-    //     while (index < sources.length) {
-    //         sources[index].__infusionId = index;
-    //         targets[index].__infusionId = index;
-    //         idTargetMap[index] = targets[index];
-    //         index++;
-    //     }
-    //
-    //     infuseWithMap(sources, idTargetMap);
-    // }
-    //
-    // function infuseWithMap(sources, idTargetMap) {
-    //
-    //     // Helper
-    //     function mapValue(value) {
-    //         if (typeof(value) === 'object' && (value !== null)) {
-    //             if (typeof(value.__infusionId) !== 'undefined' && typeof(idTargetMap[value.__infusionId]) !== 'undefined') {
-    //                 // console.log("Mapping! " + value.__infusionId + " " + value.__id + " ==> " + idTargetMap[value.__infusionId].__id);
-    //                 value = idTargetMap[value.__infusionId]; // Reference to the replaced one.
-    //             }
-    //         }
-    //         return value;
-    //     }
-    //
-    //     // Setup id target map and ids.
-    //     let index = 0;
-    //     while (index < sources.length) {
-    //         let source = sources[index];
-    //         if (typeof(source.__infusionId) !== 'undefined' && typeof(idTargetMap[source.__infusionId]) !== 'undefined') {
-    //             let target = idTargetMap[source.__infusionId];
-    //             let sourceWithoutProxy = source.__target;
-    //             if (sourceWithoutProxy instanceof Array) {
-    //                 sourceWithoutProxy = sourceWithoutProxy.map(mapValue);
-    //                 // console.log("Before differential splices:");
-    //                 // console.log(target.__target.map((object) => object.__id + " " + object.__infusionId));
-    //                 // console.log(sourceWithoutProxy.map((object) => object.__id + " " + object.__infusionId));
-    //                 let splices = differentialSplices(target.__target, sourceWithoutProxy); // let arrayIndex = 0;
-    //                 splices.forEach(function(splice) {
-    //                     // console.log("Splicing!");
-    //                     // console.log(splice);
-    //                     let spliceArguments = [];
-    //                     spliceArguments.push(splice.index, splice.removed.length);
-    //                     spliceArguments.push.apply(spliceArguments, splice.added); //.map(mapValue))
-    //                     target.splice.apply(target, spliceArguments);
-    //                 });
-    //             } else {
-    //                 for (let property in sourceWithoutProxy) {
-    //                     target[property]  = mapValue(sourceWithoutProxy[property]);
-    //                 }
-    //             }
-    //         }
-    //         index++;
-    //     }
-    // }
-
     function mergeInto(source, target) {
-        // console.log("mergeInto");
-        // console.log(source.__infusionId);
-        // console.log(target.__infusionId);
-        // console.log(target);
         if (source instanceof Array) {
             let splices = differentialSplices(target.__target, source.__target);
-            // console.log(splices);
             splices.forEach(function(splice) {
                 let spliceArguments = [];
                 spliceArguments.push(splice.index, splice.removed.length);
@@ -1475,12 +1472,11 @@
     }
 
     function infuseOverlayIntoObject(object) {
-        // console.log("infusing");
         let overlay = object.__overlay;
-        // console.log(overlay);
         object.__overlay = null;
         mergeInto(overlay, object);
     }
+
 
     /************************************************************************
      *
@@ -1488,85 +1484,90 @@
      *
      ************************************************************************/
 
-    let reCachedFunctionsScheduledForDestruction = [];
-
-    function getGenericReCacheFunction(handler) { // this
-        return function () {
-            // console.log("call reCache");
-            // Split argumentsp
-            let argumentsList = argumentsToArray(arguments);
-            let functionName = argumentsList.shift();
-            let functionCacher = getFunctionCacher(this, "_reCaches", functionName, argumentsList);
-
-            if (!functionCacher.cacheRecordExists()) {
-                // console.log("init reCache ");
-                let cacheRecord = functionCacher.createNewRecord();
-                cacheRecord.infusionIdObjectMap = {};
-                cacheRecord.remove = function() {}; // Never removed directly, only when no observers & no direct application call
-
-                cacheRecord.delete = function() {
-                    functionCacher.deleteExistingRecord();
-                    cacheRecord.micro.remove(); // Remove recorder
-                };
-
-                // Is this call non-automatic
-                cacheRecord.directlyInvokedByApplication = noContext();
-
-                // Never encountered these arguments before, make a new cache
-                enterContext('reCache', cacheRecord);
-                nextIsMicroContext = true;
-                cacheRecord.returnValueObservers = {
-                    noMoreObserversCallback : function() {
-                        if (cacheRecord.directlyInvokedByApplication) {
-                            reCachedFunctionsScheduledForDestruction.push(cacheRecord);
-                        }
-                    }
-                };
-                cacheRecord.repeaterHandler = repeatOnChange(
-                    function () {
-                        cacheRecord.newlyCreated = [];
-                        let newReturnValue;
-                        // console.log("better be true");
-                        // console.log(inReCache());
-                        newReturnValue = this[functionName].apply(this, argumentsList);
-                        // console.log(cacheRecord.newlyCreated);
-
-                        // console.log("Assimilating:");
-                        withoutRecording(function() { // Do not observe reads from the overlays
-                            cacheRecord.newlyCreated.forEach(function(created) {
-                                if (created.__overlay !== null) {
-                                    // console.log("Has overlay!");
-                                    // console.log(created.__overlay);
-                                    infuseOverlayIntoObject(created);
-                                } else {
-                                    // console.log("Infusion id of newly created:");
-                                    // console.log(created.__infusionId);
-                                    if (created.__infusionId !== null) {
-
-                                        cacheRecord.infusionIdObjectMap[created.__infusionId] = created;
-                                    }
-                                }
-                            });
-                        }.bind(this));
-
-                        // See if we need to trigger event on return value
-                        if (newReturnValue !== cacheRecord.returnValue) {
-                            cacheRecord.returnValue = newReturnValue;
-                            notifyChangeObservers("functionCache.returnValueObservers", cacheRecord.returnValueObservers);
-                        }
-                    }.bind(this)
-                );
-                leaveContext();
-                registerAnyChangeObserver("functionCache.returnValueObservers", cacheRecord.returnValueObservers);
-                return cacheRecord.returnValue;
-            } else {
-                // Encountered these arguments before, reuse previous repeater
-                let cacheRecord = functionCacher.getExistingRecord();
-                registerAnyChangeObserver("functionCache.returnValueObservers", cacheRecord.returnValueObservers);
-                return cacheRecord.returnValue;
-            }
-        };
+    function genericReCacheInCacheFunction() {
+        let argumentsArray = argumentsToArray(arguments);
+        if (inReCache() > 0) {
+            return this.reCached.apply(this, argumentsArray);
+        } else {
+            let functionName = argumentsArray.shift();
+            return this[functionName].apply(this, argumentsArray);
+        }
     }
+
+    function genericReCacheFunction() {
+        // console.log("call reCache");
+        // Split argumentsp
+        let argumentsList = argumentsToArray(arguments);
+        let functionName = argumentsList.shift();
+        let functionCacher = getFunctionCacher(this, "_reCachedCalls", functionName, argumentsList);
+
+        if (!functionCacher.cacheRecordExists()) {
+            // console.log("init reCache ");
+            let cacheRecord = functionCacher.createNewRecord();
+            cacheRecord.independent = true; // Do not delete together with parent
+
+            cacheRecord.cacheIdObjectMap = {};
+            cacheRecord.remove = function() {
+                functionCacher.deleteExistingRecord();
+                cacheRecord.micro.remove(); // Remove recorder
+            };
+
+            // Is this call non-automatic
+            cacheRecord.directlyInvokedByApplication = noContext();
+
+            // Never encountered these arguments before, make a new cache
+            enterContext('reCache', cacheRecord);
+            nextIsMicroContext = true;
+            cacheRecord.contextObservers = {
+                noMoreObserversCallback : function() {
+                    contextsScheduledForPossibleDestruction.push(cacheRecord);
+                }
+            };
+            cacheRecord.repeaterHandler = repeatOnChange(
+                function () {
+                    cacheRecord.newlyCreated = [];
+                    let newReturnValue;
+                    // console.log("better be true");
+                    // console.log(inReCache());
+                    newReturnValue = this[functionName].apply(this, argumentsList);
+                    // console.log(cacheRecord.newlyCreated);
+
+                    // console.log("Assimilating:");
+                    withoutRecording(function() { // Do not observe reads from the overlays
+                        cacheRecord.newlyCreated.forEach(function(created) {
+                            if (created.__overlay !== null) {
+                                // console.log("Has overlay!");
+                                // console.log(created.__overlay);
+                                infuseOverlayIntoObject(created);
+                            } else {
+                                // console.log("Infusion id of newly created:");
+                                // console.log(created.__cacheId);
+                                if (created.__cacheId !== null) {
+
+                                    cacheRecord.cacheIdObjectMap[created.__cacheId] = created;
+                                }
+                            }
+                        });
+                    }.bind(this));
+
+                    // See if we need to trigger event on return value
+                    if (newReturnValue !== cacheRecord.returnValue) {
+                        cacheRecord.returnValue = newReturnValue;
+                        notifyChangeObservers("functionCache.contextObservers", cacheRecord.contextObservers);
+                    }
+                }.bind(this)
+            );
+            leaveContext();
+            registerAnyChangeObserver("functionCache.contextObservers", cacheRecord.contextObservers);
+            return cacheRecord.returnValue;
+        } else {
+            // Encountered these arguments before, reuse previous repeater
+            let cacheRecord = functionCacher.getExistingRecord();
+            registerAnyChangeObserver("functionCache.contextObservers", cacheRecord.contextObservers);
+            return cacheRecord.returnValue;
+        }
+    }
+
 
     /************************************************************************
      *
@@ -1590,16 +1591,21 @@
         if (typeof(target) === 'undefined') {
             target = (typeof(global) !== 'undefined') ? global : window;
         }
+
+        // API
         target['create']                  = create;
-        target['c']                       = c;
+        target['c']                       = create;
         target['uponChangeDo']            = uponChangeDo;
         target['repeatOnChange']          = repeatOnChange;
         target['withoutRecording']        = withoutRecording;
-        target['transaction']        = transaction;
+        target['transaction']             = transaction;
+        target['cleanup']                 = postPulseCleanup;  // when not using transactions
+
+        // Experimental
         target['setCumulativeAssignment'] = setCumulativeAssignment;
-        target['observeAll'] = observeAll;
 
         // Debugging and testing
+        target['observeAll'] = observeAll;
         target['cachedCallCount'] = cachedCallCount;
         target['clearRepeaterLists'] = clearRepeaterLists;
         target['resetObjectIds'] = resetObjectIds;

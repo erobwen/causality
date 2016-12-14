@@ -451,23 +451,23 @@ var addLiquidRepetitionFunctionality = function(liquid) {
 
 		liquid.blockUponChangeActions(function() {
 
-			// Build a final infusionId to object map that contains all objects present in the final infusion.
-			var infusionIdToObjectMap = {};
-			for (infusionId in infusion.temporaryInfusionIdToObjectMap) {
-				if (typeof(infusion.establishedInfusionIdToObjectMap[infusionId]) !== undefined) {
+			// Build a final cacheId to object map that contains all objects present in the final infusion.
+			var cacheIdToObjectMap = {};
+			for (cacheId in infusion.temporaryInfusionIdToObjectMap) {
+				if (typeof(infusion.establishedInfusionIdToObjectMap[cacheId]) !== undefined) {
 					// An established object exists, merge state.
-					infusionIdToObjectMap[infusionId] = infusion.establishedInfusionIdToObjectMap[infusionId];
+					cacheIdToObjectMap[cacheId] = infusion.establishedInfusionIdToObjectMap[cacheId];
 				} else {
 					// No established object exists. Need to re-map all outgoing references nevertheless.
-					infusionIdToObjectMap[infusionId] = infusion.temporaryInfusionIdToObjectMap[infusionId];
+					cacheIdToObjectMap[cacheId] = infusion.temporaryInfusionIdToObjectMap[cacheId];
 				}
 			}
 
 			// Find infusion objects that needs termination. This will ignore objects that are infused into the model directly.
 			var objectsToTerminate = [];
-			for (infusionId in infusion.establishedInfusionIdToObjectMap) {
-				if (typeof(infusionIdToObjectMap[infusionId]) === 'undefined') {
-					objectsToTerminate.push(infusion.establishedInfusionIdToObjectMap[infusionId]);
+			for (cacheId in infusion.establishedInfusionIdToObjectMap) {
+				if (typeof(cacheIdToObjectMap[cacheId]) === 'undefined') {
+					objectsToTerminate.push(infusion.establishedInfusionIdToObjectMap[cacheId]);
 				}
 			}
 
@@ -477,10 +477,10 @@ var addLiquidRepetitionFunctionality = function(liquid) {
 					if (relatedObject === null) {
 						return null;
 					} else if (typeof(relatedObject._infusion) !== 'undefined' && relatedObject._infusion === infusion) {
-						if (typeof(object._infusionIdOrObject) === 'string') {
-							return infusionIdToObjectMap[relatedObject.infusionId];
+						if (typeof(object._cacheIdOrObject) === 'string') {
+							return cacheIdToObjectMap[relatedObject.cacheId];
 						} else {
-							return relatedObject._infusionIdOrObject;
+							return relatedObject._cacheIdOrObject;
 						}
 					} else {
 						return relatedObject;
@@ -541,7 +541,7 @@ var addLiquidRepetitionFunctionality = function(liquid) {
 			});
 
 			// Set the new established infusion id to object map.
-			infusion.establishedInfusionIdToObjectMap = infusionIdToObjectMap;
+			infusion.establishedInfusionIdToObjectMap = cacheIdToObjectMap;
 			infusion.establishedInfusionIdToObjectMap = infusion.temporaryInfusionIdToObjectMap;
 			infusion.temporaryInfusionIdToObjectMap = {};
 
