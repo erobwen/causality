@@ -101,9 +101,6 @@ What if you want to build a framwork, where you for example want to enforce that
 
 This way it becomes easy to enforce one-directional data flows while still allowing general Javascript code.
 
-Note: Not implemented yet.
-
-
 # Causality Object Functions
 
 Causality object come equipped with the following powerful features.
@@ -232,4 +229,8 @@ Causality could work as a replacement for MobX. Some early, and perhaps non-conc
 
 ![Alt text](/performance.png?raw=true "Causality Logotype")
 
-Causality is based on 10+ years of original research into reactive programming. Don't believe me? Well, I was the original author of the 10+ years old "Reactive Programming" article of Wikipedia https://en.wikipedia.org/wiki/Reactive_programming and have been exploring this domain for a long time.
+# Trivia
+
+Causality is based on 10+ years of original research into reactive programming. I was the original author of the 10+ years old "Reactive Programming" article of Wikipedia https://en.wikipedia.org/wiki/Reactive_programming and have been exploring this domain for a long time.
+
+The logotype of causality is based on the ¤ symbol.

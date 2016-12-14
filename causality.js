@@ -210,6 +210,12 @@
             }
         }
 
+        if (writeRestriction !== null) {
+            if (typeof(writeRestriction[this.overrides.__id]) === 'undefined') {
+                return;
+            }
+        }
+
         // If same value as already set, do nothing.
         // if (isNaN(key) && key in target) {
         //     let previousValue = target[key];
@@ -248,6 +254,12 @@
             return overlayHandler.deleteProperty.apply(overlayHandler, [overlayHandler.target, key]);
         }
 
+        if (writeRestriction !== null) {
+            if (typeof(writeRestriction[this.overrides.__id]) === 'undefined') {
+                return;
+            }
+        }
+
         if (!(key in target)) {
             return false;
         } else {
@@ -283,6 +295,12 @@
         if (this.overrides.__overlay !== null) {
             let overlayHandler = this.overrides.__overlay.__handler;
             return overlayHandler.defineProperty.apply(overlayHandler, [overlayHandler.target, key, oDesc]);
+        }
+
+        if (writeRestriction !== null) {
+            if (typeof(writeRestriction[this.overrides.__id]) === 'undefined') {
+                return;
+            }
         }
 
         notifyChangeObservers("_arrayObservers", this._arrayObservers);
@@ -348,6 +366,12 @@
             }
         }
 
+        if (writeRestriction !== null) {
+            if (typeof(writeRestriction[this.overrides.__id]) === 'undefined') {
+                return;
+            }
+        }
+
         // If same value as already set, do nothing.
         if (key in target) {
             let previousValue = target[key];
@@ -378,6 +402,12 @@
         if (this.overrides.__overlay !== null) {
             let overlayHandler = this.overrides.__overlay.__handler;
             return overlayHandler.deleteProperty.apply(overlayHandler, [overlayHandler.target, key]);
+        }
+
+        if (writeRestriction !== null) {
+            if (typeof(writeRestriction[this.overrides.__id]) === 'undefined') {
+                return;
+            }
         }
 
         if (!(key in target)) {
@@ -415,6 +445,12 @@
         if (this.overrides.__overlay !== null) {
             let overlayHandler = this.overrides.__overlay.__handler;
             return overlayHandler.defineProperty.apply(overlayHandler, [overlayHandler.target, key]);
+        }
+
+        if (writeRestriction !== null) {
+            if (typeof(writeRestriction[this.overrides.__id]) === 'undefined') {
+                return;
+            }
         }
 
         notifyChangeObservers("_enumerateObservers", this._enumerateObservers);
@@ -533,6 +569,10 @@
             }
         }
 
+        if (writeRestriction !== null) {
+            writeRestriction[proxy.__id] = true;
+        }
+
         return proxy;
     }
 
@@ -610,7 +650,7 @@
         }
     }
 
-    // occuring types: recording, repeater_refreshing, cached_call, reCache,
+    // occuring types: recording, repeater_refreshing, cached_call, reCache, block_side_effects
     function enterContext(type, enteredContext) {
         if (typeof(enteredContext.initialized) === 'undefined') {
             // Enter new context
@@ -678,10 +718,15 @@
 
 
     /**********************************
-     *  Transactions
+     *  Pulse & Transactions
      *
      *  Upon change do
      **********************************/
+
+    function pulse(action) {
+        callback();
+        postPulseCleanup();
+    }
 
     let transaction = postponeObserverNotification;
 
@@ -704,6 +749,14 @@
             }
         });
         contextsScheduledForPossibleDestruction = [];
+        postPulseHooks.forEach(function(callback) {
+            callback();
+        });
+    }
+
+    let postPulseHooks = [];
+    function addPostPulseAction(callback) {
+        postPulseHooks.push(callback);
     }
 
 
@@ -1571,7 +1624,29 @@
      *
      ************************************************************************/
 
-    // TODO
+
+    let throwErrorUponSideEffect = false;
+    let writeRestriction = null;
+    let sideEffectBlockStack = [];
+
+    /**
+     * Block side effects
+     */
+    function withoutSideEffects(action) {
+        // enterContext('block_side_effects', {
+        //    createdObjects : {}
+        // });
+        let restriction = {};
+        sideEffectBlockStack.push({});
+        writeRestriction = restriction
+        let returnValue = action();
+        // leaveContext();
+        sideEffectBlockStack.pop();
+        if (sideEffectBlockStack.length > 0) {
+            writeRestriction = sideEffectBlockStack[sideEffectBlockStack.length - 1];
+        }
+        return returnValue;
+    }
 
     /************************************************************************
      *
@@ -1588,13 +1663,21 @@
             target = (typeof(global) !== 'undefined') ? global : window;
         }
 
-        // API
+        // Main API
         target['create']                  = create;
         target['c']                       = create;
         target['uponChangeDo']            = uponChangeDo;
         target['repeatOnChange']          = repeatOnChange;
+        target['withoutSideEffects']      = withoutSideEffects;
+
+        // Modifiers
         target['withoutRecording']        = withoutRecording;
-        target['transaction']             = transaction;
+        target['withoutNotifyChange']     = nullifyObserverNotification;
+
+        // Pulse
+        target['pulse']                   = pulse; // A sequence of transactions, end with cleanup.
+        target['transaction']             = transaction;  // Single transaction, end with cleanup.
+        target['addPostPulseAction']      = addPostPulseAction;
         target['cleanup']                 = postPulseCleanup;  // when not using transactions
 
         // Experimental
