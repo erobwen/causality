@@ -507,12 +507,12 @@
             cachedInCache : genericCallAndCacheInCacheFunction,
             reCached : genericReCacheFunction,
             reCachedInCache : genericReCacheInCacheFunction,
+            tryUncache : genericUnCacheFunction,
 
-            // Aliases
+            // reCache aliases
             project : genericReCacheFunction,
             projectInProjectionOrCache : genericReCacheInCacheFunction,
 
-            tryUncache : genericUnCacheFunction,
             replaceWith : genericReplacer,
             observe: genericObserveFunction
 

@@ -37,7 +37,7 @@ However, the real power of causality lies in its more advanced primitives, cache
 
 Causality supports the following powerful reactive primitives typically available in the global scope (unless otherwise specified):
 
-* create  // Create a causality-object.
+* create
 * repeatOnChange
 * uponChangeDo
 * withoutSideEffects  (prevents side effects on observable objects)
@@ -141,11 +141,13 @@ It is just as simple as that. If you have arguments you want to pass to the cach
 
     x.cached('someFunction', arg1, arg2, arg3);
 
+Every unique sequence of arguments given to cached will result in a new separate function cache.
+
 If you want to write a recursive function it can be useful to cache each recursive function call, making it necessary only to reevaluate exactly the function call that needs reevaluation. If you however want to write a function whose recursive function calls are only cached if its parent function call is cached, the following syntax can be useful.
 
     x.cachedInCache('fun');
 
-When not inside another cached function call, the above syntax will simply be equivalent to x.fun().
+When not inside another cached function call, the above syntax will simply be equivalent to x.fun(), but when inside another cached function, it will be equivalent to x.cached('fun').
 
 A reCache can be removed using the following command:
 
@@ -215,10 +217,11 @@ The cache will not be removed if some other causality constructs depends on it.
 
 For discussions, see:
 
-https://gitter.im/avantgarde_web_development/Lobby (in swedish, sorry)
+https://gitter.im/avantgarde_web_development/Lobby (in swedish so far, but please state questions/opinions in english and we will reply.)
 
 # Comparison
 
-Causality could work as a replacement for MobX. We have already found out that causality is about 100% faster for some examples and takes full advantages of Proxies ES6, and in addition it offers more advanced featurs in cached and reCached. On the other hand, it is not quite as a mature library.
+Causality could work as a replacement for MobX. Some early, and perhaps non-conclusive experiments indicate that causality could potentially be twice as fast as MobX. It also takes full advantage of ES6/proxies. Causality also offers more advanced features such as cached, reCached and withoutSideEffects. On the other hand, MobX is a more mature library with a supporting community.
 
+![Alt text](/performance.png?raw=true "Causality Logotype")
 
