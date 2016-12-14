@@ -1,4 +1,9 @@
+
+
 # Causality
+
+![Alt text](/logotype.png?raw=true "Causality Logotype")
+
 A library for reactive programming based on Javascript proxies (ES6)
 
 This project is a spin-off project from liquid (https://github.com/erobwen/liquid). This is a scaled down library that captures the essence of liquid's reactive core, and in addition takes full use of ES6 proxies. It is useful to anyone that would like to do reactive programming in Javascript (https://en.wikipedia.org/wiki/Reactive_programming).
