@@ -87,7 +87,17 @@ In this case, if y.value is changed for instance, it will only mean that the sec
 
 ## withoutSideEffects
 
-...
+What if you want to build a framwork, where you for example want to enforce that a view creating function never makes any changes in the model? Now it is very simple to do so! When you write a "withoutSideEffects" call, the restricted code inside it can only modify objects that were created inside the restricted code section.
+
+    ...
+    withoutSideEffects(function() {
+        .... // restricted code
+    })
+    ...
+
+This way it becomes easy to enforce one-directional data flows while still allowing general Javascript code.
+
+Note: Not implemented yet.
 
 
 # Causality Object Functions
@@ -107,11 +117,83 @@ There are three kinds of events generated. For causality objects, set and delete
 
 ## cached
 
-...
+There is a famous quote from programmer Jeff Atwood:
+
+*There are two hard things in computer science: cache invalidation, naming things, and off-by-one errors.*
+
+Well, at least cache invalidation just got much more simple thanks to causality/cached. With cached, causality completley automates the process of cache invalidation. It works as follows:
+
+    x = create({
+        fun : function() {
+            this.y  + this.z}
+        }
+        y : 20,
+        z : 22
+    });
+    console.log(x.fun()); // will output 42. P
+
+    console.log(x.cached('fun')); // Will also output, 42.
+    console.log(x.cached('fun')); // Will also output, 42. But this time it will used the cached value.
+
+    x.y = 30;  // This will automatically invalidate your cache! Hardest problem in programming solved! That easy!
+
+It is just as simple as that. If you have arguments you want to pass to the cached function, simply list them after the function name, in a sort of lisp-like in-order:
+
+    x.cached('someFunction', arg1, arg2, arg3);
+
+If you want to write a recursive function it can be useful to cache each recursive function call, making it necessary only to reevaluate exactly the function call that needs reevaluation. If you however want to write a function whose recursive function calls are only cached if its parent function call is cached, the following syntax can be useful.
+
+    x.cachedInCache('fun');
+
+When not inside another cached function call, the above syntax will simply be equivalent to x.fun().
+
 
 ## reCached
 
-Re cached might seem simple, but it is the crown-jewel of causality. It is basically a ca ...
+Re Cached is simply put the crown-jewel of causality. If you thought cached was exciting, it is noting compared to reCached.
+
+On the surface, reCached works similar to cached, with a first notable difference. When any value read during a reCache evaluatino is changed, the reCached function will not simply invalidate the cache. It will also re-valuate the cache, compare the new cached return-value to the previously cached return value, and ONLY if the return value has really changed it will signal change to any dependent function cache/reCache, repeatOnChage, uponChangeDo.
+
+But there is more to it. reCached really starts to shine when you start to create objects within the reCached function call. If you do so, you can add a cacheId to the created objects. Created objects will then retain their indentity over several reCachings.
+
+
+    x = create({
+        getView : function() {
+            return create({ viewY : x.y}, 'xViewId');
+        },
+        y : 42
+    });
+
+    xView = x.reCache('getView');
+    console.log(xView.viewY); // This will now show 42
+
+    x.y = 45;  // This will create the view to reevaluate.
+    console.log(xView.viewY); // This will now show 45! The result of the reevaluation has been merged into the same object we got the first time we ran reCache!
+
+This is just a simple example, but the reCache function is very capable. You can create all sorts of data structures within the reCached function, whenver you give an id to the created objects, you will reuse the identity of the previously created object with the same id, that was created in a previous evaluation of the reCache.
+
+The assuming of the previous identity is instant at the very createion of an objects inside the reCache. This means you can even set external references to created objects inside the reCache.
+
+    aGlobalView = null
+    x = create({
+        getView : function() {
+            let view = create({ viewY : x.y}, 'xViewId'); // The old identity is reused at this point, but the state of view will be as if newly created.
+            globalView = view;
+            return view;
+        },
+        y : 42
+    });
+
+    view = x.reCache('getView');
+
+Even if getView is reCached, the global view will still point to the same view.
+
+The purpose of reCache is to reactivley transform data structures, where a small change in the original data structure will lead to a small change in the resulting data structure.
+
+For example, assume you write an algorithm that flattes a tree in pre-order. Then, if you add one node in the original tree, it will result in a limited change in the array or linked list that is the result of the reCache. This has to do with the identity reuse.
+
+This is similar to the technique used in React where elements of the synthetic dom are given ids, so that they are matched with elements in the existing dom. The minimal update is then found, and merged into the existing dom. reCaching generalizes this technique so that it can easily be employed for any data transformation, and attatches it to a sophisticated system of cache invalidation!
+
 
 # Community
 
