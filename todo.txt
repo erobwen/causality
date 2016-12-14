@@ -2,8 +2,8 @@ Things to do:
 
 * Recursive proxy wrapping when using c/create (Automatically wrap non proxy object on assign/push etc?)
 
-* Implement general observation. i.e. object.observe(watchFunction);
+* Without side effects
 
-* Implement infusion
+* Hooks for causality pulse finished
 
-* Implement projection
+* Implicit causality pulse start.
