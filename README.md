@@ -162,7 +162,10 @@ The cache will not be removed while some other causality dependee (cached, reCac
 
 ## reCached
 
-Re Cached is simply put the crown-jewel of causality. If you thought cached was exciting, it is noting compared to reCached.
+Re Cached is simply put the crown-jewel of causality. If you thought cached was exciting, it is noting compared to reCached. It has the following features:
+
+* Conservative change propagation.
+* Stable object identities of created objects.
 
 On the surface, reCached works similar to cached, with a first notable difference. When any value read during a reCache evaluatino is changed, the reCached function will not simply invalidate the cache. It will also re-valuate the cache, compare the new cached return-value to the previously cached return value, and ONLY if the return value has really changed it will signal change to any dependent function cache/reCache, repeatOnChage, uponChangeDo.
 
