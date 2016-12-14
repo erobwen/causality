@@ -117,7 +117,7 @@ There are three kinds of events generated. For causality objects, set and delete
 
 ## cached
 
-There is a famous quote from programmer Jeff Atwood:
+There is a famous quote from programmer Jeff Atwood (author of blog Coding Horrors):
 
 *There are two hard things in computer science: cache invalidation, naming things, and off-by-one errors.*
 
@@ -146,6 +146,12 @@ If you want to write a recursive function it can be useful to cache each recursi
     x.cachedInCache('fun');
 
 When not inside another cached function call, the above syntax will simply be equivalent to x.fun().
+
+A reCache can be removed using the following command:
+
+    x.tryUncache('fun');
+
+The cache will not be removed if some other causality constructs depends on it.
 
 
 ## reCached
@@ -190,9 +196,19 @@ Even if getView is reCached, the global view will still point to the same view.
 
 The purpose of reCache is to reactivley transform data structures, where a small change in the original data structure will lead to a small change in the resulting data structure.
 
-For example, assume you write an algorithm that flattes a tree in pre-order. Then, if you add one node in the original tree, it will result in a limited change in the array or linked list that is the result of the reCache. This has to do with the identity reuse.
+For example, assume you write an algorithm that flattens a tree in pre-order. Then, if you add one node in the original tree, it will result in a limited change in the array or linked list that is the result of the reCache. This has to do with the identity reuse.
+
+![Alt text](/reCached.png?raw=true "Causality Logotype")
 
 This is similar to the technique used in React where elements of the synthetic dom are given ids, so that they are matched with elements in the existing dom. The minimal update is then found, and merged into the existing dom. reCaching generalizes this technique so that it can easily be employed for any data transformation, and attatches it to a sophisticated system of cache invalidation!
+
+The reason why cached does not feature the identity preservation of reCached, is that when a cache created by cached is invalidated, we want all memory used by the cache to be released. With reCache, it is decided that the cache will be in place as long as it is not explicitly removed using the tryUncache command.
+
+A reCache can be removed using the following command:
+
+    x.tryUncache('getView');
+
+The cache will not be removed if some other causality constructs depends on it.
 
 
 # Community
