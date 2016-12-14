@@ -8,10 +8,12 @@ A library for reactive programming based on Javascript proxies (ES6)
 
 This project is a spin-off project from liquid (https://github.com/erobwen/liquid). This is a scaled down library that captures the essence of liquid's reactive core, and in addition takes full use of ES6 proxies. It is useful to anyone that would like to do reactive programming in Javascript (https://en.wikipedia.org/wiki/Reactive_programming). It could also provide an alternative to MobX.
 
-Causality is based on 10+ years of original research into reactive programming. Don't believe me? Well, I was the original author of the 10+ years old "Reactive Programming" article of Wikipedia https://en.wikipedia.org/wiki/Reactive_programming and have been exploring this domain for a long time.
 
+# Getting started
 
-# Quick Example:
+Coming soon...
+
+# Quick Example
 
 This is just to show a simple example of what causality is all about, using the simple repeatOnChange primitive.
 
@@ -227,3 +229,4 @@ Causality could work as a replacement for MobX. Some early, and perhaps non-conc
 
 ![Alt text](/performance.png?raw=true "Causality Logotype")
 
+Causality is based on 10+ years of original research into reactive programming. Don't believe me? Well, I was the original author of the 10+ years old "Reactive Programming" article of Wikipedia https://en.wikipedia.org/wiki/Reactive_programming and have been exploring this domain for a long time.
