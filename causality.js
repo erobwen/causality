@@ -73,7 +73,7 @@
             let result = this.target.pop();
             observerNotificationNullified--;
             notifyChangeObservers("_arrayObservers", this._arrayObservers);
-            this.emitEvent({type: 'splice', index: index, removed: [result], added: null});
+            emitEvent(this, {type: 'splice', index: index, removed: [result], added: null});
             return result;
         },
 
@@ -84,7 +84,7 @@
             this.target.push.apply(this.target, argumentsArray);
             observerNotificationNullified--;
             notifyChangeObservers("_arrayObservers", this._arrayObservers);
-            this.emitEvent({type: 'splice', index: index, removed: [], added: argumentsArray});
+            emitEvent(this, {type: 'splice', index: index, removed: [], added: argumentsArray});
             return this.target.length;
         },
 
@@ -93,7 +93,7 @@
             let result = this.target.shift();
             observerNotificationNullified--;
             notifyChangeObservers("_arrayObservers", this._arrayObservers);
-            this.emitEvent({type: 'splice', index: 0, removed: [result], added: null});
+            emitEvent(this, {type: 'splice', index: 0, removed: [result], added: null});
             return result;
 
         },
@@ -105,7 +105,7 @@
             this.target.unshift.apply(this.target, argumentsArray);
             observerNotificationNullified--;
             notifyChangeObservers("_arrayObservers", this._arrayObservers);
-            this.emitEvent({type: 'splice', index: 0, removed: [], added: argumentsArray});
+            emitEvent(this, {type: 'splice', index: 0, removed: [], added: argumentsArray});
             return this.target.length;
         },
 
@@ -119,7 +119,7 @@
             let result = this.target.splice.apply(this.target, argumentsArray);
             observerNotificationNullified--;
             notifyChangeObservers("_arrayObservers", this._arrayObservers);
-            this.emitEvent({type: 'splice', index: index, removed: removed, added: added});
+            emitEvent(this, {type: 'splice', index: index, removed: removed, added: added});
             return result; // equivalent to removed
         },
 
@@ -140,7 +140,7 @@
             observerNotificationNullified--;
             notifyChangeObservers("_arrayObservers", this._arrayObservers);
 
-            this.emitEvent({action: 'splice', index: target, added: added, removed: removed});
+            emitEvent(this, {action: 'splice', index: target, added: added, removed: removed});
             return result;
         }
     };
@@ -154,7 +154,7 @@
             let result = this.target[functionName].apply(this.target, argumentsArray);
             observerNotificationNullified--;
             notifyChangeObservers("_arrayObservers", this._arrayObservers);
-            this.emitEvent({type: 'splice', index: 0, removed: removed, added: this.target.slice(0)});
+            emitEvent(this, {type: 'splice', index: 0, removed: removed, added: this.target.slice(0)});
             return result;
         };
     });
@@ -229,14 +229,14 @@
                 key = parseInt(key);
             }
             target[key] = value;
-            this.emitEvent({ type: 'splice', index: key, removed: [previousValue], added: [value] });
+            emitSpliceReplaceEvent(this, key, value, previousValue);
             notifyChangeObservers("_arrayObservers", this._arrayObservers);
             return true;
         } else {
             // String index
             let previousValue = target[key];
             target[key] = value;
-            this.emitEvent({ type: 'set', property: key, oldValue: previousValue, newValue: value });
+            emitSetEvent(this, key, value, previousValue);
             notifyChangeObservers("_arrayObservers", this._arrayObservers);
             return true;
         }
@@ -370,7 +370,7 @@
         } else {
             notifyChangeObservers("_propertyObservers." + key, this._propertyObservers[key]);
         }
-        this.emitEvent({type: 'set', property: key, newValue: value, oldValue: previousValue});
+        emitSetEvent(this, key, value, previousValue);
         return true;
     }
 
@@ -492,16 +492,6 @@
 
         let proxy = new Proxy(createdTarget, handler);
 
-        handler.emitEvent = function(event) {
-            // console.log(event);
-            event.objectId = handler.overrides.__id;
-            if (typeof(handler.observers) !== 'undefined') {
-                handler.observers.forEach(function(observerFunction) {
-                    observerFunction(event);
-                });
-            }
-        };
-
         handler.overrides = {
             __id: nextId++,
             __cacheId : cacheId,
@@ -531,30 +521,14 @@
         };
 
         if (inReCache()) {
-            // console.log(cacheId);
             if (cacheId !== null &&  typeof(context.cacheIdObjectMap[cacheId]) !== 'undefined') {
                 // Overlay previously created
-                // console.log("creating overlay");
                 let infusionTarget = context.cacheIdObjectMap[cacheId];
-                if (infusionTarget === proxy) {
-                    throw "WTF";
-                }
-                if (infusionTarget === 'undefined') {
-                    throw new Error("Wtf!");
-                }
-                if (typeof(infusionTarget) === 'undefined') {
-                    throw new Error("Wtf!");
-                }
                 infusionTarget.__handler.overrides.__overlay = proxy;
                 context.newlyCreated.push(infusionTarget);
                 return infusionTarget;   // Borrow identity of infusion target.
             } else {
                 // Newly created in this reCache cycle. Including overlaid ones.
-                // console.log("creating fresh");
-                // console.log(cacheId);
-                // console.log(context.type);
-                // console.log(context);
-                // console.log(typeof(context.cacheIdObjectMap[cacheId]));
                 context.newlyCreated.push(proxy);
             }
         }
@@ -738,6 +712,28 @@
      *
      *
      **********************************/
+
+    function emitSpliceReplaceEvent(handler, key, value, previousValue) {
+        if (typeof(handler.observers) !== 'undefined') {
+            emitEvent(handler, { type: 'splice', index: key, removed: [previousValue], added: [value] });
+        }
+    }
+
+    function emitSetEvent(handler, key, value, previousValue) {
+        if (typeof(handler.observers) !== 'undefined') {
+            emitEvent(handler, {type: 'set', property: key, newValue: value, oldValue: previousValue});
+        }
+    }
+
+    function emitEvent(handler, event) {
+        // console.log(event);
+        event.objectId = handler.overrides.__id;
+        if (typeof(handler.observers) !== 'undefined') {
+            handler.observers.forEach(function(observerFunction) {
+                observerFunction(event);
+            });
+        }
+    }
 
     function observeAll(array, callback) {
         array.forEach(function(element) {
