@@ -68,6 +68,12 @@
 
     let staticArrayOverrides = {
         pop : function() {
+            if (writeRestriction !== null) {
+                if (typeof(writeRestriction[this.overrides.__id]) === 'undefined') {
+                    return;
+                }
+            }
+
             let index = this.target.length - 1;
             observerNotificationNullified++;
             let result = this.target.pop();
@@ -78,6 +84,12 @@
         },
 
         push : function() {
+            if (writeRestriction !== null) {
+                if (typeof(writeRestriction[this.overrides.__id]) === 'undefined') {
+                    return;
+                }
+            }
+
             let index = this.target.length;
             let argumentsArray = argumentsToArray(arguments);
             observerNotificationNullified++;
@@ -89,6 +101,12 @@
         },
 
         shift : function() {
+            if (writeRestriction !== null) {
+                if (typeof(writeRestriction[this.overrides.__id]) === 'undefined') {
+                    return;
+                }
+            }
+
             observerNotificationNullified++;
             let result = this.target.shift();
             observerNotificationNullified--;
@@ -99,6 +117,12 @@
         },
 
         unshift : function() {
+            if (writeRestriction !== null) {
+                if (typeof(writeRestriction[this.overrides.__id]) === 'undefined') {
+                    return;
+                }
+            }
+
             let index = this.target.length;
             let argumentsArray = argumentsToArray(arguments);
             observerNotificationNullified++;
@@ -110,6 +134,12 @@
         },
 
         splice : function() {
+            if (writeRestriction !== null) {
+                if (typeof(writeRestriction[this.overrides.__id]) === 'undefined') {
+                    return;
+                }
+            }
+
             let argumentsArray = argumentsToArray(arguments);
             let index = argumentsArray[0];
             let removedCount = argumentsArray[1];
@@ -124,6 +154,12 @@
         },
 
         copyWithin: function(target, start, end) {
+            if (writeRestriction !== null) {
+                if (typeof(writeRestriction[this.overrides.__id]) === 'undefined') {
+                    return;
+                }
+            }
+
             if (target < 0) { start = this.target.length - target; }
             if (start < 0) { start = this.target.length - start; }
             if (end < 0) { start = this.target.length - end; }
@@ -147,6 +183,12 @@
 
     ['reverse', 'sort', 'fill'].forEach(function(functionName) {
         staticArrayOverrides[functionName] = function() {
+            if (writeRestriction !== null) {
+                if (typeof(writeRestriction[this.overrides.__id]) === 'undefined') {
+                    return;
+                }
+            }
+
             let argumentsArray = argumentsToArray(arguments);
             let removed = this.target.slice(0);
 
