@@ -360,13 +360,21 @@
             return this.overrides[key];
         } else {
             if (typeof(key) !== 'undefined') {
-                if (typeof(this._propertyObservers[key]) ===  'undefined') {
-                    this._propertyObservers[key] = {};
-                }
-                if (key in target) {
-                    registerAnyChangeObserver("_propertyObservers." + key, this._propertyObservers[key]);
-                } else {
-                    registerAnyChangeObserver("_enumerateObservers." + key, this._enumerateObservers);
+                if (inActiveRecording()) {
+                    if (key in target) {
+                        if (typeof(this._propertyObservers) ===  'undefined') {
+                            this._propertyObservers = {};
+                        }
+                        if (typeof(this._propertyObservers[key]) ===  'undefined') {
+                            this._propertyObservers[key] = {};
+                        }
+                        registerAnyChangeObserver("_propertyObservers." + key, this._propertyObservers[key]);
+                    } else {
+                        if (typeof(this._enumerateObservers) ===  'undefined') {
+                            this._enumerateObservers = {};
+                        }
+                        registerAnyChangeObserver("_enumerateObservers." + key, this._enumerateObservers);
+                    }
                 }
                 return target[key];
             }
@@ -402,10 +410,13 @@
         let previousValue = target[key]
         target[key]      = value;
         if (undefinedKey) {
-            notifyChangeObservers("_enumerateObservers", this._enumerateObservers);
-            this._propertyObservers[key] = {};
+            if (typeof(this._enumerateObservers) !== 'undefined') {
+                notifyChangeObservers("_enumerateObservers", this._enumerateObservers);
+            }
         } else {
-            notifyChangeObservers("_propertyObservers." + key, this._propertyObservers[key]);
+            if (typeof(this._propertyObservers) !== 'undefined' && typeof(this._propertyObservers[key]) !== 'undefined') {
+                notifyChangeObservers("_propertyObservers." + key, this._propertyObservers[key]);
+            }
         }
         emitSetEvent(this, key, value, previousValue);
         if (--inPulse === 0) postPulseCleanup();
@@ -425,7 +436,9 @@
         } else {
             inPulse++;
             delete target[key];
-            notifyChangeObservers("_enumerateObservers", this._enumerateObservers);
+            if (typeof(this._enumerateObservers) !== 'undefined') {
+                notifyChangeObservers("_enumerateObservers", this._enumerateObservers);
+            }
             if (--inPulse === 0) postPulseCleanup();
             return true;
         }
@@ -437,7 +450,12 @@
             return overlayHandler.ownKeys.apply(overlayHandler, [overlayHandler.target, key]);
         }
 
-        registerAnyChangeObserver("_enumerateObservers", this._enumerateObservers);
+        if (inActiveRecording()) {
+            if (typeof(this._enumerateObservers) === 'undefined') {
+                this._enumerateObservers = {};
+            }
+            registerAnyChangeObserver("_enumerateObservers", this._enumerateObservers);
+        }
         let keys = Object.keys(target);
         // keys.push('__id');
         return keys;
@@ -449,7 +467,12 @@
             return overlayHandler.has.apply(overlayHandler, [overlayHandler.target, key]);
         }
 
-        registerAnyChangeObserver("_enumerateObservers", this._enumerateObservers);
+        if (inActiveRecording()) {
+            if (typeof(this._enumerateObservers) === 'undefined') {
+                this._enumerateObservers = {};
+            }
+            registerAnyChangeObserver("_enumerateObservers", this._enumerateObservers);
+        }
         return key in target;
     }
 
@@ -462,7 +485,9 @@
         if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
         inPulse++;
 
-        notifyChangeObservers("_enumerateObservers", this._enumerateObservers);
+        if (typeof(this._enumerateObservers) !== 'undefined') {
+            notifyChangeObservers("_enumerateObservers", this._enumerateObservers);
+        }
         if (--inPulse === 0) postPulseCleanup();
         return Reflect.defineProperty(target, key, descriptor);
     }
@@ -473,7 +498,12 @@
             return overlayHandler.getOwnPropertyDescriptor.apply(overlayHandler, [overlayHandler.target, key]);
         }
 
-        registerAnyChangeObserver("_enumerateObservers", this._enumerateObservers);
+        if (inActiveRecording()) {
+            if (typeof(this.__enumerateObservers) === 'undefined') {
+                this.__enumerateObservers = {};
+            }
+            registerAnyChangeObserver("_enumerateObservers", this._enumerateObservers);
+        }
         return Object.getOwnPropertyDescriptor(target, key);
     }
 
@@ -511,10 +541,10 @@
                 getOwnPropertyDescriptor: getOwnPropertyDescriptorHandlerArray
             };
         } else {
-            let _propertyObservers = {};
-            for (property in createdTarget) {
-                _propertyObservers[property] = {};
-            }
+            // let _propertyObservers = {};
+            // for (property in createdTarget) {
+            //     _propertyObservers[property] = {};
+            // }
             handler = {
                 // getPrototypeOf: function () {},
                 // setPrototypeOf: function () {},
@@ -522,8 +552,8 @@
                 // preventExtensions: function () {},
                 // apply: function () {},
                 // construct: function () {},
-                _enumerateObservers : {},
-                _propertyObservers: _propertyObservers,
+                // _enumerateObservers : {},
+                // _propertyObservers: _propertyObservers,
                 get: getHandlerObject,
                 set: setHandlerObject,
                 deleteProperty: deletePropertyHandlerObject,
