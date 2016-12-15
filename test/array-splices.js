@@ -168,7 +168,7 @@ describe("observe arrays", function(){
 		assert.deepEqual( result, { type: 'splice', index: 1, removed: ['b'], added: [ 'z' ], objectId: 1} );
 
 		observedArray.push('last');
-		assert.deepEqual( result, { type: 'splice', index: 3, removed: [], added: [ 'last' ], objectId: 1} );
+		assert.deepEqual( result, { type: 'splice', index: 3, removed: null, added: [ 'last' ], objectId: 1} );
 
 	})
 });

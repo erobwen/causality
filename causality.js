@@ -68,12 +68,12 @@
 
     let staticArrayOverrides = {
         pop : function() {
-            inPulse++;
             if (writeRestriction !== null) {
                 if (typeof(writeRestriction[this.overrides.__id]) === 'undefined') {
                     return;
                 }
             }
+            inPulse++;
 
             let index = this.target.length - 1;
             observerNotificationNullified++;
@@ -102,7 +102,7 @@
             if (typeof(this._arrayObservers) !== 'undefined') {
                 notifyChangeObservers("_arrayObservers", this._arrayObservers);
             }
-            emitEvent(this, {type: 'splice', index: index, removed: [], added: argumentsArray});
+            emitSpliceEvent(this, index, null, argumentsArray);
             return this.target.length;
         },
 
@@ -117,7 +117,7 @@
             let result = this.target.shift();
             observerNotificationNullified--;
             notifyChangeObservers("_arrayObservers", this._arrayObservers);
-            emitEvent(this, {type: 'splice', index: 0, removed: [result], added: null});
+            emitSpliceEvent(this, 0, [result], null);
             return result;
 
         },
@@ -135,7 +135,7 @@
             this.target.unshift.apply(this.target, argumentsArray);
             observerNotificationNullified--;
             notifyChangeObservers("_arrayObservers", this._arrayObservers);
-            emitEvent(this, {type: 'splice', index: 0, removed: [], added: argumentsArray});
+            emitSpliceEvent(this, 0, null, argumentsArray);
             return this.target.length;
         },
 
@@ -155,7 +155,7 @@
             let result = this.target.splice.apply(this.target, argumentsArray);
             observerNotificationNullified--;
             notifyChangeObservers("_arrayObservers", this._arrayObservers);
-            emitEvent(this, {type: 'splice', index: index, removed: removed, added: added});
+            emitSpliceEvent(this, index, removed, added);
             return result; // equivalent to removed
         },
 
@@ -182,7 +182,7 @@
             observerNotificationNullified--;
             notifyChangeObservers("_arrayObservers", this._arrayObservers);
 
-            emitEvent(this, {action: 'splice', index: target, added: added, removed: removed});
+            emitSpliceEvent(this, target, added, removed);
             return result;
         }
     };
@@ -202,7 +202,7 @@
             let result = this.target[functionName].apply(this.target, argumentsArray);
             observerNotificationNullified--;
             notifyChangeObservers("_arrayObservers", this._arrayObservers);
-            emitEvent(this, {type: 'splice', index: 0, removed: removed, added: this.target.slice(0)});
+            emitSpliceEvent(this, 0, removed, this.target.slice(0));
             return result;
         };
     });
@@ -819,7 +819,7 @@
 
     function emitSpliceEvent(handler, index, removed, added) {
         if (typeof(handler.observers) !== 'undefined') {
-            emitEvent(handler, { type: 'splice', index: index, removed: [result], added: null });
+            emitEvent(handler, { type: 'splice', index: index, removed: removed, added: added});
         }
     }
 
