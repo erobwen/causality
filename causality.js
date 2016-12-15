@@ -237,7 +237,7 @@
         } else if (typeof(this.overrides[key]) !== 'undefined') {
             return this.overrides[key];
         } else {
-            if (inActiveRecording()) {
+            if (inActiveRecording) {
                 if (typeof(this._arrayObservers) === 'undefined') {
                     this._arrayObservers = {};
                 }
@@ -266,7 +266,7 @@
         }
 
         // If cumulative assignment, inside recorder and value is undefined, no assignment.
-        if (cumulativeAssignment && inActiveRecording() && (isNaN(value) || typeof(value) === 'undefined')) {
+        if (cumulativeAssignment && inActiveRecording && (isNaN(value) || typeof(value) === 'undefined')) {
             return false;
         }
         if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
@@ -323,7 +323,7 @@
             return overlayHandler.ownKeys.apply(overlayHandler, [overlayHandler.target]);
         }
 
-        if (inActiveRecording()) {
+        if (inActiveRecording) {
             if (typeof(this._arrayObservers) === 'undefined') {
                 this._arrayObservers = {};
             }
@@ -339,7 +339,7 @@
             let overlayHandler = this.overrides.__overlay.__handler;
             return overlayHandler.has.apply(overlayHandler, [target, key]);
         }
-        if (inActiveRecording()) {
+        if (inActiveRecording) {
             if (typeof(this._arrayObservers) === 'undefined') {
                 this._arrayObservers = {};
             }
@@ -369,7 +369,7 @@
             return overlayHandler.getOwnPropertyDescriptor.apply(overlayHandler, [overlayHandler.target, key]);
         }
 
-        if (inActiveRecording()) {
+        if (inActiveRecording) {
             if (typeof(this._arrayObservers) === 'undefined') {
                 this._arrayObservers = {};
             }
@@ -397,7 +397,7 @@
             return this.overrides[key];
         } else {
             if (typeof(key) !== 'undefined') {
-                if (inActiveRecording()) {
+                if (inActiveRecording) {
                     if (key in target) {
                         if (typeof(this._propertyObservers) ===  'undefined') {
                             this._propertyObservers = {};
@@ -438,7 +438,7 @@
         }
 
         // If cumulative assignment, inside recorder and value is undefined, no assignment.
-        if (cumulativeAssignment && inActiveRecording() && (isNaN(value) || typeof(value) === 'undefined')) {
+        if (cumulativeAssignment && inActiveRecording && (isNaN(value) || typeof(value) === 'undefined')) {
             return false;
         }
         inPulse++;
@@ -487,7 +487,7 @@
             return overlayHandler.ownKeys.apply(overlayHandler, [overlayHandler.target, key]);
         }
 
-        if (inActiveRecording()) {
+        if (inActiveRecording) {
             if (typeof(this._enumerateObservers) === 'undefined') {
                 this._enumerateObservers = {};
             }
@@ -504,7 +504,7 @@
             return overlayHandler.has.apply(overlayHandler, [overlayHandler.target, key]);
         }
 
-        if (inActiveRecording()) {
+        if (inActiveRecording) {
             if (typeof(this._enumerateObservers) === 'undefined') {
                 this._enumerateObservers = {};
             }
@@ -535,9 +535,9 @@
             return overlayHandler.getOwnPropertyDescriptor.apply(overlayHandler, [overlayHandler.target, key]);
         }
 
-        if (inActiveRecording()) {
-            if (typeof(this.__enumerateObservers) === 'undefined') {
-                this.__enumerateObservers = {};
+        if (inActiveRecording) {
+            if (typeof(this._enumerateObservers) === 'undefined') {
+                this._enumerateObservers = {};
             }
             registerAnyChangeObserver("_enumerateObservers", this._enumerateObservers);
         }
@@ -687,8 +687,11 @@
         return context === null;
     }
 
-    function inActiveRecording() {
-        return (microContext === null) ? false : ((microContext.type === "recording") && recordingPaused === 0);
+
+    let inActiveRecording = false;
+
+    function updateInActiveRecording() {
+        inActiveRecording = (microContext === null) ? false : ((microContext.type === "recording") && recordingPaused === 0);
     }
 
     function getActiveRecording() {
@@ -771,7 +774,7 @@
         //     macro = macro.macro;
         // }
         // console.log("====== enterContext ======== " + causalityStack.length + " =" + macros.map((context) => { return context.type; }).join("->"));
-
+        updateInActiveRecording();
         causalityStack.push(enteredContext);
         return enteredContext;
     }
@@ -790,6 +793,7 @@
             context = null;
             microContext = null;
         }
+        updateInActiveRecording();
         // console.log("====== leaveContext ========" + leftContext.type);
     }
 
@@ -979,8 +983,10 @@
 
     function withoutRecording(action) {
         recordingPaused++;
+        updateInActiveRecording();
         action();
         recordingPaused--;
+        updateInActiveRecording();
     }
 
     function emptyObserverSet(observerSet) {
@@ -1766,7 +1772,6 @@
         target['pulse']                   = pulse; // A sequence of transactions, end with cleanup.
         target['transaction']             = transaction;  // Single transaction, end with cleanup.
         target['addPostPulseAction']      = addPostPulseAction;
-        target['cleanup']                 = postPulseCleanup;  // when not using transactions
 
         // Experimental
         target['setCumulativeAssignment'] = setCumulativeAssignment;
