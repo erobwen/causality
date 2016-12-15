@@ -2,10 +2,4 @@ Things to do:
 
 * Recursive proxy wrapping when using c/create (Automatically wrap non proxy object on assign/push etc?)
 
-* Implicit causality pulse start.
-
-* Without side effects.
-    - consider how to deal with stack jumping.
-    - implement for array mutable functions.
-
 
