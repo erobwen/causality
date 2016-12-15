@@ -107,7 +107,9 @@
             observerNotificationNullified++;
             let result = this.target.shift();
             observerNotificationNullified--;
-            notifyChangeObservers("_arrayObservers", this._arrayObservers);
+            if (typeof(this._arrayObservers) !== 'undefined') {
+                notifyChangeObservers("_arrayObservers", this._arrayObservers);
+            }
             emitSpliceEvent(this, 0, [result], null);
             if (--inPulse === 0) postPulseCleanup();
             return result;
@@ -123,7 +125,9 @@
             observerNotificationNullified++;
             this.target.unshift.apply(this.target, argumentsArray);
             observerNotificationNullified--;
-            notifyChangeObservers("_arrayObservers", this._arrayObservers);
+            if (typeof(this._arrayObservers) !== 'undefined') {
+                notifyChangeObservers("_arrayObservers", this._arrayObservers);
+            }
             emitSpliceEvent(this, 0, null, argumentsArray);
             if (--inPulse === 0) postPulseCleanup();
             return this.target.length;
@@ -141,7 +145,9 @@
             observerNotificationNullified++;
             let result = this.target.splice.apply(this.target, argumentsArray);
             observerNotificationNullified--;
-            notifyChangeObservers("_arrayObservers", this._arrayObservers);
+            if (typeof(this._arrayObservers) !== 'undefined') {
+                notifyChangeObservers("_arrayObservers", this._arrayObservers);
+            }
             emitSpliceEvent(this, index, removed, added);
             if (--inPulse === 0) postPulseCleanup();
             return result; // equivalent to removed
@@ -165,7 +171,9 @@
             observerNotificationNullified++;
             let result = this.target.copyWithin(target, start, end);
             observerNotificationNullified--;
-            notifyChangeObservers("_arrayObservers", this._arrayObservers);
+            if (typeof(this._arrayObservers) !== 'undefined') {
+                notifyChangeObservers("_arrayObservers", this._arrayObservers);
+            }
 
             emitSpliceEvent(this, target, added, removed);
             if (--inPulse === 0) postPulseCleanup();
@@ -184,7 +192,9 @@
             observerNotificationNullified++;
             let result = this.target[functionName].apply(this.target, argumentsArray);
             observerNotificationNullified--;
-            notifyChangeObservers("_arrayObservers", this._arrayObservers);
+            if (typeof(this._arrayObservers) !== 'undefined') {
+                notifyChangeObservers("_arrayObservers", this._arrayObservers);
+            }
             emitSpliceEvent(this, 0, removed, this.target.slice(0));
             if (--inPulse === 0) postPulseCleanup();
             return result;
@@ -227,7 +237,12 @@
         } else if (typeof(this.overrides[key]) !== 'undefined') {
             return this.overrides[key];
         } else {
-            registerAnyChangeObserver("_arrayObservers", this._arrayObservers);//object
+            if (inActiveRecording()) {
+                if (typeof(this._arrayObservers) === 'undefined') {
+                    this._arrayObservers = {};
+                }
+                registerAnyChangeObserver("_arrayObservers", this._arrayObservers);//object
+            }
             return target[key];
         }
     }
@@ -265,7 +280,9 @@
             }
             target[key] = value;
             emitSpliceReplaceEvent(this, key, value, previousValue);
-            notifyChangeObservers("_arrayObservers", this._arrayObservers);
+            if (typeof(this._arrayObservers) !== 'undefined') {
+                notifyChangeObservers("_arrayObservers", this._arrayObservers);
+            }
             if (--inPulse === 0) postPulseCleanup();
             return true;
         } else {
@@ -273,7 +290,9 @@
             let previousValue = target[key];
             target[key] = value;
             emitSetEvent(this, key, value, previousValue);
-            notifyChangeObservers("_arrayObservers", this._arrayObservers);
+            if (typeof(this._arrayObservers) !== 'undefined') {
+                notifyChangeObservers("_arrayObservers", this._arrayObservers);
+            }
             if (--inPulse === 0) postPulseCleanup();
             return true;
         }
@@ -291,7 +310,9 @@
         inPulse++;
 
         delete target[key];
-        notifyChangeObservers("_arrayObservers", this._arrayObservers);
+        if (typeof(this._arrayObservers) !== 'undefined') {
+            notifyChangeObservers("_arrayObservers", this._arrayObservers);
+        }
         if (--inPulse === 0) postPulseCleanup();
         return true;
     }
@@ -302,7 +323,12 @@
             return overlayHandler.ownKeys.apply(overlayHandler, [overlayHandler.target]);
         }
 
-        registerAnyChangeObserver("_arrayObservers", this._arrayObservers);
+        if (inActiveRecording()) {
+            if (typeof(this._arrayObservers) === 'undefined') {
+                this._arrayObservers = {};
+            }
+            registerAnyChangeObserver("_arrayObservers", this._arrayObservers);
+        }
         let result   = Object.keys(target);
         result.push('length');
         return result;
@@ -313,8 +339,12 @@
             let overlayHandler = this.overrides.__overlay.__handler;
             return overlayHandler.has.apply(overlayHandler, [target, key]);
         }
-
-        registerAnyChangeObserver("_arrayObservers", this._arrayObservers);
+        if (inActiveRecording()) {
+            if (typeof(this._arrayObservers) === 'undefined') {
+                this._arrayObservers = {};
+            }
+            registerAnyChangeObserver("_arrayObservers", this._arrayObservers);
+        }
         return key in target;
     }
 
@@ -326,7 +356,9 @@
         if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
         inPulse++;
 
-        notifyChangeObservers("_arrayObservers", this._arrayObservers);
+        if (typeof(this._arrayObservers) !== 'undefined') {
+            notifyChangeObservers("_arrayObservers", this._arrayObservers);
+        }
         if (--inPulse === 0) postPulseCleanup();
         return target;
     }
@@ -337,7 +369,12 @@
             return overlayHandler.getOwnPropertyDescriptor.apply(overlayHandler, [overlayHandler.target, key]);
         }
 
-        registerAnyChangeObserver("_arrayObservers", this._arrayObservers);
+        if (inActiveRecording()) {
+            if (typeof(this._arrayObservers) === 'undefined') {
+                this._arrayObservers = {};
+            }
+            registerAnyChangeObserver("_arrayObservers", this._arrayObservers);
+        }
         return Object.getOwnPropertyDescriptor(target, key);
     }
 
@@ -525,7 +562,7 @@
         let handler;
         if (createdTarget instanceof Array) {
             handler = {
-                _arrayObservers : {},
+                // _arrayObservers : {},
                 // getPrototypeOf: function () {},
                 // setPrototypeOf: function () {},
                 // isExtensible: function () {},
