@@ -68,11 +68,7 @@
 
     let staticArrayOverrides = {
         pop : function() {
-            if (writeRestriction !== null) {
-                if (typeof(writeRestriction[this.overrides.__id]) === 'undefined') {
-                    return;
-                }
-            }
+            if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
             inPulse++;
 
             let index = this.target.length - 1;
@@ -88,11 +84,8 @@
         },
 
         push : function() {
-            if (writeRestriction !== null) {
-                if (typeof(writeRestriction[this.overrides.__id]) === 'undefined') {
-                    return;
-                }
-            }
+            if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
+            inPulse++;
 
             let index = this.target.length;
             let argumentsArray = argumentsToArray(arguments);
@@ -103,31 +96,27 @@
                 notifyChangeObservers("_arrayObservers", this._arrayObservers);
             }
             emitSpliceEvent(this, index, null, argumentsArray);
+            if (--inPulse === 0) postPulseCleanup();
             return this.target.length;
         },
 
         shift : function() {
-            if (writeRestriction !== null) {
-                if (typeof(writeRestriction[this.overrides.__id]) === 'undefined') {
-                    return;
-                }
-            }
+            if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
+            inPulse++;
 
             observerNotificationNullified++;
             let result = this.target.shift();
             observerNotificationNullified--;
             notifyChangeObservers("_arrayObservers", this._arrayObservers);
             emitSpliceEvent(this, 0, [result], null);
+            if (--inPulse === 0) postPulseCleanup();
             return result;
 
         },
 
         unshift : function() {
-            if (writeRestriction !== null) {
-                if (typeof(writeRestriction[this.overrides.__id]) === 'undefined') {
-                    return;
-                }
-            }
+            if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
+            inPulse++;
 
             let index = this.target.length;
             let argumentsArray = argumentsToArray(arguments);
@@ -136,15 +125,13 @@
             observerNotificationNullified--;
             notifyChangeObservers("_arrayObservers", this._arrayObservers);
             emitSpliceEvent(this, 0, null, argumentsArray);
+            if (--inPulse === 0) postPulseCleanup();
             return this.target.length;
         },
 
         splice : function() {
-            if (writeRestriction !== null) {
-                if (typeof(writeRestriction[this.overrides.__id]) === 'undefined') {
-                    return;
-                }
-            }
+            if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
+            inPulse++;
 
             let argumentsArray = argumentsToArray(arguments);
             let index = argumentsArray[0];
@@ -156,15 +143,13 @@
             observerNotificationNullified--;
             notifyChangeObservers("_arrayObservers", this._arrayObservers);
             emitSpliceEvent(this, index, removed, added);
+            if (--inPulse === 0) postPulseCleanup();
             return result; // equivalent to removed
         },
 
         copyWithin: function(target, start, end) {
-            if (writeRestriction !== null) {
-                if (typeof(writeRestriction[this.overrides.__id]) === 'undefined') {
-                    return;
-                }
-            }
+            if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
+            inPulse++;
 
             if (target < 0) { start = this.target.length - target; }
             if (start < 0) { start = this.target.length - start; }
@@ -183,17 +168,15 @@
             notifyChangeObservers("_arrayObservers", this._arrayObservers);
 
             emitSpliceEvent(this, target, added, removed);
+            if (--inPulse === 0) postPulseCleanup();
             return result;
         }
     };
 
     ['reverse', 'sort', 'fill'].forEach(function(functionName) {
         staticArrayOverrides[functionName] = function() {
-            if (writeRestriction !== null) {
-                if (typeof(writeRestriction[this.overrides.__id]) === 'undefined') {
-                    return;
-                }
-            }
+            if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
+            inPulse++;
 
             let argumentsArray = argumentsToArray(arguments);
             let removed = this.target.slice(0);
@@ -203,6 +186,7 @@
             observerNotificationNullified--;
             notifyChangeObservers("_arrayObservers", this._arrayObservers);
             emitSpliceEvent(this, 0, removed, this.target.slice(0));
+            if (--inPulse === 0) postPulseCleanup();
             return result;
         };
     });
@@ -258,24 +242,21 @@
             }
         }
 
-        if (writeRestriction !== null) {
-            if (typeof(writeRestriction[this.overrides.__id]) === 'undefined') {
-                return;
+        // If same value as already set, do nothing.
+        if (key in target) {
+            let previousValue = target[key];
+            if (previousValue === value || ( typeof(previousValue) === 'number' && isNaN(previousValue) && typeof(value) === 'number' && isNaN(value))) {
+                return false;
             }
         }
-
-        // If same value as already set, do nothing.
-        // if (isNaN(key) && key in target) {
-        //     let previousValue = target[key];
-        //     if (previousValue === value || ( typeof(previousValue) === 'number' && isNaN(previousValue) && typeof(value) === 'number' && isNaN(value))) {
-        //         return false;
-        //     }
-        // }
 
         // If cumulative assignment, inside recorder and value is undefined, no assignment.
         if (cumulativeAssignment && inActiveRecording() && (isNaN(value) || typeof(value) === 'undefined')) {
             return false;
         }
+        if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
+        inPulse++;
+
         if (!isNaN(key)) {
             // Number index
             let previousValue = target[key];
@@ -285,6 +266,7 @@
             target[key] = value;
             emitSpliceReplaceEvent(this, key, value, previousValue);
             notifyChangeObservers("_arrayObservers", this._arrayObservers);
+            if (--inPulse === 0) postPulseCleanup();
             return true;
         } else {
             // String index
@@ -292,6 +274,7 @@
             target[key] = value;
             emitSetEvent(this, key, value, previousValue);
             notifyChangeObservers("_arrayObservers", this._arrayObservers);
+            if (--inPulse === 0) postPulseCleanup();
             return true;
         }
     }
@@ -301,20 +284,16 @@
             let overlayHandler = this.overrides.__overlay.__handler;
             return overlayHandler.deleteProperty.apply(overlayHandler, [overlayHandler.target, key]);
         }
-
-        if (writeRestriction !== null) {
-            if (typeof(writeRestriction[this.overrides.__id]) === 'undefined') {
-                return;
-            }
-        }
-
         if (!(key in target)) {
             return false;
-        } else {
-            delete target[key];
-            notifyChangeObservers("_arrayObservers", this._arrayObservers);
-            return true;
         }
+        if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
+        inPulse++;
+
+        delete target[key];
+        notifyChangeObservers("_arrayObservers", this._arrayObservers);
+        if (--inPulse === 0) postPulseCleanup();
+        return true;
     }
 
     function ownKeysHandlerArray(target) {
@@ -344,14 +323,11 @@
             let overlayHandler = this.overrides.__overlay.__handler;
             return overlayHandler.defineProperty.apply(overlayHandler, [overlayHandler.target, key, oDesc]);
         }
-
-        if (writeRestriction !== null) {
-            if (typeof(writeRestriction[this.overrides.__id]) === 'undefined') {
-                return;
-            }
-        }
+        if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
+        inPulse++;
 
         notifyChangeObservers("_arrayObservers", this._arrayObservers);
+        if (--inPulse === 0) postPulseCleanup();
         return target;
     }
 
@@ -375,15 +351,8 @@
     function getHandlerObject(target, key) {
         key = key.toString();
         if (this.overrides.__overlay !== null && key !== "__overlay") {
-            // console.log(this.overrides.__target.name + ": Getting overlay:" + key);
-            // console.log(this.overrides.__overlay);
-            // console.log(this.overrides.__overlay.__handler);
             let overlayHandler = this.overrides.__overlay.__handler;
-            // console.log(overlayHandler);
             let result = overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
-            // console.log("result");
-            // console.log(result);
-            // console.log("--");
             return result;
         }
 
@@ -413,12 +382,7 @@
                 return overlayHandler.set.apply(overlayHandler, [overlayHandler.target, key, value]);
             }
         }
-
-        if (writeRestriction !== null) {
-            if (typeof(writeRestriction[this.overrides.__id]) === 'undefined') {
-                return;
-            }
-        }
+        if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
 
         // If same value as already set, do nothing.
         if (key in target) {
@@ -432,6 +396,7 @@
         if (cumulativeAssignment && inActiveRecording() && (isNaN(value) || typeof(value) === 'undefined')) {
             return false;
         }
+        inPulse++;
 
         let undefinedKey = !(key in target);
         let previousValue = target[key]
@@ -443,6 +408,7 @@
             notifyChangeObservers("_propertyObservers." + key, this._propertyObservers[key]);
         }
         emitSetEvent(this, key, value, previousValue);
+        if (--inPulse === 0) postPulseCleanup();
         return true;
     }
 
@@ -452,17 +418,15 @@
             return overlayHandler.deleteProperty.apply(overlayHandler, [overlayHandler.target, key]);
         }
 
-        if (writeRestriction !== null) {
-            if (typeof(writeRestriction[this.overrides.__id]) === 'undefined') {
-                return;
-            }
-        }
+        if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
 
         if (!(key in target)) {
             return false;
         } else {
+            inPulse++;
             delete target[key];
             notifyChangeObservers("_enumerateObservers", this._enumerateObservers);
+            if (--inPulse === 0) postPulseCleanup();
             return true;
         }
     }
@@ -495,13 +459,11 @@
             return overlayHandler.defineProperty.apply(overlayHandler, [overlayHandler.target, key]);
         }
 
-        if (writeRestriction !== null) {
-            if (typeof(writeRestriction[this.overrides.__id]) === 'undefined') {
-                return;
-            }
-        }
+        if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
+        inPulse++;
 
         notifyChangeObservers("_enumerateObservers", this._enumerateObservers);
+        if (--inPulse === 0) postPulseCleanup();
         return Reflect.defineProperty(target, key, descriptor);
     }
 
@@ -782,16 +744,18 @@
     let transaction = postponeObserverNotification;
 
     function postponeObserverNotification(callback) {
+        inPulse++;
         observerNotificationPostponed++;
         callback();
         observerNotificationPostponed--;
         proceedWithPostponedNotifications();
-        postPulseCleanup();
+        if (--inPulse) postPulseCleanup();
     }
 
     let contextsScheduledForPossibleDestruction = [];
 
     function postPulseCleanup() {
+        // console.log("post pulse cleanup");
         contextsScheduledForPossibleDestruction.forEach(function(context) {
             if (!context.directlyInvokedByApplication) {
                 if (emptyObserverSet(context.contextObservers)) {
