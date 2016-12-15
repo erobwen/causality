@@ -68,6 +68,7 @@
 
     let staticArrayOverrides = {
         pop : function() {
+            inPulse++;
             if (writeRestriction !== null) {
                 if (typeof(writeRestriction[this.overrides.__id]) === 'undefined') {
                     return;
@@ -78,8 +79,11 @@
             observerNotificationNullified++;
             let result = this.target.pop();
             observerNotificationNullified--;
-            notifyChangeObservers("_arrayObservers", this._arrayObservers);
-            emitEvent(this, {type: 'splice', index: index, removed: [result], added: null});
+            if (typeof(this._arrayObservers) !== 'undefined') {
+                notifyChangeObservers("_arrayObservers", this._arrayObservers);
+            }
+            emitSpliceEvent(this, index, [result], null);
+            if (--inPulse === 0) postPulseCleanup();
             return result;
         },
 
@@ -95,7 +99,9 @@
             observerNotificationNullified++;
             this.target.push.apply(this.target, argumentsArray);
             observerNotificationNullified--;
-            notifyChangeObservers("_arrayObservers", this._arrayObservers);
+            if (typeof(this._arrayObservers) !== 'undefined') {
+                notifyChangeObservers("_arrayObservers", this._arrayObservers);
+            }
             emitEvent(this, {type: 'splice', index: index, removed: [], added: argumentsArray});
             return this.target.length;
         },
@@ -765,9 +771,12 @@
      *  Upon change do
      **********************************/
 
+    let inPulse = 0;
+
     function pulse(action) {
+        inPulse++;
         callback();
-        postPulseCleanup();
+        if (--inPulse) postPulseCleanup();
     }
 
     let transaction = postponeObserverNotification;
@@ -807,6 +816,12 @@
      *
      *
      **********************************/
+
+    function emitSpliceEvent(handler, index, removed, added) {
+        if (typeof(handler.observers) !== 'undefined') {
+            emitEvent(handler, { type: 'splice', index: index, removed: [result], added: null });
+        }
+    }
 
     function emitSpliceReplaceEvent(handler, key, value, previousValue) {
         if (typeof(handler.observers) !== 'undefined') {
