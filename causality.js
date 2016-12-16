@@ -1786,5 +1786,16 @@
 
     return {
         install: install,
+        
+        create : create,
+        c : create,
+        uponChangeDo : uponChangeDo,
+        repeatOnChange : repeatOnChange,
+        withoutSideEffects : withoutSideEffects,
+        withoutRecording : withoutRecording,
+        withoutNotifyChange : nullifyObserverNotification,
+        pulse : pulse,
+        transaction: transaction,
+        addPostPulseAction : addPostPulseAction
     };
 }));

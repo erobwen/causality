@@ -93,7 +93,7 @@ describe("Projections", function(){
                 let firstNode = createTransparentListNode(this.value, this.__id + "_node");
 
                 listHead.first = firstNode;
-                firstNode.previous = null;
+                // firstNode.previous = null;
 
                 let node = firstNode;
 
@@ -105,7 +105,7 @@ describe("Projections", function(){
                     childList.first.previous = node;
                     node = childList.last;
                 });
-                node.next = null; // To be sure
+                // node.next = null; // To be sure
                 listHead.last = node;
 
                 return listHead;

@@ -1,5 +1,3 @@
 Things to do:
 
-* Recursive proxy wrapping when using c/create (Automatically wrap non proxy object on assign/push etc?)
-
-
+* Queue for repeater revalidation (changed to stack a while ago, and forgot to implement the linked list queue).
