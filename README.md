@@ -6,8 +6,6 @@
 
 A library for reactive programming based on Javascript proxies (ES6)
 
-This project is a spin-off project from liquid (https://github.com/erobwen/liquid). This is a scaled down library that captures the essence of liquid's reactive core, and in addition takes full use of ES6 proxies. It is useful to anyone that would like to do reactive programming in Javascript (https://en.wikipedia.org/wiki/Reactive_programming). It could also provide an alternative to MobX.
-
 
 # Getting started
 
@@ -46,7 +44,7 @@ Causality supports the following powerful reactive primitives typically availabl
 * uponChangeDo
 * withoutSideEffects  (prevents side effects on observable objects)
 
-Causality objects also have the following powerful methods.
+Causality objects also have the following methods.
 
 * cached
 * reCached
@@ -84,10 +82,23 @@ It will however not detect changes in local variables, so for example if local o
 Sometimes you do not want to repeat what you did previously upon change in any read data, at least not instantly. For more control, you might want to use uponChangeDo. It works as follows:
 
     uponChangeDo(
-        function() {x.value = y.value + z.value; xIsValid = true;},
-        function() { xIsValid = false;});
+        function() {
+            x.value = y.value + z.value; xIsValid = true;
+        },
+        function() {
+            xIsValid = false;
+        }
+    );
 
 In this case, if y.value is changed for instance, it will only mean that the second function is run, setting xIsValid to false. uponChangeDo is in particularly useful when integrating causality with other frameworks. For example, rendering code could be run using uponChangeDo, and the second function could simply invalidate a certain view-component. Later, at a secondary stage when all causality code has finished runnig, we could deal with all invalidated view-components in a more rational way. There is a possibility to add functions that will execute when all causality code finishes.
+
+
+    addPostPulseAction(function() {
+        if (!xIsValid) {
+            ...
+        }
+    });
+
 
 ## withoutSideEffects
 
@@ -100,6 +111,35 @@ What if you want to build a framwork, where you for example want to enforce that
     ...
 
 This way it becomes easy to enforce one-directional data flows while still allowing general Javascript code.
+
+## withoutRecording and withoutNotifyChange
+
+When working with causality it could be useful to sometimes break the rules. Reading data without creating a dependency could for example be useful for debug printouts. In the following code, the debug printout itself would create a false dependency on `z.value`  if it wasnt for the withoutRecording clause.
+
+    let x = null
+    let y = create({ value: false });
+    let z = create({ value: 10});
+
+    repeatOnChange() {
+        withoutRecording(function() {
+            console.log("Repeating with these values:");
+            console.log(y.value);
+            console.log(z.value);
+        })
+        if (y.value) {
+            x = z.value;
+        } else {
+            x = 42;
+        }
+    }
+
+    // No one is going to notice!
+    withoutNotifyChange(function() {
+        y.value = true;
+    });
+
+There are probably less use cases for beeing able to change data without triggering any reactions, using withoutNotifyChange, it is available nevertheless.
+
 
 # Causality Object Functions
 
@@ -217,6 +257,35 @@ A reCache can be removed using the following command:
 The cache will not be removed while some other causality dependee (cached, reCached, repeatOnChange etc.) depends on it.
 
 
+# Pulses and Transactions
+
+Causality works in pulses. At the end of a pulse, all reactive changes has taken place and causality has performed all necessary internal cleanup. At the end of the pulse, there is also a possibility for the application to attach hooks as mentioned previously:
+
+    addPostPulseAction(function() { console.log("Pulse done!"); });
+
+Any modification to a causality object will start and end a pulse, such as simply writing "x.y = 42" unless we are already in a pulse. But it is also possible to explicitly start a pulse.
+
+    pulse(function() {
+        do();
+        some();
+        things();
+    });
+
+Note however, that reactive changes will also take place imediatley inside the pulse. It is just causalitys internal cleanup that will be left until the end of the pulse. So for example, reactive changes that is the result of the "do()" call will have effect on the "some()" call. The main usage of pulses is when integrating causality with other frameworks. When we want to run a number of commands, and after all reactive changes has taken place, we want to continue execution.
+
+In other situations there is a need to modify a lot of data before any kind of reactive response takes place. Typically for efficiency. Then it is useful to use transaction:
+
+    transaction(function() {
+       x.a = 12;
+       x.b = 30;
+    })
+
+A transaction should typically only write data, as reading data inside a transaction might result in reading non-updated data.
+
+The transaction will implicitly create a pulse if not already in a pulse.
+
+Note: If any observer function is registered to an object, events will be sent directly to the observer function both during a transaction and a pulse.
+
 # Community
 
 For discussions, see:
@@ -230,6 +299,8 @@ Causality could work as a replacement for MobX. Some early, and perhaps non-conc
 ![Alt text](/performance.png?raw=true "Causality Logotype")
 
 # Trivia
+
+This project is a spin-off project from liquid (https://github.com/erobwen/liquid). This is a scaled down library that captures the essence of liquid's reactive core, and in addition takes full use of ES6 proxies. It is useful to anyone that would like to do reactive programming in Javascript (https://en.wikipedia.org/wiki/Reactive_programming). It could also provide an alternative to MobX.
 
 Causality is based on 10+ years of original research into reactive programming. I was the original author of the 10+ years old "Reactive Programming" article of Wikipedia https://en.wikipedia.org/wiki/Reactive_programming and have been exploring this domain for a long time.
 
