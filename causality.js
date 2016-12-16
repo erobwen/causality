@@ -75,7 +75,7 @@
             observerNotificationNullified++;
             let result = this.target.pop();
             observerNotificationNullified--;
-            if (typeof(this._arrayObservers) !== 'undefined') {
+            if (this._arrayObservers !== null) {
                 notifyChangeObservers("_arrayObservers", this._arrayObservers);
             }
             emitSpliceEvent(this, index, [result], null);
@@ -92,7 +92,7 @@
             observerNotificationNullified++;
             this.target.push.apply(this.target, argumentsArray);
             observerNotificationNullified--;
-            if (typeof(this._arrayObservers) !== 'undefined') {
+            if (this._arrayObservers !== null) {
                 notifyChangeObservers("_arrayObservers", this._arrayObservers);
             }
             emitSpliceEvent(this, index, null, argumentsArray);
@@ -107,7 +107,7 @@
             observerNotificationNullified++;
             let result = this.target.shift();
             observerNotificationNullified--;
-            if (typeof(this._arrayObservers) !== 'undefined') {
+            if (this._arrayObservers !== null) {
                 notifyChangeObservers("_arrayObservers", this._arrayObservers);
             }
             emitSpliceEvent(this, 0, [result], null);
@@ -125,7 +125,7 @@
             observerNotificationNullified++;
             this.target.unshift.apply(this.target, argumentsArray);
             observerNotificationNullified--;
-            if (typeof(this._arrayObservers) !== 'undefined') {
+            if (this._arrayObservers !== null) {
                 notifyChangeObservers("_arrayObservers", this._arrayObservers);
             }
             emitSpliceEvent(this, 0, null, argumentsArray);
@@ -145,7 +145,7 @@
             observerNotificationNullified++;
             let result = this.target.splice.apply(this.target, argumentsArray);
             observerNotificationNullified--;
-            if (typeof(this._arrayObservers) !== 'undefined') {
+            if (this._arrayObservers !== null) {
                 notifyChangeObservers("_arrayObservers", this._arrayObservers);
             }
             emitSpliceEvent(this, index, removed, added);
@@ -171,7 +171,7 @@
             observerNotificationNullified++;
             let result = this.target.copyWithin(target, start, end);
             observerNotificationNullified--;
-            if (typeof(this._arrayObservers) !== 'undefined') {
+            if (this._arrayObservers !== null) {
                 notifyChangeObservers("_arrayObservers", this._arrayObservers);
             }
 
@@ -192,7 +192,7 @@
             observerNotificationNullified++;
             let result = this.target[functionName].apply(this.target, argumentsArray);
             observerNotificationNullified--;
-            if (typeof(this._arrayObservers) !== 'undefined') {
+            if (this._arrayObservers !== null) {
                 notifyChangeObservers("_arrayObservers", this._arrayObservers);
             }
             emitSpliceEvent(this, 0, removed, this.target.slice(0));
@@ -238,7 +238,7 @@
             return this.overrides[key];
         } else {
             if (inActiveRecording) {
-                if (typeof(this._arrayObservers) === 'undefined') {
+                if (this._arrayObservers === null) {
                     this._arrayObservers = {};
                 }
                 registerAnyChangeObserver("_arrayObservers", this._arrayObservers);//object
@@ -280,7 +280,7 @@
             }
             target[key] = value;
             emitSpliceReplaceEvent(this, key, value, previousValue);
-            if (typeof(this._arrayObservers) !== 'undefined') {
+            if (this._arrayObservers !== null) {
                 notifyChangeObservers("_arrayObservers", this._arrayObservers);
             }
             if (--inPulse === 0) postPulseCleanup();
@@ -290,7 +290,7 @@
             let previousValue = target[key];
             target[key] = value;
             emitSetEvent(this, key, value, previousValue);
-            if (typeof(this._arrayObservers) !== 'undefined') {
+            if (this._arrayObservers !== null) {
                 notifyChangeObservers("_arrayObservers", this._arrayObservers);
             }
             if (--inPulse === 0) postPulseCleanup();
@@ -310,7 +310,7 @@
         inPulse++;
 
         delete target[key];
-        if (typeof(this._arrayObservers) !== 'undefined') {
+        if (this._arrayObservers !== null) {
             notifyChangeObservers("_arrayObservers", this._arrayObservers);
         }
         if (--inPulse === 0) postPulseCleanup();
@@ -324,7 +324,7 @@
         }
 
         if (inActiveRecording) {
-            if (typeof(this._arrayObservers) === 'undefined') {
+            if (this._arrayObservers === null) {
                 this._arrayObservers = {};
             }
             registerAnyChangeObserver("_arrayObservers", this._arrayObservers);
@@ -340,7 +340,7 @@
             return overlayHandler.has.apply(overlayHandler, [target, key]);
         }
         if (inActiveRecording) {
-            if (typeof(this._arrayObservers) === 'undefined') {
+            if (this._arrayObservers === null) {
                 this._arrayObservers = {};
             }
             registerAnyChangeObserver("_arrayObservers", this._arrayObservers);
@@ -356,7 +356,7 @@
         if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
         inPulse++;
 
-        if (typeof(this._arrayObservers) !== 'undefined') {
+        if (this._arrayObservers !== null) {
             notifyChangeObservers("_arrayObservers", this._arrayObservers);
         }
         if (--inPulse === 0) postPulseCleanup();
@@ -370,7 +370,7 @@
         }
 
         if (inActiveRecording) {
-            if (typeof(this._arrayObservers) === 'undefined') {
+            if (this._arrayObservers === null) {
                 this._arrayObservers = {};
             }
             registerAnyChangeObserver("_arrayObservers", this._arrayObservers);
@@ -562,7 +562,7 @@
         let handler;
         if (createdTarget instanceof Array) {
             handler = {
-                // _arrayObservers : {},
+                _arrayObservers : null,
                 // getPrototypeOf: function () {},
                 // setPrototypeOf: function () {},
                 // isExtensible: function () {},
