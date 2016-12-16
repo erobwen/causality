@@ -324,6 +324,6 @@ Causality could work as a replacement for MobX. Some early, and perhaps non-conc
 
 This project is a spin-off project from liquid (https://github.com/erobwen/liquid). This is a scaled down library that captures the essence of liquid's reactive core, and in addition takes full use of ES6 proxies. It is useful to anyone that would like to do reactive programming in Javascript (https://en.wikipedia.org/wiki/Reactive_programming). It could also provide an alternative to MobX.
 
-Causality is based on 10+ years of original research into reactive programming. I was the original author of the 10+ years old "Reactive Programming" article of Wikipedia https://en.wikipedia.org/wiki/Reactive_programming and have been exploring this domain for a long time.
+Causality is based on 10+ years of original research into reactive programming. I was the original author of the 10+ years old "Reactive Programming" article of Wikipedia and have been exploring this domain for a long time.
 
 The logotype of causality is based on the ¤ symbol.

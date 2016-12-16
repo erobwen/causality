@@ -1,6 +1,6 @@
 {
   "name": "causalityjs",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A library for reactive programming based on Javascript proxies.",
   "main": "causality.js",
   "scripts": {
