@@ -312,7 +312,11 @@ Note: If any observer function is registered to an object, events will be sent d
 
 For discussions, see:
 
-https://gitter.im/avantgarde_web_development/Lobby (in swedish so far, but please state questions/opinions in english and we will reply.)
+https://gitter.im/causalityjs/Lobby
+
+For discussions in Swedish:
+
+https://gitter.im/avantgarde_web_development/Lobby
 
 # Comparison
 
