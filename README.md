@@ -282,11 +282,15 @@ The cache will not be removed while some other causality dependee (cached, reCac
 
 There are som additional causality object functions that might be useful. These are mostly used internally, but could potentially find other uses.
 
-    a.mergeFrom(b); // Merges data from b to a, works on both array and object.
+    a.mergeFrom(b);
+
+This merges data from b to a. Works on both array and object. If a and b are arrays, causality will run a sequence of (minimal) splice commands to make a the same sequence as b. For non-numeric keys, if any key is defined in a but not in b, the property will not be overwritten.
+
     a.forwardTo(b); // a temporarily assumes the state of b (while keeping its identity).
     a.removeForwarding(); // a retains its state from before running forwardTo.
     a.genericRemoveForwarding();  // If previously forwarded to b, the state of b is merged into a, and the forwarding is removed.
 
+The above methods can be used for temporarily borrowing the identity of an object. 
 
 # Pulses and Transactions
 
