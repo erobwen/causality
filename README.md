@@ -290,7 +290,7 @@ This merges data from b to a. Works on both array and object. If a and b are arr
     a.removeForwarding(); // a retains its state from before running forwardTo.
     a.genericRemoveForwarding();  // If previously forwarded to b, the state of b is merged into a, and the forwarding is removed.
 
-The above methods can be used for temporarily borrowing the identity of an object. 
+The above methods can be used for temporarily borrowing the identity of an object.
 
 # Pulses and Transactions
 

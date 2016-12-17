@@ -1148,11 +1148,28 @@
      *
      **********************************/
 
-    let dirtyRepeaters = [];
+    let firstDirtyRepeater = null;
+    let lastDirtyRepeater = null;
 
     function clearRepeaterLists() {
         recorderId = 0;
-        dirtyRepeaters = [];
+        let firstDirtyRepeater = null;
+        let lastDirtyRepeater = null;
+    }
+
+    function detatchRepeater(repeater) {
+        if (lastDirtyRepeater === repeater) {
+            lastDirtyRepeater = repeater.previousDirty;
+        }
+        if (firstDirtyRepeater === repeater) {
+            firstDirtyRepeater = repeater.nextDirty;
+        }
+        if (repeater.nextDirty) {
+            repeater.nextDirty.previousDirty = repeater.previousDirty;
+        }
+        if (repeater.previousDirty) {
+            repeater.previousDirty.nextDirty = repeater.nextDirty;
+        }
     }
 
     let repeaterId = 0;
@@ -1176,9 +1193,11 @@
             remove: function() {
                 // console.log("removeRepeater: " + repeater.id + "." + repeater.description);
                 removeChildContexts(this);
+                detatchRepeater(this);
                 this.micro.remove(); // Remove recorder!
-                removeFromArray(this, dirtyRepeaters);
-            }
+            },
+            nextDirty : null,
+            previousDirty : null
         });
     }
 
@@ -1204,19 +1223,28 @@
 
     function repeaterDirty(repeater) { // TODO: Add update block on this stage?
         removeChildContexts(repeater);
-        dirtyRepeaters.push(repeater);
+
+        if (lastDirtyRepeater === null) {
+            lastDirtyRepeater = repeater;
+            firstDirtyRepeater = repeater;
+        } else {
+            lastDirtyRepeater.nextDirty = repeater;
+            repeater.previousDirty = lastDirtyRepeater;
+            lastDirtyRepeater = repeater;
+        }
+
         refreshAllDirtyRepeaters();
     }
-
 
     let refreshingAllDirtyRepeaters = false;
 
     function refreshAllDirtyRepeaters() {
         if (!refreshingAllDirtyRepeaters) {
-            if (dirtyRepeaters.length > 0) {
+            if (firstDirtyRepeater !== null) {
                 refreshingAllDirtyRepeaters = true;
-                while (dirtyRepeaters.length > 0) {
-                    let repeater = dirtyRepeaters.pop(); // TODO: should be shift?
+                while (firstDirtyRepeater !== null) {
+                    let repeater = firstDirtyRepeater;
+                    detatchRepeater(repeater);
                     refreshRepeater(repeater);
                 }
 
