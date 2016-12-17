@@ -280,8 +280,12 @@ The cache will not be removed while some other causality dependee (cached, reCac
 
 # Miscellaneous:
 
-There are som additional causality object functions that might be useful.
+There are som additional causality object functions that might be useful. These are mostly used internally, but could potentially find other uses.
 
+    a.mergeFrom(b); // Merges data from b to a, works on both array and object.
+    a.forwardTo(b); // a temporarily assumes the state of b (while keeping its identity).
+    a.removeForwarding(); // a retains its state from before running forwardTo.
+    a.genericRemoveForwarding();  // If previously forwarded to b, the state of b is merged into a, and the forwarding is removed.
 
 
 # Pulses and Transactions
