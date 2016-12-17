@@ -309,7 +309,9 @@
         if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
         inPulse++;
 
+        let previousValue = target[key];
         delete target[key];
+        emitDeleteEvent(this, key, previousValue);
         if (this._arrayObservers !== null) {
             notifyChangeObservers("_arrayObservers", this._arrayObservers);
         }
@@ -472,7 +474,9 @@
             return false;
         } else {
             inPulse++;
+            let previousValue = target[key];
             delete target[key];
+            emitDeleteEvent(this, key, previousValue);
             if (typeof(this._enumerateObservers) !== 'undefined') {
                 notifyChangeObservers("_enumerateObservers", this._enumerateObservers);
             }
@@ -867,6 +871,12 @@
     function emitSetEvent(handler, key, value, previousValue) {
         if (typeof(handler.observers) !== 'undefined') {
             emitEvent(handler, {type: 'set', property: key, newValue: value, oldValue: previousValue});
+        }
+    }
+
+    function emitDeleteEvent(handler, key, previousValue) {
+        if (typeof(handler.observers) !== 'undefined') {
+            emitEvent(handler, {type: 'delete', property: key, deletedValue: previousValue});
         }
     }
 
