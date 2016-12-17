@@ -227,7 +227,7 @@
      ***************************************************************/
 
     function getHandlerArray(target, key) {
-        if (this.overrides.__overlay !== null && key !== "__overlay") {
+        if (this.overrides.__overlay !== null && (typeof(overlayBypass[key]) === 'undefined')) {
             let overlayHandler = this.overrides.__overlay.__handler;
             return overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
         }
@@ -389,7 +389,7 @@
 
     function getHandlerObject(target, key) {
         key = key.toString();
-        if (this.overrides.__overlay !== null && key !== "__overlay") {
+        if (this.overrides.__overlay !== null && key !== "__overlay" && (typeof(overlayBypass[key]) === 'undefined')) {
             let overlayHandler = this.overrides.__overlay.__handler;
             let result = overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
             return result;
@@ -620,6 +620,8 @@
             repeat : genericRepeatFunction,
             tryStopRepeat : genericStopRepeatFunction,
 
+            observe: genericObserveFunction,
+
             cached : genericCallAndCacheFunction,
             cachedInCache : genericCallAndCacheInCacheFunction,
             reCached : genericReCacheFunction,
@@ -630,11 +632,11 @@
             project : genericReCacheFunction,
             projectInProjectionOrCache : genericReCacheInCacheFunction,
 
-            replaceWith : genericReplacer,
-            observe: genericObserveFunction
-
-            // forwardTo : getGenericForwarder(),
-            // removeForwarding : getGenericRemoveForwarding()
+            // Identity and state
+            mergeFrom : genericMergeFrom,
+            forwardTo : genericForwarder,
+            removeForwarding : genericRemoveForwarding,
+            mergeAndRemoveForwarding: genericMergeAndRemoveForwarding
         };
 
         if (inReCache()) {
@@ -1595,13 +1597,15 @@
 
     /************************************************************************
      *
-     *  Merge into
+     *  Merge into & forwarding/overlay
      *
      ************************************************************************/
 
-    function genericReplacer(otherObject) { // this
-        mergeInto(otherObject, this);
-    }
+    let overlayBypass = {
+        '__overlay' : true,
+        'removeForwarding' : true,
+        'mergeAndRemoveForwarding' : true
+    };
 
     function mergeInto(source, target) {
         if (source instanceof Array) {
@@ -1624,12 +1628,27 @@
         }
     }
 
-    function infuseOverlayIntoObject(object) {
+    function mergeOverlayIntoObject(object) {
         let overlay = object.__overlay;
         object.__overlay = null;
         mergeInto(overlay, object);
     }
 
+    function genericMergeFrom(otherObject) {
+        mergeInto(otherObject, this);
+    }
+
+    function genericForwarder(otherObject) {
+        this.__overlay = otherObject;
+    }
+
+    function genericRemoveForwarding() {
+        this.__overlay = null;
+    }
+
+    function genericMergeAndRemoveForwarding() {
+        mergeOverlayIntoObject(this);
+    }
 
     /************************************************************************
      *
@@ -1691,7 +1710,7 @@
                             if (created.__overlay !== null) {
                                 // console.log("Has overlay!");
                                 // console.log(created.__overlay);
-                                infuseOverlayIntoObject(created);
+                                mergeOverlayIntoObject(created);
                             } else {
                                 // console.log("Infusion id of newly created:");
                                 // console.log(created.__cacheId);
@@ -1772,6 +1791,7 @@
         target['c']                       = create;
         target['uponChangeDo']            = uponChangeDo;
         target['repeatOnChange']          = repeatOnChange;
+        target['repeat']                  = repeatOnChange;
         target['withoutSideEffects']      = withoutSideEffects;
 
         // Modifiers

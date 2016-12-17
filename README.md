@@ -278,6 +278,11 @@ A reCache can be removed using the following command:
 
 The cache will not be removed while some other causality dependee (cached, reCached, repeatOnChange etc.) depends on it.
 
+# Miscellaneous:
+
+There are som additional causality object functions that might be useful.
+
+
 
 # Pulses and Transactions
 
