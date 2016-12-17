@@ -333,7 +333,7 @@ https://gitter.im/avantgarde_web_development/Lobby
 
 # Comparison
 
-Causality could work as a replacement for MobX. Some early, and perhaps non-conclusive experiments indicate that causality could potentially be twice as fast as MobX. It also takes full advantage of ES6/proxies. Causality also offers more advanced features such as cached, reCached and withoutSideEffects. On the other hand, MobX is a more mature library with a supporting community.
+Causality could work as a replacement for MobX. Some early, and perhaps non-conclusive experiments indicate that causality could potentially be almost twice as fast as MobX. It also takes full advantage of ES6/proxies. Causality also offers more advanced features such as cached, reCached and withoutSideEffects. On the other hand, MobX is a more mature library with a large supporting community and better integration with other libraries.
 
 ![Alt text](/performance.png?raw=true "Causality Logotype")
 
