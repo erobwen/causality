@@ -143,9 +143,7 @@ describe("arrays", function () {
         var a1 = c([1, 2]);
         var a2 = c([3, 4]);
         assert.deepEqual(a1.concat(a2), [1, 2, 3, 4])
-    })
-
-
+    });
 });
 
 

@@ -86,16 +86,36 @@ With create you simply create a causality object. The create function takes any 
 
 A causality object is an object that can be observed by causality. This means that changes in causality objects will be detected automatically by the causality framework. While it is possible to mix the use of causality object and plain Javascript object, it is not recommended to do so, as changes in plain Javascript objects will go undetected by causality.
 
-In addition, causality objects gain additional features, such as cached, reCached and observe.
+In every other aspect, a causality object behaves just as an ordinary Javascript object would. So you could for example write:
 
+    var x = create({a: 1, b: 2});
+    var y = x.a + b.2; // should result in 3!
+
+    var l = create([]);
+    l.push("item1");
+    l.push("item2");
+    l.pop();
+    console.log(l); // should print out ["item1"];
+
+If you find it too cumbersome to write "create" upon every object creation, you can use its alias "c":
+
+    c({a: 1, b: 2});
+
+In addition, causality objects gain additional methods, such as cached, reCached and observe. These methods will not show up on any printout of the object, nor in any listing of the objects keys.
+
+    var ojb = c({});
+    obj.observe(function(event) {console.log(event)});
+    obj.x = 42 // Should result in event printout.
 
 ## repeatOnChange
 
-Repeat on change is typically used to envforce some certain data constraint. Such as reactive validation of a form, or calculation of some. In its basic form, it is simply a function that is reevaluated every time any of the data it read changes. For example:
+Repeat on change is typically used to enforce some certain data constraint. Such as reactive validation of a form, or calculation of some. In its basic form, it is simply a function that is reevaluated every time any of the data it read changes. For example:
 
     repeatOnChange(function() {  x.value = y.value + z.value; });
 
 This will cause x.value to be assigned to y.value + z.value any time either y.value or z.value changes. The good part is that you can write any kind of code inside the function. There can be loops, function calls, recursive functions. Anything. And no matter what code is there, causality will allways keep track of what data has been read by the repeater function at any given moment.
+
+If you think "repeatOnChange" is to cumbersome to type, you can simply write "repeat" instead, which is an alias for repeatOnChange.
 
 It will however not detect changes in local variables, so for example if local or global variable y is assigned in this example, there will be no reevaluation of x.value. In practice however, this is in general not a limitation as application code typically reacts to changes to a specific model, rather than changes in local variables.
 
@@ -288,7 +308,7 @@ This merges data from b to a. Works on both array and object. If a and b are arr
 
     a.forwardTo(b); // a temporarily assumes the state of b (while keeping its identity).
     a.removeForwarding(); // a retains its state from before running forwardTo.
-    a.genericRemoveForwarding();  // If previously forwarded to b, the state of b is merged into a, and the forwarding is removed.
+    a.mergeAndRemoveForwarding();  // If previously forwarded to b, the state of b is merged into a, and the forwarding is removed.
 
 The above methods can be used for temporarily borrowing the identity of an object.
 
