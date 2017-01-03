@@ -1,7 +1,7 @@
 {
   "name": "causality",
   "description": "A library for reactive programming based on Javascript proxies.",
-  "main": "index.js",
+  "main": "causality.js",
   "authors": [
     "Robert Renbris"
   ],
@@ -12,6 +12,10 @@
     "Reactive"
   ],
   "homepage": "https://github.com/erobwen/causality",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/erobwen/causality.git"
+  }
   "ignore": [
     "**/.*",
     "node_modules",
