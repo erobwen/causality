@@ -1654,6 +1654,7 @@
                 target[property] = source[property];
             }
         }
+        return target;
     }
 
     function mergeOverlayIntoObject(object) {
@@ -1663,7 +1664,7 @@
     }
 
     function genericMergeFrom(otherObject) {
-        mergeInto(otherObject, this);
+        return mergeInto(otherObject, this);
     }
 
     function genericForwarder(otherObject) {
