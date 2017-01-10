@@ -15,7 +15,7 @@
   "repository": {
     "type": "git",
     "url": "git://github.com/erobwen/causality.git"
-  }
+  },
   "ignore": [
     "**/.*",
     "node_modules",
