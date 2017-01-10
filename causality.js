@@ -415,6 +415,15 @@
                         registerAnyChangeObserver("_enumerateObservers." + key, this._enumerateObservers);
                     }
                 }
+
+                let scan = target;
+                while ( scan !== null && typeof(scan) !== 'undefined' ) {
+                    let descriptor = Object.getOwnPropertyDescriptor(scan, key);
+                    if (typeof(descriptor) !== 'undefined' && typeof(descriptor.get) !== 'undefined') {
+                        return descriptor.get.bind(this.overrides.__proxy)();
+                    }
+                    scan = Object.getPrototypeOf( scan );
+                }
                 return target[key];
             }
         }
@@ -615,6 +624,7 @@
             __overlay : null,
             __target: createdTarget,
             __handler : handler,
+            __proxy : proxy,
 
             // This inside these functions will be the Proxy. Change to handler?
             repeat : genericRepeatFunction,
