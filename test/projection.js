@@ -13,7 +13,7 @@ describe("Projections", function(){
     };
 
     var createListNode = function(value, cacheId) {
-        newNode = Object.create(listNodePrototype);
+        const newNode = Object.create(listNodePrototype);
         newNode.value = value;
         newNode.next = null;
         newNode.previous = null;

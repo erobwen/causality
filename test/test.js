@@ -112,7 +112,7 @@ describe("heap structure", function () {
 
     repeatOnChange(function () {
         heapSum       = summarize(heap);
-        heapNodeCount = nodeCount(heap);
+        var heapNodeCount = nodeCount(heap);
     });
 
     it('heapSum', function () {

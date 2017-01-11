@@ -8,7 +8,7 @@ describe("Without side effects", function(){
         let x = create({});
         let x2 = create([]);
         let returnValue = withoutSideEffects(function() {
-            y = create({});
+            const y = create({});
             y.v = 42;
 
             x.v = 42;
