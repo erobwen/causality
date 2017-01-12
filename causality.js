@@ -250,52 +250,58 @@
     function setHandlerArray(target, key, value) {
         if (this.overrides.__overlay !== null) {
             if (key === "__overlay") {
-                return this.overrides.__overlay = value;
+                this.overrides.__overlay = value;
+                return true;
             } else {
                 let overlayHandler = this.overrides.__overlay.__handler;
                 return overlayHandler.set.apply(overlayHandler, [overlayHandler.target, key, value]);
             }
         }
 
+        let previousValue = target[key];
+
         // If same value as already set, do nothing.
         if (key in target) {
-            let previousValue = target[key];
-            if (previousValue === value || ( typeof(previousValue) === 'number' && isNaN(previousValue) && typeof(value) === 'number' && isNaN(value))) {
-                return false;
+            if (previousValue === value || (Number.isNaN(previousValue) && Number.isNaN(value)) ) {
+                return true;
             }
         }
 
         // If cumulative assignment, inside recorder and value is undefined, no assignment.
         if (cumulativeAssignment && inActiveRecording && (isNaN(value) || typeof(value) === 'undefined')) {
-            return false;
+            return true;
         }
         if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
         inPulse++;
 
         if (!isNaN(key)) {
             // Number index
-            let previousValue = target[key];
             if (typeof(key) === 'string') {
                 key = parseInt(key);
             }
             target[key] = value;
-            emitSpliceReplaceEvent(this, key, value, previousValue);
-            if (this._arrayObservers !== null) {
-                notifyChangeObservers("_arrayObservers", this._arrayObservers);
+
+            if( target[key] === value || (Number.isNaN(target[key]) && Number.isNaN(value)) ) { // Write protected?
+                emitSpliceReplaceEvent(this, key, value, previousValue);
+                if (this._arrayObservers !== null) {
+                    notifyChangeObservers("_arrayObservers", this._arrayObservers);
+                }
             }
-            if (--inPulse === 0) postPulseCleanup();
-            return true;
         } else {
             // String index
-            let previousValue = target[key];
             target[key] = value;
-            emitSetEvent(this, key, value, previousValue);
-            if (this._arrayObservers !== null) {
-                notifyChangeObservers("_arrayObservers", this._arrayObservers);
+            if( target[key] === value || (Number.isNaN(target[key]) && Number.isNaN(value)) ) { // Write protected?
+                emitSetEvent(this, key, value, previousValue);
+                if (this._arrayObservers !== null) {
+                    notifyChangeObservers("_arrayObservers", this._arrayObservers);
+                }
             }
-            if (--inPulse === 0) postPulseCleanup();
-            return true;
         }
+
+        if (--inPulse === 0) postPulseCleanup();
+
+        if( target[key] !== value && !(Number.isNaN(target[key]) && Number.isNaN(value)) ) return false; // Write protected?
+        return true;
     }
 
     function deletePropertyHandlerArray(target, key) {
@@ -304,18 +310,21 @@
             return overlayHandler.deleteProperty.apply(overlayHandler, [overlayHandler.target, key]);
         }
         if (!(key in target)) {
-            return false;
+            return true;
         }
-        if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
+        if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return true;
         inPulse++;
 
         let previousValue = target[key];
         delete target[key];
-        emitDeleteEvent(this, key, previousValue);
-        if (this._arrayObservers !== null) {
-            notifyChangeObservers("_arrayObservers", this._arrayObservers);
+        if(!( key in target )) { // Write protected?
+            emitDeleteEvent(this, key, previousValue);
+            if (this._arrayObservers !== null) {
+                notifyChangeObservers("_arrayObservers", this._arrayObservers);
+            }
         }
         if (--inPulse === 0) postPulseCleanup();
+        if( key in target ) return false; // Write protected?
         return true;
     }
 
@@ -432,7 +441,8 @@
     function setHandlerObject(target, key, value) {
         if (this.overrides.__overlay !== null) {
             if (key === "__overlay") {
-                return this.overrides.__overlay = value; // Setting a new overlay, should not be possible?
+                this.overrides.__overlay = value; // Setting a new overlay, should not be possible?
+                return true;
             } else {
                 let overlayHandler = this.overrides.__overlay.__handler;
                 return overlayHandler.set.apply(overlayHandler, [overlayHandler.target, key, value]);
@@ -440,56 +450,64 @@
         }
         if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
 
+        let previousValue = target[key];
+
         // If same value as already set, do nothing.
         if (key in target) {
-            let previousValue = target[key];
-            if (previousValue === value || ( typeof(previousValue) === 'number' && isNaN(previousValue) && typeof(value) === 'number' && isNaN(value))) {
-                return false;
+            if (previousValue === value || (Number.isNaN(previousValue) && Number.isNaN(value)) ) {
+                return true;
             }
         }
 
         // If cumulative assignment, inside recorder and value is undefined, no assignment.
         if (cumulativeAssignment && inActiveRecording && (isNaN(value) || typeof(value) === 'undefined')) {
-            return false;
+            return true;
         }
         inPulse++;
 
         let undefinedKey = !(key in target);
-        let previousValue = target[key]
         target[key]      = value;
-        if (undefinedKey) {
-            if (typeof(this._enumerateObservers) !== 'undefined') {
-                notifyChangeObservers("_enumerateObservers", this._enumerateObservers);
+        let resultValue  = target[key];
+        if( resultValue === value || (Number.isNaN(resultValue) && Number.isNaN(value)) ) { // Write protected?
+            if (undefinedKey) {
+                if (typeof(this._enumerateObservers) !== 'undefined') {
+                    notifyChangeObservers("_enumerateObservers", this._enumerateObservers);
+                }
+            } else {
+                if (typeof(this._propertyObservers) !== 'undefined' && typeof(this._propertyObservers[key]) !== 'undefined') {
+                    notifyChangeObservers("_propertyObservers." + key, this._propertyObservers[key]);
+                }
             }
-        } else {
-            if (typeof(this._propertyObservers) !== 'undefined' && typeof(this._propertyObservers[key]) !== 'undefined') {
-                notifyChangeObservers("_propertyObservers." + key, this._propertyObservers[key]);
-            }
+            emitSetEvent(this, key, value, previousValue);
         }
-        emitSetEvent(this, key, value, previousValue);
         if (--inPulse === 0) postPulseCleanup();
+        if( resultValue !== value  && !(Number.isNaN(resultValue) && Number.isNaN(value))) return false; // Write protected?
         return true;
     }
 
     function deletePropertyHandlerObject(target, key) {
         if (this.overrides.__overlay !== null) {
             let overlayHandler = this.overrides.__overlay.__handler;
-            return overlayHandler.deleteProperty.apply(overlayHandler, [overlayHandler.target, key]);
+            overlayHandler.deleteProperty.apply(overlayHandler, [overlayHandler.target, key]);
+            return true;
         }
 
-        if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
+        if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return true;
 
         if (!(key in target)) {
-            return false;
+            return true;
         } else {
             inPulse++;
             let previousValue = target[key];
             delete target[key];
-            emitDeleteEvent(this, key, previousValue);
-            if (typeof(this._enumerateObservers) !== 'undefined') {
-                notifyChangeObservers("_enumerateObservers", this._enumerateObservers);
+            if(!( key in target )) { // Write protected?
+                emitDeleteEvent(this, key, previousValue);
+                if (typeof(this._enumerateObservers) !== 'undefined') {
+                    notifyChangeObservers("_enumerateObservers", this._enumerateObservers);
+                }
             }
             if (--inPulse === 0) postPulseCleanup();
+            if( key in target ) return false; // Write protected?
             return true;
         }
     }
