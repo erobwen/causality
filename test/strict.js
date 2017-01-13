@@ -59,6 +59,7 @@ describe("Array object traps", function () {
     it('setCumulativeAssignment',  function () {
         setCumulativeAssignment(1);
         stack[1] = undefined;
+        setCumulativeAssignment(0);
     });
 });
 
