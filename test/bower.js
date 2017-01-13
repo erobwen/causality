@@ -4,7 +4,7 @@ const fs = require('fs');
 
 it('validate', function(){
 
-    const data = fs.readFileSync('bower.json');
+    const data = fs.readFileSync('../bower.json');
     const json = JSON.parse(data);
     const bj = require('bower-json');
     const norm = bj.parse(json);
