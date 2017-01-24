@@ -781,7 +781,7 @@
                 // Build a new macro context
                 enteredContext.children = [];
 
-                if (context !== null && typeof(context.independent) === 'undefined') {
+                if (context !== null && typeof(enteredContext.independent) === 'undefined') {
                     context.children.push(enteredContext);
                 }
                 context = enteredContext;
@@ -843,7 +843,7 @@
     function pulse(action) {
         inPulse++;
         callback();
-        if (--inPulse) postPulseCleanup();
+        if (--inPulse === 0) postPulseCleanup();
     }
 
     let transaction = postponeObserverNotification;
@@ -854,7 +854,7 @@
         callback();
         observerNotificationPostponed--;
         proceedWithPostponedNotifications();
-        if (--inPulse) postPulseCleanup();
+        if (--inPulse === 0) postPulseCleanup();
     }
 
     let contextsScheduledForPossibleDestruction = [];
@@ -1039,6 +1039,7 @@
         if (activeRecorder !== null) {
             // console.log(activeRecorder);
             if (typeof(observerSet.initialized) === 'undefined') {
+                observerSet.description = description;
                 observerSet.isRoot = true;
                 observerSet.contents = {};
                 observerSet.contentsCounter = 0;
@@ -1220,6 +1221,7 @@
             action: repeaterAction,
             remove: function() {
                 // console.log("removeRepeater: " + repeater.id + "." + repeater.description);
+                this.removed = true;
                 removeChildContexts(this);
                 detatchRepeater(this);
                 this.micro.remove(); // Remove recorder!
@@ -1428,25 +1430,34 @@
         // Split arguments
         let argumentsList = argumentsToArray(arguments);
         let functionName = argumentsList.shift();
-        let functionCacher = getFunctionCacher(this, "_repeaters", functionName, argumentsList);
+        let functionCacher = getFunctionCacher(this.__handler, "_repeaters", functionName, argumentsList);
 
         if (!functionCacher.cacheRecordExists()) {
             // Never encountered these arguments before, make a new cache
             let cacheRecord = functionCacher.createNewRecord();
             cacheRecord.independent = true; // Do not delete together with parent
+            cacheRecord.remove = function() {
+                functionCacher.deleteExistingRecord();
+                cacheRecord.micro.remove();
+            };
             cacheRecord.contextObservers = {
                 noMoreObserversCallback : function() {
                     contextsScheduledForPossibleDestruction.push(cacheRecord);
                 }
             };
+            enterContext('cached_repeater', cacheRecord);
+            nextIsMicroContext = true;
 
-            cacheRecord.remove = function() {}; // Never removed directly, only when no observers & no direct application call
+            // cacheRecord.remove = function() {}; // Never removed directly, only when no observers & no direct application call
             cacheRecord.repeaterHandle = repeatOnChange(function() {
                 returnValue = this[functionName].apply(this, argumentsList);
-            });
+            }.bind(this));
+            leaveContext();
+
             registerAnyChangeObserver("functionCache.contextObservers", cacheRecord.contextObservers);
-            return cacheRecord.repeaterHandle;
+            return cacheRecord.repeaterHandle; // return something else...
         } else {
+            let cacheRecord = functionCacher.getExistingRecord();
             registerAnyChangeObserver("functionCache.contextObservers", cacheRecord.contextObservers);
             return functionCacher.getExistingRecord().repeaterHandle;
         }
