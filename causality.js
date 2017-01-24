@@ -1553,7 +1553,7 @@
         let functionName = argumentsList.shift();
 
         // Cached
-        let functionCacher = getFunctionCacher(this, "_cachedCalls", functionName, argumentsList);
+        let functionCacher = getFunctionCacher(this.__handler, "_cachedCalls", functionName, argumentsList);
 
         if (functionCacher.cacheRecordExists()) {
             let cacheRecord = functionCacher.getExistingRecord();
@@ -1562,7 +1562,7 @@
         }
 
         // Re cached
-        functionCacher = getFunctionCacher(this, "_reCachedCalls", functionName, argumentsList);
+        functionCacher = getFunctionCacher(this.__handler, "_reCachedCalls", functionName, argumentsList);
 
         if (functionCacher.cacheRecordExists()) {
             let cacheRecord = functionCacher.getExistingRecord();
@@ -1739,7 +1739,7 @@
         // Split argumentsp
         let argumentsList = argumentsToArray(arguments);
         let functionName = argumentsList.shift();
-        let functionCacher = getFunctionCacher(this, "_reCachedCalls", functionName, argumentsList);
+        let functionCacher = getFunctionCacher(this.__handler, "_reCachedCalls", functionName, argumentsList);
 
         if (!functionCacher.cacheRecordExists()) {
             // console.log("init reCache ");
