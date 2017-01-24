@@ -6,7 +6,7 @@ describe("Meta repeaters", function(){
         events = [];
 
         let nodePrototype = {
-            emitHelloEvent : function() {
+            emitHelloEvent : function(arg1, arg2) {
                 // console.log("pushing hello " + this.value);
                 events.push("hello " + this.value);
             }
@@ -34,7 +34,7 @@ describe("Meta repeaters", function(){
             // console.log(array);
             array.forEach(function(node) {
                 // console.log(node);
-                node.repeat('emitHelloEvent');
+                node.repeat('emitHelloEvent', 'some', 'argument');
             });
         });
 
