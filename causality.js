@@ -1009,7 +1009,7 @@
                             observerSet.noMoreObserversCallback();
                         }
                     }
-                });
+                }.bind(this));
                 this.sources.lenght = 0;  // From repeater itself.
             }
         });
@@ -1217,11 +1217,9 @@
         return refreshRepeater({
             id: repeaterId++,
             description: description,
-            removed: false,
             action: repeaterAction,
             remove: function() {
                 // console.log("removeRepeater: " + repeater.id + "." + repeater.description);
-                this.removed = true;
                 removeChildContexts(this);
                 detatchRepeater(this);
                 this.micro.remove(); // Remove recorder!
@@ -1232,7 +1230,6 @@
     }
 
     function refreshRepeater(repeater) {
-        repeater.removed     = false;
         enterContext('repeater_refreshing', repeater);
         // console.log("parent context type: " + repeater.parent.type);
         // console.log("context type: " + repeater.type);
@@ -1241,9 +1238,7 @@
             repeater.action,
             function () {
                 // unlockSideEffects(function() {
-                if (!repeater.removed) {
-                    repeaterDirty(repeater);
-                }
+                repeaterDirty(repeater);
                 // });
             }
         );
