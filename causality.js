@@ -32,6 +32,24 @@
         return object;
     }
 
+    // Helper to quickly get a child array
+    function getArray() {
+        var argumentList = argumentsToArray(arguments);
+        var object = argumentList.shift();
+        while (argumentList.length > 0) {
+            var key = argumentList.shift();
+            if (typeof(object[key]) === 'undefined') {
+                if (argumentList.length === 0) {
+                    object[key] = [];
+                } else {
+                    object[key] = {};
+                }
+            }
+            object = object[key];
+        }
+        return object;
+    }
+    
     function isDefined(object, property) {
         return (typeof(object[property]) !== 'undefined');
     }
@@ -1287,6 +1305,9 @@
      ************************************************************************/
 
     function compareArraysShallow(a, b) {
+        if( typeof a !== typeof b )
+            return false;
+        
         if (a.length === b.length) {
             for (let i = 0; i < a.length; i++) {
                 if (a[i] !== b[i]) {
