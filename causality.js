@@ -158,6 +158,8 @@
             let argumentsArray = argumentsToArray(arguments);
             let index = argumentsArray[0];
             let removedCount = argumentsArray[1];
+            if( typeof argumentsArray[1] === 'undefined' )
+                removedCount = this.target.length - index;
             let added = argumentsArray.slice(2);
             let removed = this.target.slice(index, index + removedCount);
             observerNotificationNullified++;
