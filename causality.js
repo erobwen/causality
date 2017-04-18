@@ -665,7 +665,7 @@
             __proxy : proxy,
 
             // This inside these functions will be the Proxy. Change to handler?
-            repeat : genericRepeatFunction,
+            repeat : genericRepeatMethod,
             tryStopRepeat : genericStopRepeatFunction,
 
             observe: genericObserveFunction,
@@ -1342,8 +1342,19 @@
         return cachedCalls;
     }
 
+	function getObjectAttatchedCache(object, cacheStoreName, functionName) {
+		// let functionCaches = getMap(object, cacheStoreName, functionName);
+        if (typeof(object[cacheStoreName]) === 'undefined') {
+            object[cacheStoreName] = {};
+        }
+        if (typeof(object[cacheStoreName][functionName]) === 'undefined') {
+            object[cacheStoreName][functionName] = {};
+        }
+		return object[cacheStoreName][functionName];
+	}
+	
     // Get cache(s) for this argument hash
-    function getFunctionCacher(object, cacheStoreName, functionName, functionArguments) {
+    function getFunctionCacher(functionCaches, argumentList) {
         let uniqueHash = true;
         function makeArgumentHash(argumentList) {
             let hash  = "";
@@ -1364,17 +1375,7 @@
             });
             return "(" + hash + ")";
         }
-        let argumentsHash = makeArgumentHash(functionArguments);
-
-        // let functionCaches = getMap(object, cacheStoreName, functionName);
-        if (typeof(object[cacheStoreName]) === 'undefined') {
-            object[cacheStoreName] = {};
-        }
-        if (typeof(object[cacheStoreName][functionName]) === 'undefined') {
-            object[cacheStoreName][functionName] = {};
-        }
-        let functionCaches = object[cacheStoreName][functionName];
-        let functionCache = null;
+        let argumentsHash = makeArgumentHash(argumentList);
 
         return {
             cacheRecordExists : function() {
@@ -1443,13 +1444,20 @@
      *
      ************************************************************************/
 
-
-    function genericRepeatFunction() {
-        // Split arguments
-        let argumentsList = argumentsToArray(arguments);
-        let functionName = argumentsList.shift();
-        let functionCacher = getFunctionCacher(this.__handler, "_repeaters", functionName, argumentsList);
-
+	 /**
+	 * Example usage
+	 */
+	 
+	// object.myRepeat = function() {
+		// let argumentsList = argumentsToArray(arguments);
+        // let functionName = argumentsList.shift();
+        // let functionCacher = getFunctionCacher(getObjectAttatchedCache(this, "_repeaters", functionName), argumentsList);
+	// };
+	 
+	 
+	function genericRepeat(cache, repeatedFunction, argumentsList) {
+		let functionCacher = getFunctionCacher(cache, argumentsList);
+		
         if (!functionCacher.cacheRecordExists()) {
             // Never encountered these arguments before, make a new cache
             let cacheRecord = functionCacher.createNewRecord();
@@ -1467,9 +1475,7 @@
             nextIsMicroContext = true;
 
             // cacheRecord.remove = function() {}; // Never removed directly, only when no observers & no direct application call
-            cacheRecord.repeaterHandle = repeatOnChange(function() {
-                returnValue = this[functionName].apply(this, argumentsList);
-            }.bind(this));
+            cacheRecord.repeaterHandle = repeatOnChange(repeatedFunction);
             leaveContext();
 
             registerAnyChangeObserver("functionCache.contextObservers", cacheRecord.contextObservers);
@@ -1479,6 +1485,20 @@
             registerAnyChangeObserver("functionCache.contextObservers", cacheRecord.contextObservers);
             return functionCacher.getExistingRecord().repeaterHandle;
         }
+	}
+
+    function genericRepeatMethod() {
+        // Split arguments
+        let argumentsList = argumentsToArray(arguments);
+        let functionName = argumentsList.shift();
+		
+		genericRepeat(
+			getObjectAttatchedCache(this, "_repeaters", functionName), 
+			function() {
+                returnValue = this[functionName].apply(this, argumentsList);
+            }.bind(this),
+			argumentsList
+		);
     }
 
     function genericStopRepeatFunction() {
