@@ -251,6 +251,11 @@
             let overlayHandler = this.overrides.__overlay.__handler;
             return overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
         }
+		
+		if (this.initializer !== null) {
+			this.initializer(target);
+			this.initializer = null;
+		}
 
         if (staticArrayOverrides[key]) {
             return staticArrayOverrides[key].bind(this);
@@ -277,6 +282,11 @@
                 return overlayHandler.set.apply(overlayHandler, [overlayHandler.target, key, value]);
             }
         }
+
+		if (this.initializer !== null) {
+			this.initializer(target);
+			this.initializer = null;
+		}
 
         let previousValue = target[key];
 
@@ -333,6 +343,12 @@
             return true;
         }
         if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return true;
+		
+		if (this.initializer !== null) {
+			this.initializer(target);
+			this.initializer = null;
+		}
+		
         inPulse++;
 
         let previousValue = target[key];
@@ -354,6 +370,11 @@
             return overlayHandler.ownKeys.apply(overlayHandler, [overlayHandler.target]);
         }
 
+		if (this.initializer !== null) {
+			this.initializer(target);
+			this.initializer = null;
+		}
+		
         if (inActiveRecording) {
             if (this._arrayObservers === null) {
                 this._arrayObservers = {};
@@ -370,6 +391,12 @@
             let overlayHandler = this.overrides.__overlay.__handler;
             return overlayHandler.has.apply(overlayHandler, [target, key]);
         }
+		
+		if (this.initializer !== null) {
+			this.initializer(target);
+			this.initializer = null;
+		}
+		
         if (inActiveRecording) {
             if (this._arrayObservers === null) {
                 this._arrayObservers = {};
@@ -385,6 +412,12 @@
             return overlayHandler.defineProperty.apply(overlayHandler, [overlayHandler.target, key, oDesc]);
         }
         if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
+		
+		if (this.initializer !== null) {
+			this.initializer(target);
+			this.initializer = null;
+		}
+		
         inPulse++;
 
         if (this._arrayObservers !== null) {
@@ -400,6 +433,11 @@
             return overlayHandler.getOwnPropertyDescriptor.apply(overlayHandler, [overlayHandler.target, key]);
         }
 
+		if (this.initializer !== null) {
+			this.initializer(target);
+			this.initializer = null;
+		}
+		
         if (inActiveRecording) {
             if (this._arrayObservers === null) {
                 this._arrayObservers = {};
@@ -423,6 +461,11 @@
             let result = overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
             return result;
         }
+		
+		if (this.initializer !== null) {
+			this.initializer(target);
+			this.initializer = null;
+		}
 
         if (typeof(this.overrides[key]) !== 'undefined') {
             return this.overrides[key];
@@ -468,7 +511,13 @@
                 return overlayHandler.set.apply(overlayHandler, [overlayHandler.target, key, value]);
             }
         }
+
         if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
+		
+		if (this.initializer !== null) {
+			this.initializer(target);
+			this.initializer = null;
+		}
 
         let previousValue = target[key];
 
@@ -513,7 +562,12 @@
         }
 
         if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return true;
-
+		
+		if (this.initializer !== null) {
+			this.initializer(target);
+			this.initializer = null;
+		}
+		
         if (!(key in target)) {
             return true;
         } else {
@@ -537,7 +591,12 @@
             let overlayHandler = this.overrides.__overlay.__handler;
             return overlayHandler.ownKeys.apply(overlayHandler, [overlayHandler.target, key]);
         }
-
+		
+		if (this.initializer !== null) {
+			this.initializer(target);
+			this.initializer = null;
+		}
+		
         if (inActiveRecording) {
             if (typeof(this._enumerateObservers) === 'undefined') {
                 this._enumerateObservers = {};
@@ -554,6 +613,11 @@
             let overlayHandler = this.overrides.__overlay.__handler;
             return overlayHandler.has.apply(overlayHandler, [overlayHandler.target, key]);
         }
+		
+		if (this.initializer !== null) {
+			this.initializer(target);
+			this.initializer = null;
+		}
 
         if (inActiveRecording) {
             if (typeof(this._enumerateObservers) === 'undefined') {
@@ -569,8 +633,14 @@
             let overlayHandler = this.overrides.__overlay.__handler;
             return overlayHandler.defineProperty.apply(overlayHandler, [overlayHandler.target, key]);
         }
-
+				
         if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
+
+		if (this.initializer !== null) {
+			this.initializer(target);
+			this.initializer = null;
+		}
+
         inPulse++;
 
         if (typeof(this._enumerateObservers) !== 'undefined') {
@@ -585,7 +655,12 @@
             let overlayHandler = this.overrides.__overlay.__handler;
             return overlayHandler.getOwnPropertyDescriptor.apply(overlayHandler, [overlayHandler.target, key]);
         }
-
+		
+		if (this.initializer !== null) {
+			this.initializer(target);
+			this.initializer = null;
+		}
+		
         if (inActiveRecording) {
             if (typeof(this._enumerateObservers) === 'undefined') {
                 this._enumerateObservers = {};
@@ -603,9 +678,13 @@
      ***************************************************************/
 
     function create(createdTarget, cacheId) {
+		let = initializer = null;
         if (typeof(createdTarget) === 'undefined') {
             createdTarget = {};
-        }
+        } else if (typeof(createdTarget) === 'function') {
+			initializer = createdTarget; 
+            createdTarget = {};
+		}
         if (typeof(cacheId) === 'undefined') {
             cacheId = null;
         }
@@ -653,7 +732,8 @@
         }
 
         handler.target = createdTarget;
-
+		handler.initializer = initializer;
+		
         let proxy = new Proxy(createdTarget, handler);
 
         handler.overrides = {
