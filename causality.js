@@ -1343,6 +1343,7 @@
     }
 
 	function getObjectAttatchedCache(object, cacheStoreName, functionName) {
+		// object = object.__handler;
 		// let functionCaches = getMap(object, cacheStoreName, functionName);
         if (typeof(object[cacheStoreName]) === 'undefined') {
             object[cacheStoreName] = {};
@@ -1447,15 +1448,7 @@
 	 /**
 	 * Example usage
 	 */
-	 
-	// object.myRepeat = function() {
-		// let argumentsList = argumentsToArray(arguments);
-        // let functionName = argumentsList.shift();
-        // let functionCacher = getFunctionCacher(getObjectAttatchedCache(this, "_repeaters", functionName), argumentsList);
-	// };
-	 
-	 
-	function genericRepeat(cache, repeatedFunction, argumentsList) {
+	function repeatForUniqueArgumentLists(cache, argumentsList, repeatedFunction) {
 		let functionCacher = getFunctionCacher(cache, argumentsList);
 		
         if (!functionCacher.cacheRecordExists()) {
@@ -1492,12 +1485,12 @@
         let argumentsList = argumentsToArray(arguments);
         let functionName = argumentsList.shift();
 		
-		genericRepeat(
+		repeatForUniqueArgumentLists(
 			getObjectAttatchedCache(this, "_repeaters", functionName), 
+			argumentsList,
 			function() {
                 returnValue = this[functionName].apply(this, argumentsList);
-            }.bind(this),
-			argumentsList
+            }.bind(this)
 		);
     }
 
@@ -1505,7 +1498,9 @@
         // Split arguments
         let argumentsList = argumentsToArray(arguments);
         let functionName = argumentsList.shift();
-        let functionCacher = getFunctionCacher(this, "_repeaters", functionName, argumentsList);
+		
+		let cache = getObjectAttatchedCache(this, "_repeaters", functionName);
+        let functionCacher = getFunctionCacher(cache, argumentsList);
 
         if (functionCacher.cacheRecordExists()) {
             let cacheRecord = functionCacher.getExistingRecord();
@@ -1539,7 +1534,8 @@
         // Split arguments
         let argumentsList = argumentsToArray(arguments);
         let functionName = argumentsList.shift();
-        let functionCacher = getFunctionCacher(this, "_cachedCalls", functionName, argumentsList); // wierd, does not work with this inestead of handler...
+		let cache = getObjectAttatchedCache(this, "_cachedCalls", functionName);
+        let functionCacher = getFunctionCacher(cache, argumentsList); // wierd, does not work with this inestead of handler...
 
         if (!functionCacher.cacheRecordExists()) {
             let cacheRecord = functionCacher.createNewRecord();
@@ -1591,7 +1587,8 @@
         let functionName = argumentsList.shift();
 
         // Cached
-        let functionCacher = getFunctionCacher(this.__handler, "_cachedCalls", functionName, argumentsList);
+		let cache = getObjectAttatchedCache(this, "_cachedCalls", functionName);
+        let functionCacher = getFunctionCacher(cache, argumentsList);
 
         if (functionCacher.cacheRecordExists()) {
             let cacheRecord = functionCacher.getExistingRecord();
@@ -1600,7 +1597,8 @@
         }
 
         // Re cached
-        functionCacher = getFunctionCacher(this.__handler, "_reCachedCalls", functionName, argumentsList);
+		cache = getObjectAttatchedCache(this, "_reCachedCalls", functionName);
+        functionCacher = getFunctionCacher(cache, argumentsList);
 
         if (functionCacher.cacheRecordExists()) {
             let cacheRecord = functionCacher.getExistingRecord();
@@ -1777,7 +1775,8 @@
         // Split argumentsp
         let argumentsList = argumentsToArray(arguments);
         let functionName = argumentsList.shift();
-        let functionCacher = getFunctionCacher(this.__handler, "_reCachedCalls", functionName, argumentsList);
+		let cache = getObjectAttatchedCache(this, "_reCachedCalls", functionName);
+        let functionCacher = getFunctionCacher(cache, argumentsList);
 
         if (!functionCacher.cacheRecordExists()) {
             // console.log("init reCache ");
