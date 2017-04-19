@@ -86,7 +86,7 @@
 
     let staticArrayOverrides = {
         pop : function() {
-            if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
+            if (!canWrite(this.overrides.__proxy)) return;
             inPulse++;
 
             let index = this.target.length - 1;
@@ -102,7 +102,7 @@
         },
 
         push : function() {
-            if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
+            if (!canWrite(this.overrides.__proxy)) return;
             inPulse++;
 
             let index = this.target.length;
@@ -119,7 +119,7 @@
         },
 
         shift : function() {
-            if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
+            if (!canWrite(this.overrides.__proxy)) return;
             inPulse++;
 
             observerNotificationNullified++;
@@ -135,7 +135,7 @@
         },
 
         unshift : function() {
-            if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
+            if (!canWrite(this.overrides.__proxy)) return;
             inPulse++;
 
             let index = this.target.length;
@@ -152,7 +152,7 @@
         },
 
         splice : function() {
-            if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
+            if (!canWrite(this.overrides.__proxy)) return;
             inPulse++;
 
             let argumentsArray = argumentsToArray(arguments);
@@ -174,7 +174,7 @@
         },
 
         copyWithin: function(target, start, end) {
-            if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
+            if (!canWrite(this.overrides.__proxy)) return;
             inPulse++;
 
             if (target < 0) { start = this.target.length - target; }
@@ -203,7 +203,7 @@
 
     ['reverse', 'sort', 'fill'].forEach(function(functionName) {
         staticArrayOverrides[functionName] = function() {
-            if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
+            if (!canWrite(this.overrides.__proxy)) return;
             inPulse++;
 
             let argumentsArray = argumentsToArray(arguments);
@@ -252,11 +252,8 @@
             return overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
         }
 		
-		if (this.initializer !== null) {
-			this.initializer(target);
-			this.initializer = null;
-		}
-
+		ensureInitialized(this, target);
+		
         if (staticArrayOverrides[key]) {
             return staticArrayOverrides[key].bind(this);
         } else if (typeof(this.overrides[key]) !== 'undefined') {
@@ -283,11 +280,8 @@
             }
         }
 
-		if (this.initializer !== null) {
-			this.initializer(target);
-			this.initializer = null;
-		}
-
+		ensureInitialized(this, target);
+		
         let previousValue = target[key];
 
         // If same value as already set, do nothing.
@@ -301,7 +295,7 @@
         if (cumulativeAssignment && inActiveRecording && (isNaN(value) || typeof(value) === 'undefined')) {
             return true;
         }
-        if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
+        if (!canWrite(this.overrides.__proxy)) return;
         inPulse++;
 
         if (!isNaN(key)) {
@@ -342,12 +336,9 @@
         if (!(key in target)) {
             return true;
         }
-        if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return true;
+        if (!canWrite(this.overrides.__proxy)) return true;
 		
-		if (this.initializer !== null) {
-			this.initializer(target);
-			this.initializer = null;
-		}
+		ensureInitialized(this, target);
 		
         inPulse++;
 
@@ -370,10 +361,7 @@
             return overlayHandler.ownKeys.apply(overlayHandler, [overlayHandler.target]);
         }
 
-		if (this.initializer !== null) {
-			this.initializer(target);
-			this.initializer = null;
-		}
+		ensureInitialized(this, target);
 		
         if (inActiveRecording) {
             if (this._arrayObservers === null) {
@@ -392,10 +380,7 @@
             return overlayHandler.has.apply(overlayHandler, [target, key]);
         }
 		
-		if (this.initializer !== null) {
-			this.initializer(target);
-			this.initializer = null;
-		}
+		ensureInitialized(this, target);
 		
         if (inActiveRecording) {
             if (this._arrayObservers === null) {
@@ -411,12 +396,9 @@
             let overlayHandler = this.overrides.__overlay.__handler;
             return overlayHandler.defineProperty.apply(overlayHandler, [overlayHandler.target, key, oDesc]);
         }
-        if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
+        if (!canWrite(this.overrides.__proxy)) return;
 		
-		if (this.initializer !== null) {
-			this.initializer(target);
-			this.initializer = null;
-		}
+		ensureInitialized(this, target);
 		
         inPulse++;
 
@@ -433,10 +415,7 @@
             return overlayHandler.getOwnPropertyDescriptor.apply(overlayHandler, [overlayHandler.target, key]);
         }
 
-		if (this.initializer !== null) {
-			this.initializer(target);
-			this.initializer = null;
-		}
+		ensureInitialized(this, target);
 		
         if (inActiveRecording) {
             if (this._arrayObservers === null) {
@@ -462,11 +441,8 @@
             return result;
         }
 		
-		if (this.initializer !== null) {
-			this.initializer(target);
-			this.initializer = null;
-		}
-
+		ensureInitialized(this, target);
+				
         if (typeof(this.overrides[key]) !== 'undefined') {
             return this.overrides[key];
         } else {
@@ -512,14 +488,16 @@
             }
         }
 
-        if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
+        if (!canWrite(this.overrides.__proxy)) return;
 		
-		if (this.initializer !== null) {
-			this.initializer(target);
-			this.initializer = null;
-		}
+		ensureInitialized(this, target);
+		
+        let previousValue = target[key]; 
 
-        let previousValue = target[key];
+		// Push event here
+		if (recordPulseEvents) {
+			pulseEvents.push({action: 'set', object: this.overrides.__proxy, property : key, previousValue: previousValue, value: value}); 
+		}
 
         // If same value as already set, do nothing.
         if (key in target) {
@@ -561,12 +539,9 @@
             return true;
         }
 
-        if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return true;
+        if (!canWrite(this.overrides.__proxy)) return true;
 		
-		if (this.initializer !== null) {
-			this.initializer(target);
-			this.initializer = null;
-		}
+		ensureInitialized(this, target);
 		
         if (!(key in target)) {
             return true;
@@ -592,10 +567,7 @@
             return overlayHandler.ownKeys.apply(overlayHandler, [overlayHandler.target, key]);
         }
 		
-		if (this.initializer !== null) {
-			this.initializer(target);
-			this.initializer = null;
-		}
+		ensureInitialized(this, target);
 		
         if (inActiveRecording) {
             if (typeof(this._enumerateObservers) === 'undefined') {
@@ -614,11 +586,8 @@
             return overlayHandler.has.apply(overlayHandler, [overlayHandler.target, key]);
         }
 		
-		if (this.initializer !== null) {
-			this.initializer(target);
-			this.initializer = null;
-		}
-
+		ensureInitialized(this, target);
+		
         if (inActiveRecording) {
             if (typeof(this._enumerateObservers) === 'undefined') {
                 this._enumerateObservers = {};
@@ -634,13 +603,10 @@
             return overlayHandler.defineProperty.apply(overlayHandler, [overlayHandler.target, key]);
         }
 				
-        if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
+        if (!canWrite(this.overrides.__proxy)) return;
 
-		if (this.initializer !== null) {
-			this.initializer(target);
-			this.initializer = null;
-		}
-
+		ensureInitialized(this, target);
+		
         inPulse++;
 
         if (typeof(this._enumerateObservers) !== 'undefined') {
@@ -656,10 +622,7 @@
             return overlayHandler.getOwnPropertyDescriptor.apply(overlayHandler, [overlayHandler.target, key]);
         }
 		
-		if (this.initializer !== null) {
-			this.initializer(target);
-			this.initializer = null;
-		}
+		ensureInitialized(this, target);
 		
         if (inActiveRecording) {
             if (typeof(this._enumerateObservers) === 'undefined') {
@@ -788,6 +751,49 @@
     }
 
 
+    /**********************************
+     *
+     * Initialization
+     *
+     **********************************/
+	 
+	function ensureInitialized(handler, target) {
+		if (handler.initializer !== null) {
+			handler.initializer(target);
+			handler.initializer = null;
+		}		 
+	}
+	 
+	// function purge(object) {
+		// object.__target.
+	// } 
+	 
+		
+    /**********************************
+     *
+     * Security and Write restrictions
+     *
+     **********************************/
+
+	let customCanWrite = null; 
+	 
+	function canWrite(object) {
+		if (writeRestriction !== null && typeof(writeRestriction[object.__id]) === 'undefined') {
+			return false;
+		}
+		if (customCanWrite !== null) {
+			return customCanWrite(object);
+		}
+		return true;
+	} 
+	 
+	let customCanRead = null; 
+	function canRead(object) {
+		if (customCanRead !== null) {
+			return customCanRead(object);
+		}
+		return true;
+	}
 
     /**********************************
      *
@@ -940,6 +946,10 @@
 
     let inPulse = 0;
 
+	let pulseEvents = [];
+	
+	let recordPulseEvents = false;
+	
     function pulse(action) {
         inPulse++;
         callback();
@@ -970,8 +980,9 @@
         });
         contextsScheduledForPossibleDestruction = [];
         postPulseHooks.forEach(function(callback) {
-            callback();
+            callback(pulseEvents);
         });
+		pulseEvents.length = 0;
     }
 
     let postPulseHooks = [];
@@ -1525,9 +1536,34 @@
      *
      ************************************************************************/
 
-	 /**
-	 * Example usage
-	 */
+    function genericRepeatMethod() {
+        // Split arguments
+        let argumentsList = argumentsToArray(arguments);
+        let functionName = argumentsList.shift();
+		
+		repeatForUniqueArgumentLists(
+			getObjectAttatchedCache(this, "_repeaters", functionName), 
+			argumentsList,
+			function() {
+                returnValue = this[functionName].apply(this, argumentsList);
+            }.bind(this)
+		);
+    }
+
+	function repeatForUniqueCall(repeatedFunction, argumentLists) {
+		if (typeof(repeatedFunction.__call_repeat_cache) === 'undefined') {
+			repeatedFunction.__call_repeat_cache = {};
+		}
+		let cache = repeatedFunction.__call_repeat_cache;
+		repeatForUniqueArgumentLists(
+			cache, 
+			argumentList, 
+			function() {
+                returnValue = repeatedFunction.apply(null, argumentsList);
+            }
+		);
+	}
+	
 	function repeatForUniqueArgumentLists(cache, argumentsList, repeatedFunction) {
 		let functionCacher = getFunctionCacher(cache, argumentsList);
 		
@@ -1559,20 +1595,6 @@
             return functionCacher.getExistingRecord().repeaterHandle;
         }
 	}
-
-    function genericRepeatMethod() {
-        // Split arguments
-        let argumentsList = argumentsToArray(arguments);
-        let functionName = argumentsList.shift();
-		
-		repeatForUniqueArgumentLists(
-			getObjectAttatchedCache(this, "_repeaters", functionName), 
-			argumentsList,
-			function() {
-                returnValue = this[functionName].apply(this, argumentsList);
-            }.bind(this)
-		);
-    }
 
     function genericStopRepeatFunction() {
         // Split arguments
