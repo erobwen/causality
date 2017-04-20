@@ -61,6 +61,26 @@
 	function isIdentifiable() {
 		return (ypeof(value) === 'object' && typeof(value._i_id) !== 'undefined')
 	}
+	
+	
+	/*-----------------------------------------------
+	 *                Identifiable
+	 *-----------------------------------------------*/
+
+	 
+	/**
+	* Get specifier
+	*/	
+	function getSpecifier(object, specifierName, createFunction) {
+		if (typeof(object[specifierName] === 'undefined')) {
+			if (typeof(createFunction) !== 'undefined') {
+				object[specifierName] = createFunction({ _mirror_specifier_parent : object, _mirror_specifier_property : specifierName });
+			} else {
+				object[specifierName] = { _mirror_specifier_parent : object, _mirror_specifier_property : specifierName };				
+			}
+		}
+		return object[specifierName];
+	} 
 
 
 	/**
@@ -94,7 +114,9 @@
 		
 	}
 	
-	return {};
+	return {
+		getSpecifier : getSpecifier
+	};
 }));
 
 

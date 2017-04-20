@@ -635,10 +635,7 @@
 		ensureInitialized(this, target);
 		
         if (inActiveRecording) {
-            if (typeof(this._enumerateObservers) === 'undefined') {
-                this._enumerateObservers = {};
-            }
-            registerAnyChangeObserver("_enumerateObservers", this._enumerateObservers);
+            registerAnyChangeObserver("_enumerateObservers", mirror.getSpecifier(this, '_enumerateObservers'));
         }
         return Object.getOwnPropertyDescriptor(target, key);
     }
