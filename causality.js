@@ -304,7 +304,6 @@
                 key = parseInt(key);
             }
             target[key] = value;
-
             if( target[key] === value || (Number.isNaN(target[key]) && Number.isNaN(value)) ) { // Write protected?
                 emitSpliceReplaceEvent(this, key, value, previousValue);
                 if (this._arrayObservers !== null) {
@@ -401,7 +400,7 @@
 		ensureInitialized(this, target);
 		
         inPulse++;
-
+		// TODO: Elaborate here?
         if (this._arrayObservers !== null) {
             notifyChangeObservers("_arrayObservers", this._arrayObservers);
         }
@@ -493,11 +492,6 @@
 		ensureInitialized(this, target);
 		
         let previousValue = target[key]; 
-
-		// Push event here
-		if (recordPulseEvents) {
-			pulseEvents.push({action: 'set', object: this.overrides.__proxy, property : key, previousValue: previousValue, value: value}); 
-		}
 
         // If same value as already set, do nothing.
         if (key in target) {
@@ -608,12 +602,14 @@
 		ensureInitialized(this, target);
 		
         inPulse++;
+		let returnValue = Reflect.defineProperty(target, key, descriptor);
+		// TODO: emitEvent here?
 
         if (typeof(this._enumerateObservers) !== 'undefined') {
             notifyChangeObservers("_enumerateObservers", this._enumerateObservers);
         }
         if (--inPulse === 0) postPulseCleanup();
-        return Reflect.defineProperty(target, key, descriptor);
+        return returnValue;
     }
 
     function getOwnPropertyDescriptorHandlerObject(target, key) {
@@ -998,32 +994,36 @@
      **********************************/
 
     function emitSpliceEvent(handler, index, removed, added) {
-        if (typeof(handler.observers) !== 'undefined') {
+        if (recordPulseEvents || typeof(handler.observers) !== 'undefined') {
             emitEvent(handler, { type: 'splice', index: index, removed: removed, added: added});
         }
     }
 
     function emitSpliceReplaceEvent(handler, key, value, previousValue) {
-        if (typeof(handler.observers) !== 'undefined') {
+        if (recordPulseEvents || typeof(handler.observers) !== 'undefined') {
             emitEvent(handler, { type: 'splice', index: key, removed: [previousValue], added: [value] });
         }
     }
 
     function emitSetEvent(handler, key, value, previousValue) {
-        if (typeof(handler.observers) !== 'undefined') {
-            emitEvent(handler, {type: 'set', property: key, newValue: value, oldValue: previousValue});
+		if (recordPulseEvents || typeof(handler.observers) !== 'undefined') {
+			emitEvent(handler, {type: 'set', property: key, newValue: value, oldValue: previousValue});
         }
     }
 
     function emitDeleteEvent(handler, key, previousValue) {
-        if (typeof(handler.observers) !== 'undefined') {
+        if (recordPulseEvents || typeof(handler.observers) !== 'undefined') {
             emitEvent(handler, {type: 'delete', property: key, deletedValue: previousValue});
         }
     }
 
     function emitEvent(handler, event) {
         // console.log(event);
-        event.objectId = handler.overrides.__id;
+        // event.objectId = handler.overrides.__id;
+		event.object = handler.overrides.__proxy; 
+		if (recordPulseEvents) {
+			pulseEvents.push(event);
+		}
         if (typeof(handler.observers) !== 'undefined') {
             handler.observers.forEach(function(observerFunction) {
                 observerFunction(event);
