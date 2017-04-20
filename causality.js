@@ -108,7 +108,7 @@
             let result = this.target.pop();
             observerNotificationNullified--;
             if (this._arrayObservers !== null) {
-                notifyChangeObservers("_arrayObservers", this._arrayObservers);
+                notifyChangeObservers(this._arrayObservers);
             }
             emitSpliceEvent(this, index, [result], null);
             if (--inPulse === 0) postPulseCleanup();
@@ -125,7 +125,7 @@
             this.target.push.apply(this.target, argumentsArray);
             observerNotificationNullified--;
             if (this._arrayObservers !== null) {
-                notifyChangeObservers("_arrayObservers", this._arrayObservers);
+                notifyChangeObservers(this._arrayObservers);
             }
             emitSpliceEvent(this, index, null, argumentsArray);
             if (--inPulse === 0) postPulseCleanup();
@@ -140,7 +140,7 @@
             let result = this.target.shift();
             observerNotificationNullified--;
             if (this._arrayObservers !== null) {
-                notifyChangeObservers("_arrayObservers", this._arrayObservers);
+                notifyChangeObservers(this._arrayObservers);
             }
             emitSpliceEvent(this, 0, [result], null);
             if (--inPulse === 0) postPulseCleanup();
@@ -158,7 +158,7 @@
             this.target.unshift.apply(this.target, argumentsArray);
             observerNotificationNullified--;
             if (this._arrayObservers !== null) {
-                notifyChangeObservers("_arrayObservers", this._arrayObservers);
+                notifyChangeObservers(this._arrayObservers);
             }
             emitSpliceEvent(this, 0, null, argumentsArray);
             if (--inPulse === 0) postPulseCleanup();
@@ -180,7 +180,7 @@
             let result = this.target.splice.apply(this.target, argumentsArray);
             observerNotificationNullified--;
             if (this._arrayObservers !== null) {
-                notifyChangeObservers("_arrayObservers", this._arrayObservers);
+                notifyChangeObservers(this._arrayObservers);
             }
             emitSpliceEvent(this, index, removed, added);
             if (--inPulse === 0) postPulseCleanup();
@@ -206,7 +206,7 @@
             let result = this.target.copyWithin(target, start, end);
             observerNotificationNullified--;
             if (this._arrayObservers !== null) {
-                notifyChangeObservers("_arrayObservers", this._arrayObservers);
+                notifyChangeObservers(this._arrayObservers);
             }
 
             emitSpliceEvent(this, target, added, removed);
@@ -227,7 +227,7 @@
             let result = this.target[functionName].apply(this.target, argumentsArray);
             observerNotificationNullified--;
             if (this._arrayObservers !== null) {
-                notifyChangeObservers("_arrayObservers", this._arrayObservers);
+                notifyChangeObservers(this._arrayObservers);
             }
             emitSpliceEvent(this, 0, removed, this.target.slice(0));
             if (--inPulse === 0) postPulseCleanup();
@@ -277,7 +277,7 @@
                 if (this._arrayObservers === null) {
                     this._arrayObservers = {};
                 }
-                registerAnyChangeObserver("_arrayObservers", this._arrayObservers);//object
+                registerAnyChangeObserver(this._arrayObservers);//object
             }
             return target[key];
         }
@@ -321,7 +321,7 @@
             if( target[key] === value || (Number.isNaN(target[key]) && Number.isNaN(value)) ) { // Write protected?
                 emitSpliceReplaceEvent(this, key, value, previousValue);
                 if (this._arrayObservers !== null) {
-                    notifyChangeObservers("_arrayObservers", this._arrayObservers);
+                    notifyChangeObservers(this._arrayObservers);
                 }
             }
         } else {
@@ -330,7 +330,7 @@
             if( target[key] === value || (Number.isNaN(target[key]) && Number.isNaN(value)) ) { // Write protected?
                 emitSetEvent(this, key, value, previousValue);
                 if (this._arrayObservers !== null) {
-                    notifyChangeObservers("_arrayObservers", this._arrayObservers);
+                    notifyChangeObservers(this._arrayObservers);
                 }
             }
         }
@@ -360,7 +360,7 @@
         if(!( key in target )) { // Write protected?
             emitDeleteEvent(this, key, previousValue);
             if (this._arrayObservers !== null) {
-                notifyChangeObservers("_arrayObservers", this._arrayObservers);
+                notifyChangeObservers(this._arrayObservers);
             }
         }
         if (--inPulse === 0) postPulseCleanup();
@@ -380,7 +380,7 @@
             if (this._arrayObservers === null) {
                 this._arrayObservers = {};
             }
-            registerAnyChangeObserver("_arrayObservers", this._arrayObservers);
+            registerAnyChangeObserver(this._arrayObservers);
         }
         let result   = Object.keys(target);
         result.push('length');
@@ -399,7 +399,7 @@
             if (this._arrayObservers === null) {
                 this._arrayObservers = {};
             }
-            registerAnyChangeObserver("_arrayObservers", this._arrayObservers);
+            registerAnyChangeObserver(this._arrayObservers);
         }
         return key in target;
     }
@@ -416,7 +416,7 @@
         inPulse++;
 		// TODO: Elaborate here?
         if (this._arrayObservers !== null) {
-            notifyChangeObservers("_arrayObservers", this._arrayObservers);
+            notifyChangeObservers(this._arrayObservers);
         }
         if (--inPulse === 0) postPulseCleanup();
         return target;
@@ -434,7 +434,7 @@
             if (this._arrayObservers === null) {
                 this._arrayObservers = {};
             }
-            registerAnyChangeObserver("_arrayObservers", this._arrayObservers);
+            registerAnyChangeObserver(this._arrayObservers);
         }
         return Object.getOwnPropertyDescriptor(target, key);
     }
@@ -468,12 +468,12 @@
                         if (typeof(this._propertyObservers[key]) ===  'undefined') {
                             this._propertyObservers[key] = {};
                         }
-                        registerAnyChangeObserver("_propertyObservers." + key, this._propertyObservers[key]);
+                        registerAnyChangeObserver(this._propertyObservers[key]);
                     } else {
                         if (typeof(this._enumerateObservers) ===  'undefined') {
                             this._enumerateObservers = {};
                         }
-                        registerAnyChangeObserver("_enumerateObservers." + key, this._enumerateObservers);
+                        registerAnyChangeObserver(this._enumerateObservers);
                     }
                 }
 
@@ -526,11 +526,11 @@
         if( resultValue === value || (Number.isNaN(resultValue) && Number.isNaN(value)) ) { // Write protected?
             if (undefinedKey) {
                 if (typeof(this._enumerateObservers) !== 'undefined') {
-                    notifyChangeObservers("_enumerateObservers", this._enumerateObservers);
+                    notifyChangeObservers(this._enumerateObservers);
                 }
             } else {
                 if (typeof(this._propertyObservers) !== 'undefined' && typeof(this._propertyObservers[key]) !== 'undefined') {
-                    notifyChangeObservers("_propertyObservers." + key, this._propertyObservers[key]);
+                    notifyChangeObservers(this._propertyObservers[key]);
                 }
             }
             emitSetEvent(this, key, value, previousValue);
@@ -560,7 +560,7 @@
             if(!( key in target )) { // Write protected?
                 emitDeleteEvent(this, key, previousValue);
                 if (typeof(this._enumerateObservers) !== 'undefined') {
-                    notifyChangeObservers("_enumerateObservers", this._enumerateObservers);
+                    notifyChangeObservers(this._enumerateObservers);
                 }
             }
             if (--inPulse === 0) postPulseCleanup();
@@ -581,7 +581,7 @@
             if (typeof(this._enumerateObservers) === 'undefined') {
                 this._enumerateObservers = {};
             }
-            registerAnyChangeObserver("_enumerateObservers", this._enumerateObservers);
+            registerAnyChangeObserver(this._enumerateObservers);
         }
         let keys = Object.keys(target);
         // keys.push('__id');
@@ -600,7 +600,7 @@
             if (typeof(this._enumerateObservers) === 'undefined') {
                 this._enumerateObservers = {};
             }
-            registerAnyChangeObserver("_enumerateObservers", this._enumerateObservers);
+            registerAnyChangeObserver(this._enumerateObservers);
         }
         return key in target;
     }
@@ -620,7 +620,7 @@
 		// TODO: emitEvent here?
 
         if (typeof(this._enumerateObservers) !== 'undefined') {
-            notifyChangeObservers("_enumerateObservers", this._enumerateObservers);
+            notifyChangeObservers(this._enumerateObservers);
         }
         if (--inPulse === 0) postPulseCleanup();
         return returnValue;
@@ -635,7 +635,7 @@
 		ensureInitialized(this, target);
 		
         if (inActiveRecording) {
-            registerAnyChangeObserver("_enumerateObservers", mirror.getSpecifier(this, '_enumerateObservers'));
+            registerAnyChangeObserver(mirror.getSpecifier(this, '_enumerateObservers'));
         }
         return Object.getOwnPropertyDescriptor(target, key);
     }
@@ -964,7 +964,7 @@
 
     let inPulse = 0;
 	
-	let postPulseProcess= false;
+	let postPulseProcess = false;
  
 	let pulseEvents = [];
 	
@@ -1171,12 +1171,15 @@
     }
 
     let sourcesObserverSetChunkSize = 500;
-    function registerAnyChangeObserver(description, observerSet) { // instance can be a cached method if observing its return value, object & definition only needed for debugging.
-        let activeRecorder = getActiveRecording();
+    function registerAnyChangeObserver(observerSet) { // instance can be a cached method if observing its return value, object & definition only needed for debugging.
+        if (typeof(observerSet) === 'undefined') {
+			throw "Fuck!";
+		}
+		let activeRecorder = getActiveRecording();
         if (activeRecorder !== null) {
             // console.log(activeRecorder);
             if (typeof(observerSet.initialized) === 'undefined') {
-                observerSet.description = description;
+                observerSet.description = ""; // TODO;
                 observerSet.isRoot = true;
                 observerSet.contents = {};
                 observerSet.contentsCounter = 0;
@@ -1265,7 +1268,7 @@
 
 
     // Recorders is a map from id => recorder
-    function notifyChangeObservers(description, observers) {
+    function notifyChangeObservers(observers) {
         if (typeof(observers.initialized) !== 'undefined') {
             if (observerNotificationNullified > 0) {
                 return;
@@ -1613,11 +1616,11 @@
             cacheRecord.repeaterHandle = repeatOnChange(repeatedFunction);
             leaveContext();
 
-            registerAnyChangeObserver("functionCache.contextObservers", cacheRecord.contextObservers);
+            registerAnyChangeObserver(cacheRecord.contextObservers);
             return cacheRecord.repeaterHandle; // return something else...
         } else {
             let cacheRecord = functionCacher.getExistingRecord();
-            registerAnyChangeObserver("functionCache.contextObservers", cacheRecord.contextObservers);
+            registerAnyChangeObserver(cacheRecord.contextObservers);
             return functionCacher.getExistingRecord().repeaterHandle;
         }
 	}
@@ -1690,7 +1693,7 @@
                 function () {
                     // Delete function cache and notify
                     let cacheRecord = functionCacher.deleteExistingRecord();
-                    notifyChangeObservers("functionCache.contextObservers", cacheRecord.contextObservers);
+                    notifyChangeObservers(cacheRecord.contextObservers);
                 }.bind(this));
             leaveContext();
             cacheRecord.returnValue = returnValue;
@@ -1699,12 +1702,12 @@
                     contextsScheduledForPossibleDestruction.push(cacheRecord);
                 }
             };
-            registerAnyChangeObserver("functionCache.contextObservers", cacheRecord.contextObservers);
+            registerAnyChangeObserver(cacheRecord.contextObservers);
             return returnValue;
         } else {
             // Encountered these arguments before, reuse previous repeater
             let cacheRecord = functionCacher.getExistingRecord();
-            registerAnyChangeObserver("functionCache.contextObservers", cacheRecord.contextObservers);
+            registerAnyChangeObserver(cacheRecord.contextObservers);
             return cacheRecord.returnValue;
         }
     }
@@ -1958,17 +1961,17 @@
                     // See if we need to trigger event on return value
                     if (newReturnValue !== cacheRecord.returnValue) {
                         cacheRecord.returnValue = newReturnValue;
-                        notifyChangeObservers("functionCache.contextObservers", cacheRecord.contextObservers);
+                        notifyChangeObservers(cacheRecord.contextObservers);
                     }
                 }.bind(this)
             );
             leaveContext();
-            registerAnyChangeObserver("functionCache.contextObservers", cacheRecord.contextObservers);
+            registerAnyChangeObserver(cacheRecord.contextObservers);
             return cacheRecord.returnValue;
         } else {
             // Encountered these arguments before, reuse previous repeater
             let cacheRecord = functionCacher.getExistingRecord();
-            registerAnyChangeObserver("functionCache.contextObservers", cacheRecord.contextObservers);
+            registerAnyChangeObserver(cacheRecord.contextObservers);
             return cacheRecord.returnValue;
         }
     }
