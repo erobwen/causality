@@ -67,7 +67,8 @@
 	 *                Identifiable
 	 *-----------------------------------------------*/
 
-	 
+	let nextSpecifierId = 1;
+	
 	/**
 	* Get specifier
 	*/	
@@ -78,13 +79,13 @@
 			// console.log(object.overrides.__id);
 			// console.log(object);
 		// }
-		if (typeof(object[specifierName] === 'undefined')) {
+		if (typeof(object[specifierName]) === 'undefined' || object[specifierName] === null) {
 			if (typeof(createFunction) !== 'undefined') {
 				// console.log("Never here!");
-				// object[specifierName] = createFunction({ _mirror_specifier_parent : object, _mirror_specifier_property : specifierName });
+				object[specifierName] = createFunction({ _mirror_specifier_parent : object, _mirror_specifier_property : specifierName });
 			} else {
-				console.log("Creating new specifier: " + specifierName);
-				object[specifierName] = { _mirror_specifier_parent : object, _mirror_specifier_property : specifierName };				
+				// console.log("Creating new specifier: " + specifierName);
+				object[specifierName] = { _mirror_specifier_id : nextSpecifierId++, _mirror_specifier_parent : object, _mirror_specifier_property : specifierName };				
 				// object[specifierName] = {};				
 			}
 		}

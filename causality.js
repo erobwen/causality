@@ -438,7 +438,6 @@
 
     function getHandlerObject(target, key) {
         key = key.toString();
-		console.log("getHandlerObject: " + key);
         if (this.overrides.__overlay !== null && key !== "__overlay" && (typeof(overlayBypass[key]) === 'undefined')) {
             let overlayHandler = this.overrides.__overlay.__handler;
             let result = overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
@@ -461,10 +460,9 @@
                 }
 				if (inActiveRecording) {
                     if (key in target) {
-						// console.log(this.overrides.__id);
-                        registerAnyChangeObserver(getSpecifier(getSpecifier(this.overrides.__handler, "_propertyObservers"), key));
+                        registerAnyChangeObserver(getSpecifier(getSpecifier(this, "_propertyObservers"), key));
                     } else {
-                        registerAnyChangeObserver(getSpecifier(this.overrides.__handler, "_enumerateObservers"));
+                        registerAnyChangeObserver(getSpecifier(this, "_enumerateObservers"));
                     }
                 }
                 return target[key];
@@ -507,12 +505,12 @@
         let resultValue  = target[key];
         if( resultValue === value || (Number.isNaN(resultValue) && Number.isNaN(value)) ) { // Write protected?
             if (undefinedKey) {
-                if (typeof(this["_enumerateObservers"]) !== 'undefined') {
-                    notifyChangeObservers(this["_enumerateObservers"]);
+                if (typeof(this._enumerateObservers) !== 'undefined') {
+                    notifyChangeObservers(this._enumerateObservers);
                 }
             } else {
-                if (typeof(this["_propertyObservers"]) !== 'undefined' && typeof(this["_propertyObservers"][key]) !== 'undefined') {
-                    notifyChangeObservers(this["_propertyObservers"][key]);
+                if (typeof(this._propertyObservers) !== 'undefined' && typeof(this._propertyObservers[key]) !== 'undefined') {
+                    notifyChangeObservers(this._propertyObservers[key]);
                 }
             }
             emitSetEvent(this, key, value, previousValue);
@@ -622,7 +620,8 @@
      *  Create
      *
      ***************************************************************/
-
+	let nextHandlerId = 1;
+	 
     function create(createdTarget, cacheId) {
 		let = initializer = null;
         if (typeof(createdTarget) === 'undefined') {
@@ -638,6 +637,7 @@
         let handler;
         if (createdTarget instanceof Array) {
             handler = {
+				id : nextHandlerId++,
                 _arrayObservers : null,
                 // getPrototypeOf: function () {},
                 // setPrototypeOf: function () {},
@@ -659,6 +659,7 @@
             //     _propertyObservers[property] = {};
             // }
             handler = {
+				id : nextHandlerId++,
                 // getPrototypeOf: function () {},
                 // setPrototypeOf: function () {},
                 // isExtensible: function () {},

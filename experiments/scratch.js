@@ -67,14 +67,18 @@ class MyCausalityClass {
 		return 33;
 	}
 }
+let pattern = { _propertyObservers : { dostuff: {}, propA: {}}};
 
 const x = new MyCausalityClass( 11 );
 let z;
 log("repeating");
 repeatOnChange(function () {
 	// z = x.propA + 33;
+	// logPattern(x.__handler, pattern);
 	let a = x.propA;
+	// logPattern(x.__handler, pattern);
 	let b = x.dostuff();
+	// logPattern(x.__handler, pattern);
 	z = a + b;
 });
 log("finished set up repeater");
@@ -84,11 +88,10 @@ log(z);
 // x.propC = 100;
 
 // log(z);
-
 x.propA = 2;
 
 log(z);
-logPattern(x.__handler, { _propertyObservers : {}});
+// logPattern(x.__handler, pattern);
 // log(x.__handler);
 // log(x.__target);
 // log(Object.getPrototypeOf(x.__target));
