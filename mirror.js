@@ -72,11 +72,19 @@
 	* Get specifier
 	*/	
 	function getSpecifier(object, specifierName, createFunction) {
+		// console.log("getSpecifier: " + specifierName);
+		if (typeof(object._mirror_specifier_parent) === 'undefined') {
+			console.log(object.overrides.__id);
+			// console.log(object);
+		}
 		if (typeof(object[specifierName] === 'undefined')) {
 			if (typeof(createFunction) !== 'undefined') {
-				object[specifierName] = createFunction({ _mirror_specifier_parent : object, _mirror_specifier_property : specifierName });
+				// console.log("Never here!");
+				// object[specifierName] = createFunction({ _mirror_specifier_parent : object, _mirror_specifier_property : specifierName });
 			} else {
+				console.log("Creating new specifier: " + specifierName);
 				object[specifierName] = { _mirror_specifier_parent : object, _mirror_specifier_property : specifierName };				
+				// object[specifierName] = {};				
 			}
 		}
 		return object[specifierName];

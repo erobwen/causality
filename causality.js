@@ -85,6 +85,8 @@
 
 	let mirror = require('./mirror');
 	
+	let getSpecifier = mirror.getSpecifier; 
+	
 	let useMirror = false;
 	
 	function setUseMirror(value) {
@@ -274,10 +276,7 @@
             return this.overrides[key];
         } else {
             if (inActiveRecording) {
-                if (this._arrayObservers === null) {
-                    this._arrayObservers = {};
-                }
-                registerAnyChangeObserver(this._arrayObservers);//object
+                registerAnyChangeObserver(getSpecifier(this, "_arrayObservers"));//object
             }
             return target[key];
         }
@@ -377,10 +376,7 @@
 		ensureInitialized(this, target);
 		
         if (inActiveRecording) {
-            if (this._arrayObservers === null) {
-                this._arrayObservers = {};
-            }
-            registerAnyChangeObserver(this._arrayObservers);
+            registerAnyChangeObserver(getSpecifier(this, "_arrayObservers"));
         }
         let result   = Object.keys(target);
         result.push('length');
@@ -396,10 +392,7 @@
 		ensureInitialized(this, target);
 		
         if (inActiveRecording) {
-            if (this._arrayObservers === null) {
-                this._arrayObservers = {};
-            }
-            registerAnyChangeObserver(this._arrayObservers);
+            registerAnyChangeObserver(getSpecifier(this, "_arrayObservers"));
         }
         return key in target;
     }
@@ -431,10 +424,7 @@
 		ensureInitialized(this, target);
 		
         if (inActiveRecording) {
-            if (this._arrayObservers === null) {
-                this._arrayObservers = {};
-            }
-            registerAnyChangeObserver(this._arrayObservers);
+            registerAnyChangeObserver(getSpecifier(this, "_arrayObservers"));
         }
         return Object.getOwnPropertyDescriptor(target, key);
     }
@@ -448,6 +438,7 @@
 
     function getHandlerObject(target, key) {
         key = key.toString();
+		console.log("getHandlerObject: " + key);
         if (this.overrides.__overlay !== null && key !== "__overlay" && (typeof(overlayBypass[key]) === 'undefined')) {
             let overlayHandler = this.overrides.__overlay.__handler;
             let result = overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
@@ -460,23 +451,6 @@
             return this.overrides[key];
         } else {
             if (typeof(key) !== 'undefined') {
-                if (inActiveRecording) {
-                    if (key in target) {
-                        if (typeof(this._propertyObservers) ===  'undefined') {
-                            this._propertyObservers = {};
-                        }
-                        if (typeof(this._propertyObservers[key]) ===  'undefined') {
-                            this._propertyObservers[key] = {};
-                        }
-                        registerAnyChangeObserver(this._propertyObservers[key]);
-                    } else {
-                        if (typeof(this._enumerateObservers) ===  'undefined') {
-                            this._enumerateObservers = {};
-                        }
-                        registerAnyChangeObserver(this._enumerateObservers);
-                    }
-                }
-
                 let scan = target;
                 while ( scan !== null && typeof(scan) !== 'undefined' ) {
                     let descriptor = Object.getOwnPropertyDescriptor(scan, key);
@@ -484,6 +458,14 @@
                         return descriptor.get.bind(this.overrides.__proxy)();
                     }
                     scan = Object.getPrototypeOf( scan );
+                }
+				if (inActiveRecording) {
+                    if (key in target) {
+						console.log(this.overrides.__id);
+                        registerAnyChangeObserver(getSpecifier(getSpecifier(this.overrides.__handler, "_propertyObservers"), key));
+                    } else {
+                        registerAnyChangeObserver(getSpecifier(this.overrides.__handler, "_enumerateObservers"));
+                    }
                 }
                 return target[key];
             }
@@ -525,12 +507,12 @@
         let resultValue  = target[key];
         if( resultValue === value || (Number.isNaN(resultValue) && Number.isNaN(value)) ) { // Write protected?
             if (undefinedKey) {
-                if (typeof(this._enumerateObservers) !== 'undefined') {
-                    notifyChangeObservers(this._enumerateObservers);
+                if (typeof(this["_enumerateObservers"]) !== 'undefined') {
+                    notifyChangeObservers(this["_enumerateObservers"]);
                 }
             } else {
-                if (typeof(this._propertyObservers) !== 'undefined' && typeof(this._propertyObservers[key]) !== 'undefined') {
-                    notifyChangeObservers(this._propertyObservers[key]);
+                if (typeof(this["_propertyObservers"]) !== 'undefined' && typeof(this["_propertyObservers"][key]) !== 'undefined') {
+                    notifyChangeObservers(this["_propertyObservers"][key]);
                 }
             }
             emitSetEvent(this, key, value, previousValue);
@@ -578,10 +560,7 @@
 		ensureInitialized(this, target);
 		
         if (inActiveRecording) {
-            if (typeof(this._enumerateObservers) === 'undefined') {
-                this._enumerateObservers = {};
-            }
-            registerAnyChangeObserver(this._enumerateObservers);
+            registerAnyChangeObserver(getSpecifier(this, "_enumerateObservers"));
         }
         let keys = Object.keys(target);
         // keys.push('__id');
@@ -597,10 +576,7 @@
 		ensureInitialized(this, target);
 		
         if (inActiveRecording) {
-            if (typeof(this._enumerateObservers) === 'undefined') {
-                this._enumerateObservers = {};
-            }
-            registerAnyChangeObserver(this._enumerateObservers);
+            registerAnyChangeObserver(getSpecifier(this, "_enumerateObservers"));
         }
         return key in target;
     }
@@ -635,7 +611,7 @@
 		ensureInitialized(this, target);
 		
         if (inActiveRecording) {
-            registerAnyChangeObserver(mirror.getSpecifier(this, '_enumerateObservers'));
+            registerAnyChangeObserver(getSpecifier(this, '_enumerateObservers'));
         }
         return Object.getOwnPropertyDescriptor(target, key);
     }
@@ -1604,10 +1580,8 @@
                 functionCacher.deleteExistingRecord();
                 cacheRecord.micro.remove();
             };
-            cacheRecord.contextObservers = {
-                noMoreObserversCallback : function() {
-                    contextsScheduledForPossibleDestruction.push(cacheRecord);
-                }
+            getSpecifier(cacheRecord, "contextObservers").noMoreObserversCallback = function() {
+                contextsScheduledForPossibleDestruction.push(cacheRecord);
             };
             enterContext('cached_repeater', cacheRecord);
             nextIsMicroContext = true;
@@ -1697,10 +1671,8 @@
                 }.bind(this));
             leaveContext();
             cacheRecord.returnValue = returnValue;
-            cacheRecord.contextObservers = {
-                noMoreObserversCallback : function() {
-                    contextsScheduledForPossibleDestruction.push(cacheRecord);
-                }
+            getSpecifier(cacheRecord, "contextObservers").noMoreObserversCallback = function() {
+                contextsScheduledForPossibleDestruction.push(cacheRecord);
             };
             registerAnyChangeObserver(cacheRecord.contextObservers);
             return returnValue;
@@ -1926,10 +1898,8 @@
             // Never encountered these arguments before, make a new cache
             enterContext('reCache', cacheRecord);
             nextIsMicroContext = true;
-            cacheRecord.contextObservers = {
-                noMoreObserversCallback : function() {
-                    contextsScheduledForPossibleDestruction.push(cacheRecord);
-                }
+			getSpecifier(cacheRecord, 'contextObservers').noMoreObserversCallback = function() {
+				contextsScheduledForPossibleDestruction.push(cacheRecord);
             };
             cacheRecord.repeaterHandler = repeatOnChange(
                 function () {
