@@ -789,6 +789,9 @@
 	}
 	 
 	function canWrite(object) {
+		if (postPulseProcess) {
+			return false;
+		}
 		if (writeRestriction !== null && typeof(writeRestriction[object.__id]) === 'undefined') {
 			return false;
 		}
@@ -960,7 +963,9 @@
      **********************************/
 
     let inPulse = 0;
-
+	
+	let postPulseProcess= false;
+ 
 	let pulseEvents = [];
 	
 	let recordPulseEvents = false;
@@ -985,6 +990,7 @@
     let contextsScheduledForPossibleDestruction = [];
 
     function postPulseCleanup() {
+		postPulseProcess = true; // Blocks any model writing during post pulse cleanup
         // console.log("post pulse cleanup");
         contextsScheduledForPossibleDestruction.forEach(function(context) {
             if (!context.directlyInvokedByApplication) {
@@ -998,6 +1004,7 @@
             callback(pulseEvents);
         });
 		pulseEvents.length = 0;
+		postPulseProcess = false;
     }
 
     let postPulseHooks = [];
