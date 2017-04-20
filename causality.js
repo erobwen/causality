@@ -7,7 +7,7 @@
     } else {
         root.causality = factory(); // Support browser global
     }
-}(this, function () {
+}(this, function () {	
     function values(obj) {
         var vals = [];
         for( var key in obj ) {
@@ -77,6 +77,20 @@
         return Array.prototype.slice.call(arguments);
     };
 
+    /***************************************************************
+     *
+     *  Mirror setup
+     *
+     ***************************************************************/
+
+	let mirror = require('./mirror');
+	
+	let useMirror = false;
+	
+	function setUseMirror(value) {
+		useMirror = value;
+	}
+	
 
     /***************************************************************
      *
@@ -772,6 +786,10 @@
      **********************************/
 
 	let customCanWrite = null; 
+	
+	function setCustomCanWrite(value) {
+		customCanWrite = value;
+	}
 	 
 	function canWrite(object) {
 		if (writeRestriction !== null && typeof(writeRestriction[object.__id]) === 'undefined') {
@@ -784,6 +802,11 @@
 	} 
 	 
 	let customCanRead = null; 
+
+	function setCustomCanRead(value) {
+		customCanRead = value;
+	}
+
 	function canRead(object) {
 		if (customCanRead !== null) {
 			return customCanRead(object);
@@ -822,7 +845,6 @@
     function noContext() {
         return context === null;
     }
-
 
     let inActiveRecording = false;
 
@@ -2033,6 +2055,11 @@
         withoutNotifyChange : nullifyObserverNotification,
         pulse : pulse,
         transaction: transaction,
-        addPostPulseAction : addPostPulseAction
+        addPostPulseAction : addPostPulseAction,
+
+		setCustomCanRead : setCustomCanRead,
+		setCustomCanWrite : setCustomCanWrite,
+		
+		setUseMirror : setUseMirror
     };
 }));
