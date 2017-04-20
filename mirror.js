@@ -72,11 +72,12 @@
 	* Get specifier
 	*/	
 	function getSpecifier(object, specifierName, createFunction) {
+		// logPattern(object, {});
 		// console.log("getSpecifier: " + specifierName);
-		if (typeof(object._mirror_specifier_parent) === 'undefined') {
-			console.log(object.overrides.__id);
+		// if (typeof(object._mirror_specifier_parent) === 'undefined') {
+			// console.log(object.overrides.__id);
 			// console.log(object);
-		}
+		// }
 		if (typeof(object[specifierName] === 'undefined')) {
 			if (typeof(createFunction) !== 'undefined') {
 				// console.log("Never here!");

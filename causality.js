@@ -461,7 +461,7 @@
                 }
 				if (inActiveRecording) {
                     if (key in target) {
-						console.log(this.overrides.__id);
+						// console.log(this.overrides.__id);
                         registerAnyChangeObserver(getSpecifier(getSpecifier(this.overrides.__handler, "_propertyObservers"), key));
                     } else {
                         registerAnyChangeObserver(getSpecifier(this.overrides.__handler, "_enumerateObservers"));
