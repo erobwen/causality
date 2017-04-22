@@ -69,33 +69,178 @@
 
 	let nextSpecifierId = 1;
 	
+    let sourcesObserverSetChunkSize = 500;
 	/**
 	* Get specifier
 	*/	
 	function getSpecifier(object, specifierName, createFunction) {
-		// logPattern(object, {});
-		// console.log("getSpecifier: " + specifierName);
-		// if (typeof(object._mirror_specifier_parent) === 'undefined') {
-			// console.log(object.overrides.__id);
-			// console.log(object);
-		// }
 		if (typeof(object[specifierName]) === 'undefined' || object[specifierName] === null) {
 			if (typeof(createFunction) !== 'undefined') {
-				// console.log("Never here!");
 				object[specifierName] = createFunction({ _mirror_specifier_parent : object, _mirror_specifier_property : specifierName });
 			} else {
-				// console.log("Creating new specifier: " + specifierName);
-				object[specifierName] = { _mirror_specifier_id : nextSpecifierId++, _mirror_specifier_parent : object, _mirror_specifier_property : specifierName };				
-				// object[specifierName] = {};				
+				object[specifierName] = { _mirror_specifier_id : nextSpecifierId++, _mirror_specifier_parent : object, _mirror_specifier_property : specifierName };						
 			}
 		}
 		return object[specifierName];
 	} 
 
+	function addInArray(array, referencedObject) {
+	
+		// console.log(activeRecorder);
+		if (typeof(referencedObject.initialized) === 'undefined') {
+			referencedObject.description = ""; // TODO;
+			referencedObject.isRoot = true;
+			referencedObject.contents = {};
+			referencedObject.contentsCounter = 0;
+			referencedObject.initialized = true;
+			referencedObject.first = null;
+			referencedObject.last = null;
+		}
 
-	/**
-	 * Mirror image
-	 */
+		let refererId = null;
+		let referer = array;
+		if (typeof(array._mirror_outgoing_parent) !== 'undefined') {
+			// TODO: loop recursivley
+			refererId = array._mirror_outgoing_parent.id;
+			referer = array._mirror_outgoing_parent
+		} else {
+			refererId = array.id;
+			referer = array;
+		}
+
+		if (typeof(referencedObject.contents[refererId]) !== 'undefined') {
+			return;
+		}
+
+		if (referencedObject.contentsCounter === sourcesObserverSetChunkSize && referencedObject.last !== null) {
+			referencedObject = referencedObject.last;
+			if (typeof(referencedObject.contents[refererId]) !== 'undefined') {
+				return;
+			}
+		}
+		if (referencedObject.contentsCounter === sourcesObserverSetChunkSize) {
+			let newChunk =
+				{
+					isRoot : false,
+					contents: {},
+					contentsCounter: 0,
+					next: null,
+					previous: null,
+					parent: null
+				};
+			if (referencedObject.isRoot) {
+				newChunk.parent = referencedObject;
+				referencedObject.first = newChunk;
+				referencedObject.last = newChunk;
+			} else {
+				referencedObject.next = newChunk;
+				newChunk.previous = referencedObject;
+				newChunk.parent = referencedObject.parent;
+				referencedObject.parent.last = newChunk;
+			}
+			referencedObject = newChunk;
+		}
+
+		// Add repeater on object beeing observed, if not already added before
+		let referencedObjectContents = referencedObject.contents;
+		if (typeof(referencedObjectContents[refererId]) === 'undefined') {
+			referencedObject.contentsCounter = referencedObject.contentsCounter + 1;
+			referencedObjectContents[refererId] = referer;
+
+			// Note dependency in repeater itself (for cleaning up)
+			// activeRecorder.sources.push(referencedObject);
+			array.push(referencedObject);
+		}
+	}
+			
+			
+	function clearArray(array) {
+		let refererId = null;
+		let referer = array;
+		if (typeof(array._mirror_outgoing_parent) !== 'undefined') {
+			// TODO: loop recursivley
+			refererId = array._mirror_outgoing_parent.id;
+			referer = array._mirror_outgoing_parent
+		} else {
+			refererId = array.id;
+			referer = array;
+		}
+		
+		array.forEach(function(observerSet) { // From observed object
+			// let observerSetContents = getMap(observerSet, 'contents');
+			// if (typeof(observerSet['contents'])) { // Should not be needed
+			//     observerSet['contents'] = {};
+			// }
+			let observerSetContents = observerSet['contents'];
+			delete observerSetContents[refererId];
+			let noMoreObservers = false;
+			observerSet.contentsCounter--;
+			if (observerSet.contentsCounter == 0) {
+				if (observerSet.isRoot) {
+					if (observerSet.first === null && observerSet.last === null) {
+						noMoreObservers = true;
+					}
+				} else {
+					if (observerSet.parent.first === observerSet) {
+						observerSet.parent.first === observerSet.next;
+					}
+
+					if (observerSet.parent.last === observerSet) {
+						observerSet.parent.last === observerSet.previous;
+					}
+
+					if (observerSet.next !== null) {
+						observerSet.next.previous = observerSet.previous;
+					}
+
+					if (observerSet.previous !== null) {
+						observerSet.previous.next = observerSet.next;
+					}
+
+					observerSet.previous = null;
+					observerSet.next = null;
+
+					if (observerSet.parent.first === null && observerSet.parent.last === null) {
+						noMoreObservers = true;
+					}
+				}
+
+				if (noMoreObservers && typeof(observerSet.noMoreObserversCallback) !== 'undefined') {
+					observerSet.noMoreObserversCallback();
+				}
+			}
+		});
+		array.lenght = 0;  // From repeater itself.
+	}
+
+	
+				
+	
+	return {
+		getSpecifier : getSpecifier,
+		clearArray : clearArray,
+		addInArray : addInArray
+	};
+}));
+
+
+	// createMirrorSpecifier(object, '_propertyObservers', property);
+
+
+
+	// function create
+
+
+	// let x = create(); 
+
+
+
+		/**
+		 *  Feather management
+		 */	
+		 /**
+		 
+	
 	function setM(object, property, value) {
 		let oldValue = object[property];
 		
@@ -124,27 +269,7 @@
 		
 	}
 	
-	return {
-		getSpecifier : getSpecifier
-	};
-}));
-
-
-	// createMirrorSpecifier(object, '_propertyObservers', property);
-
-
-
-	// function create
-
-
-	// let x = create(); 
-
-
-
-		/**
-		 *  Feather management
-		 */	
-		 /**
+	
 		removeBackReferenceFromFeather : function(sourceImage, propertyName, targetImage) {
 			if (sourceImage[propertyName] === targetImage) {
 				// Internal back reference

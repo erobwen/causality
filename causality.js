@@ -1072,61 +1072,20 @@
         }
 
         // Recorder context
-        enterContext('recording', {
+		let context = {
             nextToNotify: null,
             id: recorderId++,
             description: description,
-            sources: [],
             uponChangeAction: doAfterChange,
             remove : function() {
                 // Clear out previous observations
-                this.sources.forEach(function(observerSet) { // From observed object
-                    // let observerSetContents = getMap(observerSet, 'contents');
-                    // if (typeof(observerSet['contents'])) { // Should not be needed
-                    //     observerSet['contents'] = {};
-                    // }
-                    let observerSetContents = observerSet['contents'];
-                    delete observerSetContents[this.id];
-                    let noMoreObservers = false;
-                    observerSet.contentsCounter--;
-                    if (observerSet.contentsCounter == 0) {
-                        if (observerSet.isRoot) {
-                            if (observerSet.first === null && observerSet.last === null) {
-                                noMoreObservers = true;
-                            }
-                        } else {
-                            if (observerSet.parent.first === observerSet) {
-                                observerSet.parent.first === observerSet.next;
-                            }
-
-                            if (observerSet.parent.last === observerSet) {
-                                observerSet.parent.last === observerSet.previous;
-                            }
-
-                            if (observerSet.next !== null) {
-                                observerSet.next.previous = observerSet.previous;
-                            }
-
-                            if (observerSet.previous !== null) {
-                                observerSet.previous.next = observerSet.next;
-                            }
-
-                            observerSet.previous = null;
-                            observerSet.next = null;
-
-                            if (observerSet.parent.first === null && observerSet.parent.last === null) {
-                                noMoreObservers = true;
-                            }
-                        }
-
-                        if (noMoreObservers && typeof(observerSet.noMoreObserversCallback) !== 'undefined') {
-                            observerSet.noMoreObserversCallback();
-                        }
-                    }
-                }.bind(this));
-                this.sources.lenght = 0;  // From repeater itself.
+				mirror.clearArray(this.sources);
             }
-        });
+        }
+		context.sources = [];
+		context.sources._mirror_outgoing_parent = context;
+		
+        enterContext('recording', context);
         let returnValue = doFirst();
         leaveContext();
 
@@ -1147,68 +1106,10 @@
         return observerSet.contentsCounter === 0 && observerSet.first === null;
     }
 
-    let sourcesObserverSetChunkSize = 500;
-    function registerAnyChangeObserver(observerSet) { // instance can be a cached method if observing its return value, object & definition only needed for debugging.
-        if (typeof(observerSet) === 'undefined') {
-			throw "Fuck!";
-		}
+    function registerAnyChangeObserver(observerSet) { // instance can be a cached method if observing its return value, object
 		let activeRecorder = getActiveRecording();
         if (activeRecorder !== null) {
-            // console.log(activeRecorder);
-            if (typeof(observerSet.initialized) === 'undefined') {
-                observerSet.description = ""; // TODO;
-                observerSet.isRoot = true;
-                observerSet.contents = {};
-                observerSet.contentsCounter = 0;
-                observerSet.initialized = true;
-                observerSet.first = null;
-                observerSet.last = null;
-            }
-
-            let recorderId = activeRecorder.id;
-
-            if (typeof(observerSet.contents[recorderId]) !== 'undefined') {
-                return;
-            }
-
-            if (observerSet.contentsCounter === sourcesObserverSetChunkSize && observerSet.last !== null) {
-                observerSet = observerSet.last;
-                if (typeof(observerSet.contents[recorderId]) !== 'undefined') {
-                    return;
-                }
-            }
-            if (observerSet.contentsCounter === sourcesObserverSetChunkSize) {
-                let newChunk =
-                    {
-                        isRoot : false,
-                        contents: {},
-                        contentsCounter: 0,
-                        next: null,
-                        previous: null,
-                        parent: null
-                    };
-                if (observerSet.isRoot) {
-                    newChunk.parent = observerSet;
-                    observerSet.first = newChunk;
-                    observerSet.last = newChunk;
-                } else {
-                    observerSet.next = newChunk;
-                    newChunk.previous = observerSet;
-                    newChunk.parent = observerSet.parent;
-                    observerSet.parent.last = newChunk;
-                }
-                observerSet = newChunk;
-            }
-
-            // Add repeater on object beeing observed, if not already added before
-            let observerSetContents = observerSet.contents;
-            if (typeof(observerSetContents[recorderId]) === 'undefined') {
-                observerSet.contentsCounter = observerSet.contentsCounter + 1;
-                observerSetContents[recorderId] = activeRecorder;
-
-                // Note dependency in repeater itself (for cleaning up)
-                activeRecorder.sources.push(observerSet);
-            }
+			mirror.addInArray(activeRecorder.sources, observerSet);
         }
     }
 
