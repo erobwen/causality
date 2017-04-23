@@ -84,8 +84,28 @@
 		return object[specifierName];
 	} 
 
-	function addInArray(array, referencedObject) {
-	
+	function addInArray(array , referencedObject) {
+		// let relationName = null;
+		
+		// let mirrorIncomingRelation = null;
+		// if (typeof(referencedObject._mirror_incoming_relation) !== 'undefined')  {
+			// mirrorIncomingRelation = referencedObject;
+		// } else if (typeof(referencedObject._mirror_incoming_relations) === 'undefined') {
+			// let mirrorIncomingRelations = { _mirror_incoming_relations : true };
+			// referencedObject._mirror_incoming_relations = mirrorIncomingRelations; 
+			// mirrorIncomingRelation = { _mirror_incoming_relation : true };
+			// mirrorIncomingRelations[relationName] = mirrorIncomingRelation;
+		// } else {
+			// if (referencedObject._mirror_incoming_relations === true) {
+				// mirrorIncomingRelation = { _mirror_incoming_relation : true };
+				// referencedObject[relationName] = mirrorIncomingRelation;
+			// } else {
+				// let mirrorIncomingRelations = referencedObject._mirror_incoming_relations;
+				// mirrorIncomingRelation = { _mirror_incoming_relation : true };
+				// mirrorIncomingRelations[relationName] = mirrorIncomingRelation;
+			// }
+		// }
+		
 		// console.log(activeRecorder);
 		if (typeof(referencedObject.initialized) === 'undefined') {
 			referencedObject.description = ""; // TODO;
