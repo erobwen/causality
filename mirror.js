@@ -85,26 +85,39 @@
 	} 
 
 	function addInArray(array , referencedObject) {
-		// let relationName = null;
+		/*
+		// Find relation name
+		let relationName = null;
+		let indexScan = array;
+		while (typeof(indexScan._mirror_index_parent) !== 'undefined') {
+			relationName = array._mirror_index_parent_relation;
+			indexScan = indexScan._mirror_index_parent;
+		}
 		
-		// let mirrorIncomingRelation = null;
-		// if (typeof(referencedObject._mirror_incoming_relation) !== 'undefined')  {
-			// mirrorIncomingRelation = referencedObject;
-		// } else if (typeof(referencedObject._mirror_incoming_relations) === 'undefined') {
-			// let mirrorIncomingRelations = { _mirror_incoming_relations : true };
-			// referencedObject._mirror_incoming_relations = mirrorIncomingRelations; 
-			// mirrorIncomingRelation = { _mirror_incoming_relation : true };
-			// mirrorIncomingRelations[relationName] = mirrorIncomingRelation;
-		// } else {
-			// if (referencedObject._mirror_incoming_relations === true) {
-				// mirrorIncomingRelation = { _mirror_incoming_relation : true };
-				// referencedObject[relationName] = mirrorIncomingRelation;
-			// } else {
-				// let mirrorIncomingRelations = referencedObject._mirror_incoming_relations;
-				// mirrorIncomingRelation = { _mirror_incoming_relation : true };
-				// mirrorIncomingRelations[relationName] = mirrorIncomingRelation;
-			// }
-		// }
+		// Find right place in the incoming structure.
+		let mirrorIncomingRelation = null;
+		if (referencedObject._mirror_incoming_relation === true)  {
+			// The referenced object is the incoming relation itself. 
+			mirrorIncomingRelation = referencedObject;
+		} else if (typeof(referencedObject._mirror_incoming_relations) === 'undefined') {
+			// The argument is the referenced object itself, dig down into the structure. 
+			let mirrorIncomingRelations = { _mirror_incoming_relations : true };
+			referencedObject._mirror_incoming_relations = mirrorIncomingRelations; 
+			mirrorIncomingRelation = { _mirror_incoming_relation : true };
+			mirrorIncomingRelations[relationName] = mirrorIncomingRelation;
+		} else {
+			if (referencedObject._mirror_incoming_relations === true) {
+				// The argument is the incoming relation set, will never happen?
+				mirrorIncomingRelation = { _mirror_incoming_relation : true };
+				referencedObject[relationName] = mirrorIncomingRelation;
+			} else {
+				// The argument is the referenced object itself, but has already incoming relations defined. 
+				let mirrorIncomingRelations = referencedObject._mirror_incoming_relations;
+				mirrorIncomingRelation = { _mirror_incoming_relation : true };
+				mirrorIncomingRelations[relationName] = mirrorIncomingRelation;
+			}
+		}
+		*/
 		
 		// console.log(activeRecorder);
 		if (typeof(referencedObject.initialized) === 'undefined') {
