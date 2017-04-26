@@ -111,45 +111,73 @@
 		return gottenReferingObject;
 	}
 	
-	function addInArray(array , referencedObject) {
-		
-		// Find relation name
-		let referingObject = getReferingObject(array, "[]");
-		let relationName = gottenReferingObjectRelation;
-		let refererId = referingObject.id;
-
-		// Find right place in the incoming structure.
-		let mirrorIncomingRelation = null;
+	function findIncomingRelation(referencedObject, relationName) {
 		if (referencedObject._mirror_incoming_relation === true)  {
 			// The referenced object is the incoming relation itself. 
-			mirrorIncomingRelation = referencedObject;
+			return referencedObject;
 		} else if (typeof(referencedObject._mirror_incoming_relations) === 'undefined') {
 			// The argument is the referenced object itself, dig down into the structure. 
 			let mirrorIncomingRelations = { _mirror_incoming_relations : true };
 			referencedObject._mirror_incoming_relations = mirrorIncomingRelations; 
-			mirrorIncomingRelation = { _mirror_incoming_relation : true };
+			let mirrorIncomingRelation = { _mirror_incoming_relation : true };
 			mirrorIncomingRelations[relationName] = mirrorIncomingRelation;
+			return mirrorIncomingRelation;
 		} else {
 			if (referencedObject._mirror_incoming_relations === true) {
 				// The argument is the incoming relation set, will never happen?
-				mirrorIncomingRelation = { _mirror_incoming_relation : true };
+				let mirrorIncomingRelation = { _mirror_incoming_relation : true };
 				referencedObject[relationName] = mirrorIncomingRelation;
+				return mirrorIncomingRelation;
 			} else {
 				// The argument is the referenced object itself, but has already incoming relations defined. 
 				let mirrorIncomingRelations = referencedObject._mirror_incoming_relations;
 				if (typeof(mirrorIncomingRelations[relationName]) === 'undefined') {
 					mirrorIncomingRelation = { _mirror_incoming_relation : true };
 					mirrorIncomingRelations[relationName] = mirrorIncomingRelation;
+					return mirrorIncomingRelation;
 				} else {
-					mirrorIncomingRelation = mirrorIncomingRelations[relationName];
+					return mirrorIncomingRelations[relationName];
 				}
 			}
 		}
+	}
+	
+	function setProperty(object, property, value) {
+		let referingObject = getReferingObject(object, property);
+		let relationName = gottenReferingObjectRelation;
 		
+		let referencedValue = value;
+		if (typeof(value) === 'object') { //TODO: limit backwards referenes to mirror objects only.
+			let mirrorIncomingRelation = findIncomingRelation(referencedObject, property);
+			
+		}
+		
+		object[property] = referencedValue;
+	}
+	
+	function getProperty(object, property) {
+		
+	}
+	
+	function addInArray(array, referencedObject) {
+		// Find relation name
+		let referingObject = getReferingObject(array, "[]");
+		let relationName = gottenReferingObjectRelation;
+
+
+		// Find right place in the incoming structure.
+		let mirrorIncomingRelation = findIncomingRelation(referencedObject, relationName);
+		let incomingRelationChunk = intitializeAndConstructMirrorStructure(mirrorIncomingRelation, referingObject);
+		if (incomingRelationChunk !== null) {
+			array.push(incomingRelationChunk);
+		}
+	}
+			
+	function intitializeAndConstructMirrorStructure(mirrorIncomingRelation, referingObject) {
+		let refererId = referingObject.id;
 		
 		// console.log(activeRecorder);
 		if (typeof(mirrorIncomingRelation.initialized) === 'undefined') {
-			mirrorIncomingRelation.description = ""; // TODO;
 			mirrorIncomingRelation.isRoot = true;
 			mirrorIncomingRelation.contents = {};
 			mirrorIncomingRelation.contentsCounter = 0;
@@ -158,18 +186,12 @@
 			mirrorIncomingRelation.last = null;
 		}
 
-
-
+		// Already added as relation
 		if (typeof(mirrorIncomingRelation.contents[refererId]) !== 'undefined') {
-			return;
+			return null;
 		}
 
-		if (mirrorIncomingRelation.contentsCounter === sourcesObserverSetChunkSize && mirrorIncomingRelation.last !== null) {
-			mirrorIncomingRelation = mirrorIncomingRelation.last;
-			if (typeof(mirrorIncomingRelation.contents[refererId]) !== 'undefined') {
-				return;
-			}
-		}
+		// Move on to new chunk?
 		if (mirrorIncomingRelation.contentsCounter === sourcesObserverSetChunkSize) {
 			let newChunk =
 				{
@@ -201,10 +223,11 @@
 
 			// Note dependency in repeater itself (for cleaning up)
 			// activeRecorder.sources.push(mirrorIncomingRelation);
-			array.push(mirrorIncomingRelation);
+			return mirrorIncomingRelation;
+		} else {
+			return null;
 		}
 	}
-			
 			
 	function clearArray(array) {
 		let refererId = null;
