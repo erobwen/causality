@@ -1082,9 +1082,9 @@
 				mirror.clearArray(this.sources);
             }
         }
-		context.sources = [];
-		context.sources._mirror_outgoing_parent = context;
-				// mirror.createArrayIndex(context, "sources");
+		// context.sources = [];
+		// context.sources._mirror_outgoing_parent = context;
+		mirror.createArrayIndex(context, "sources");
 		
         enterContext('recording', context);
         let returnValue = doFirst();

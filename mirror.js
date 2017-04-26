@@ -93,20 +93,31 @@
 		let index = [];
 		index._mirror_index_parent = object;
 		index._mirror_index_parent_relation = property;
+		index._mirror_outgoing_parent = object;
 		object[property] = index;
 		return index;
+	}
+	
+	let gottenReferingObject;
+	let gottenReferingObjectRelation;
+	function getReferingObject(possibleIndex, relationFromPossibleIndex) {
+		gottenReferingObject = possibleIndex;
+		gottenReferingObjectRelation = relationFromPossibleIndex;
+		while (typeof(gottenReferingObject._mirror_index_parent) !== 'undefined') {
+			gottenReferingObjectRelation = gottenReferingObject._mirror_index_parent_relation;
+			gottenReferingObject = gottenReferingObject._mirror_index_parent;
+		}
+		
+		return gottenReferingObject;
 	}
 	
 	function addInArray(array , referencedObject) {
 		
 		// Find relation name
-		let relationName = null;
-		let indexScan = array;
-		while (typeof(indexScan._mirror_index_parent) !== 'undefined') {
-			relationName = array._mirror_index_parent_relation;
-			indexScan = indexScan._mirror_index_parent;
-		}
-		
+		let referingObject = getReferingObject(array, "[]");
+		let relationName = gottenReferingObjectRelation;
+		let refererId = referingObject.id;
+
 		// Find right place in the incoming structure.
 		let mirrorIncomingRelation = null;
 		if (referencedObject._mirror_incoming_relation === true)  {
@@ -147,16 +158,7 @@
 			mirrorIncomingRelation.last = null;
 		}
 
-		let refererId = null;
-		let referer = array;
-		if (typeof(array._mirror_outgoing_parent) !== 'undefined') {
-			// TODO: loop recursivley
-			refererId = array._mirror_outgoing_parent.id;
-			referer = array._mirror_outgoing_parent
-		} else {
-			refererId = array.id;
-			referer = array;
-		}
+
 
 		if (typeof(mirrorIncomingRelation.contents[refererId]) !== 'undefined') {
 			return;
@@ -195,7 +197,7 @@
 		let mirrorIncomingRelationContents = mirrorIncomingRelation.contents;
 		if (typeof(mirrorIncomingRelationContents[refererId]) === 'undefined') {
 			mirrorIncomingRelation.contentsCounter = mirrorIncomingRelation.contentsCounter + 1;
-			mirrorIncomingRelationContents[refererId] = referer;
+			mirrorIncomingRelationContents[refererId] = referingObject;
 
 			// Note dependency in repeater itself (for cleaning up)
 			// activeRecorder.sources.push(mirrorIncomingRelation);
