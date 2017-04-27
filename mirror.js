@@ -160,9 +160,21 @@
 		}
 	}
 	
+	
+	/**
+	 * Setting and getting relations
+	 */
+	
 	function setProperty(object, property, value) {
 		let referingObject = getReferingObject(object, property);
 		let relationName = gottenReferingObjectRelation;
+		
+		if (typeof(object[property]) !== 'undefined') {
+			let previousValue = object[property];
+			if (typeof(previousValue) === 'object' && typeof(previousValue._mirror_incoming_relation) !== 'undefined') {
+				
+			}
+		}
 		
 		let referencedValue = value;
 		if (typeof(value) === 'object') { //TODO: limit backwards referenes to mirror objects only.
@@ -193,7 +205,78 @@
 			array.push(incomingRelationChunk);
 		}
 	}
+
 			
+	function clearArray(array) {
+		let refererId = null;
+		let referer = array;
+		if (typeof(array._mirror_outgoing_parent) !== 'undefined') {
+			// TODO: loop recursivley
+			refererId = array._mirror_outgoing_parent.id;
+			referer = array._mirror_outgoing_parent
+		} else {
+			refererId = array.id;
+			referer = array;
+		}
+		
+		array.forEach(function(observerSet) {
+			removeMirrorStructure(refererId, observerSet);
+		});
+		array.lenght = 0;  // From repeater itself.
+	}
+	
+
+	
+	/**
+	* Structure helpers
+	*/				
+	function removeMirrorStructure(refererId, observerSet) {
+		if (typeof(observerSet._mirror_incoming_relation) !== 'undefined') {
+			// let observerSetContents = getMap(observerSet, 'contents');
+			// if (typeof(observerSet['contents'])) { // Should not be needed
+			//     observerSet['contents'] = {};
+			// }
+			let observerSetContents = observerSet['contents'];
+			delete observerSetContents[refererId];
+			let noMoreObservers = false;
+			observerSet.contentsCounter--;
+			if (observerSet.contentsCounter == 0) {
+				if (observerSet.isRoot) {
+					if (observerSet.first === null && observerSet.last === null) {
+						noMoreObservers = true;
+					}
+				} else {
+					if (observerSet.parent.first === observerSet) {
+						observerSet.parent.first === observerSet.next;
+					}
+
+					if (observerSet.parent.last === observerSet) {
+						observerSet.parent.last === observerSet.previous;
+					}
+
+					if (observerSet.next !== null) {
+						observerSet.next.previous = observerSet.previous;
+					}
+
+					if (observerSet.previous !== null) {
+						observerSet.previous.next = observerSet.next;
+					}
+
+					observerSet.previous = null;
+					observerSet.next = null;
+
+					if (observerSet.parent.first === null && observerSet.parent.last === null) {
+						noMoreObservers = true;
+					}
+				}
+
+				if (noMoreObservers && typeof(observerSet.noMoreObserversCallback) !== 'undefined') {
+					observerSet.noMoreObserversCallback();
+				}
+			}
+		}
+	}
+	
 	function intitializeAndConstructMirrorStructure(mirrorIncomingRelation, referingObject) {
 		let refererId = referingObject.id;
 		
@@ -249,74 +332,15 @@
 			return null;
 		}
 	}
-			
-	function clearArray(array) {
-		let refererId = null;
-		let referer = array;
-		if (typeof(array._mirror_outgoing_parent) !== 'undefined') {
-			// TODO: loop recursivley
-			refererId = array._mirror_outgoing_parent.id;
-			referer = array._mirror_outgoing_parent
-		} else {
-			refererId = array.id;
-			referer = array;
-		}
-		
-		array.forEach(function(observerSet) { // From observed object
-			// let observerSetContents = getMap(observerSet, 'contents');
-			// if (typeof(observerSet['contents'])) { // Should not be needed
-			//     observerSet['contents'] = {};
-			// }
-			let observerSetContents = observerSet['contents'];
-			delete observerSetContents[refererId];
-			let noMoreObservers = false;
-			observerSet.contentsCounter--;
-			if (observerSet.contentsCounter == 0) {
-				if (observerSet.isRoot) {
-					if (observerSet.first === null && observerSet.last === null) {
-						noMoreObservers = true;
-					}
-				} else {
-					if (observerSet.parent.first === observerSet) {
-						observerSet.parent.first === observerSet.next;
-					}
-
-					if (observerSet.parent.last === observerSet) {
-						observerSet.parent.last === observerSet.previous;
-					}
-
-					if (observerSet.next !== null) {
-						observerSet.next.previous = observerSet.previous;
-					}
-
-					if (observerSet.previous !== null) {
-						observerSet.previous.next = observerSet.next;
-					}
-
-					observerSet.previous = null;
-					observerSet.next = null;
-
-					if (observerSet.parent.first === null && observerSet.parent.last === null) {
-						noMoreObservers = true;
-					}
-				}
-
-				if (noMoreObservers && typeof(observerSet.noMoreObserversCallback) !== 'undefined') {
-					observerSet.noMoreObserversCallback();
-				}
-			}
-		});
-		array.lenght = 0;  // From repeater itself.
-	}
-
-	
 				
 	
 	return {
 		createArrayIndex : createArrayIndex,
 		getSpecifier : getSpecifier,
 		clearArray : clearArray,
-		addInArray : addInArray
+		addInArray : addInArray,
+		getProperty : getProperty,
+		setProperty : setProperty
 	};
 }));
 

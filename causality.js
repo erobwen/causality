@@ -465,7 +465,11 @@
                         registerAnyChangeObserver(getSpecifier(this, "_enumerateObservers"));
                     }
                 }
-                return target[key];
+				if (typeof(target._mirror_is_reflected) !== 'undefined') {
+					return mirror.getProperty(target, key);
+				} else {
+					return target[key];
+				}
             }
         }
     }
@@ -501,8 +505,12 @@
         inPulse++;
 
         let undefinedKey = !(key in target);
-        target[key]      = value;
-        let resultValue  = target[key];
+		let resultValue;
+		if (typeof(target._mirror_is_reflected) !== 'undefined') {
+			resultValue = mirror.setProperty(target, key, value);
+		} else {
+			resultValue = (target[key] = value);
+		}
         if( resultValue === value || (Number.isNaN(resultValue) && Number.isNaN(value)) ) { // Write protected?
             if (undefinedKey) {
                 if (typeof(this._enumerateObservers) !== 'undefined') {
