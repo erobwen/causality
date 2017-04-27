@@ -183,17 +183,17 @@ describe("Projections", function(){
         assert.equal(detectedEvents[0].type, 'set');
         assert.equal(detectedEvents[0].property, 'next');
         assert.equal(detectedEvents[0].newValue.value, 4.5);
-        assert.equal(detectedEvents[0].newValue.__cacheId, '23_list');
+        assert.equal(detectedEvents[0].newValue.__cacheId, '25_list');
         assert.equal(detectedEvents[0].oldValue.value, 5);
         assert.equal(detectedEvents[0].oldValue.__cacheId, '12_list');
-        assert.equal(detectedEvents[0].object.__id, 18);
+        assert.equal(detectedEvents[0].object.__id, 20);
         assert.equal(detectedEvents[1].type, 'set');
         assert.equal(detectedEvents[1].property, 'previous');
         assert.equal(detectedEvents[1].newValue.value, 4.5);
-        assert.equal(detectedEvents[1].newValue.__cacheId, '23_list');
+        assert.equal(detectedEvents[1].newValue.__cacheId, '25_list');
         assert.equal(detectedEvents[1].oldValue.value, 4);
         assert.equal(detectedEvents[1].oldValue.__cacheId, '4_list');
-        assert.equal(detectedEvents[1].object.__id, 19);
+        assert.equal(detectedEvents[1].object.__id, 21);
 
         // Assert updated
         expectedValues = [1, 2, 3, 4, 4.5, 5, 6, 7];
@@ -333,17 +333,17 @@ describe("Projections", function(){
         assert.equal(detectedEvents[0].type, 'set');
         assert.equal(detectedEvents[0].property, 'next');
         assert.equal(detectedEvents[0].newValue.value, 4.5);
-        assert.equal(detectedEvents[0].newValue.__cacheId, '30_node');
+        assert.equal(detectedEvents[0].newValue.__cacheId, '44_node');
         assert.equal(detectedEvents[0].oldValue.value, 5);
         assert.equal(detectedEvents[0].oldValue.__cacheId, '12_node');
-        assert.equal(detectedEvents[0].object.__id, 22);
+        assert.equal(detectedEvents[0].object.__id, 30);
         assert.equal(detectedEvents[1].type, 'set');
         assert.equal(detectedEvents[1].property, 'previous');
         assert.equal(detectedEvents[1].newValue.value, 4.5);
-        assert.equal(detectedEvents[1].newValue.__cacheId, '30_node');
+        assert.equal(detectedEvents[1].newValue.__cacheId, '44_node');
         assert.equal(detectedEvents[1].oldValue.value, 4);
         assert.equal(detectedEvents[1].oldValue.__cacheId, '4_node');
-        assert.equal(detectedEvents[1].object.__id, 24);
+        assert.equal(detectedEvents[1].object.__id, 34);
 
         // Assert updated
         expectedValues = [1, 2, 3, 4, 4.5, 5, 6, 7];

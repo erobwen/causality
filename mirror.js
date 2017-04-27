@@ -170,7 +170,7 @@
 		
 		if (typeof(object[property]) !== 'undefined') {
 			let previousValue = object[property];
-			removeMirrorStructure(object.id, previousValue);
+			removeMirrorStructure(object.__id, previousValue);
 		}
 		
 		let referencedValue = value;
@@ -209,10 +209,10 @@
 		// let referer = array;
 		// if (typeof(array._mirror_index_parent) !== 'undefined') {
 			// TODO: loop recursivley
-			// refererId = array._mirror_index_parent.id;
+			// refererId = array._mirror_index_parent.__id;
 			// referer = array._mirror_index_parent
 		// } else {
-			// refererId = array.id;
+			// refererId = array.__id;
 			// referer = array;
 		// }
 		// Find relation name
@@ -221,7 +221,7 @@
 		
 		
 		array.forEach(function(observerSet) {
-			removeMirrorStructure(referingObject.id, observerSet);
+			removeMirrorStructure(referingObject.__id, observerSet);
 		});
 		array.lenght = 0;  // From repeater itself.
 	}
@@ -276,7 +276,7 @@
 	}
 	
 	function intitializeAndConstructMirrorStructure(mirrorIncomingRelation, referingObject) {
-		let refererId = referingObject.id;
+		let refererId = referingObject.__id;
 		
 		// console.log(activeRecorder);
 		if (typeof(mirrorIncomingRelation.initialized) === 'undefined') {
@@ -338,7 +338,8 @@
 		clearArray : clearArray,
 		addInArray : addInArray,
 		getProperty : getProperty,
-		setProperty : setProperty
+		setProperty : setProperty,
+		getNextId : getNextId
 	};
 }));
 
@@ -393,7 +394,7 @@
 			if (sourceImage[propertyName] === targetImage) {
 				// Internal back reference
 				let incomingIntegrated = this.getMap(targetImage, 'incomingIntegrated');
-				let key = sourceImage.id + ":" + propertyName;
+				let key = sourceImage.__id + ":" + propertyName;
 				delete incomingIntegrated[key];
 				this.setDirty(targetImage, ['incomingIntegrated', key]);			
 			} else {
@@ -407,7 +408,7 @@
 		storeBackReferenceInFeather : function(sourceImage, propertyName, targetImage) {
 			let incomingIntegrated = this.getMap(targetImage, 'incomingIntegrated');
 			if (Object.keys(incomingIntegrated).count < 100) {
-				let key = sourceImage.id + ":" + propertyName;
+				let key = sourceImage.__id + ":" + propertyName;
 				incomingIntegrated[key] = sourceImage;
 				this.setDirty(targetImage, ['incomingIntegrated', key]);
 			} else {

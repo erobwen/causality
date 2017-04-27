@@ -1063,8 +1063,6 @@
      *  Upon change do
      **********************************/
 
-    let recorderId = 0;
-
     function uponChangeDo() { // description(optional), doFirst, doAfterChange. doAfterChange cannot modify model, if needed, use a repeater instead. (for guaranteed consistency)
         // Arguments
         let doFirst;
@@ -1082,7 +1080,7 @@
         // Recorder context
 		let context = {
             nextToNotify: null,
-            id: recorderId++,
+            __id: nextId++,
             description: description,
             uponChangeAction: doAfterChange,
             remove : function() {
@@ -1228,7 +1226,6 @@
         }
     }
 
-    let repeaterId = 0;
     function repeatOnChange() { // description(optional), action
         // Arguments
         let repeaterAction;
@@ -1242,11 +1239,11 @@
 
         // Activate!
         return refreshRepeater({
-            id: repeaterId++,
+            __id: nextId++,
             description: description,
             action: repeaterAction,
             remove: function() {
-                // console.log("removeRepeater: " + repeater.id + "." + repeater.description);
+                // console.log("removeRepeater: " + repeater.__id + "." + repeater.description);
                 removeChildContexts(this);
                 detatchRepeater(this);
                 this.micro.remove(); // Remove recorder!
