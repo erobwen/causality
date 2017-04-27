@@ -76,6 +76,43 @@
     let argumentsToArray = function(arguments) {
         return Array.prototype.slice.call(arguments);
     };
+	
+	function indentString(level) {
+		let string = "";
+		while (level-- > 0) {
+			string = string + "  ";
+		}
+		return string;
+	};
+ 
+	function logPattern(entity, pattern, indentLevel) {
+		if (typeof(entity) !== 'object') {
+			let entityString = "";
+			if (typeof(entity) === 'function') {
+				entityString = "function( ... ) { ... }";				
+			} else {
+				entityString = entity;				
+			}
+			process.stdout.write(entityString + "\n"); 
+		} else {
+			if (pattern === undefined) {
+				process.stdout.write("{...}\n"); 
+			} else {
+				if (typeof(indentLevel) === 'undefined') {
+					indentLevel = 0;
+				}
+				let indent = indentString(indentLevel);
+
+				console.log(indent + "{");
+				for (p in entity) {
+					process.stdout.write(indent + "   " + p + " : "); 
+					logPattern(entity[p], pattern[p], indentLevel + 1);
+				}
+				console.log(indent + "}");
+			}
+		}
+	}
+
 
     /***************************************************************
      *
@@ -507,7 +544,9 @@
         let undefinedKey = !(key in target);
 		let resultValue;
 		if (typeof(target._mirror_is_reflected) !== 'undefined') {
+			target.__id = this.overrides.__id;
 			resultValue = mirror.setProperty(target, key, value, create);
+			delete target.__id;
 		} else {
 			resultValue = (target[key] = value);
 		}
@@ -631,6 +670,8 @@
 	let nextHandlerId = 1;
 	 
     function create(createdTarget, cacheId) {
+		let __id = nextId++;
+		
 		let = initializer = null;
         if (typeof(createdTarget) === 'undefined') {
             createdTarget = {};
@@ -645,7 +686,7 @@
         let handler;
         if (createdTarget instanceof Array) {
             handler = {
-				id : nextHandlerId++,
+				__id : __id,
                 _arrayObservers : null,
                 // getPrototypeOf: function () {},
                 // setPrototypeOf: function () {},
@@ -667,7 +708,7 @@
             //     _propertyObservers[property] = {};
             // }
             handler = {
-				id : nextHandlerId++,
+				__id : __id,
                 // getPrototypeOf: function () {},
                 // setPrototypeOf: function () {},
                 // isExtensible: function () {},
@@ -687,12 +728,15 @@
         }
 
         handler.target = createdTarget;
+		
+		// createdTarget.__id = __id; // TODO ??? 
+		
 		handler.initializer = initializer;
 		
         let proxy = new Proxy(createdTarget, handler);
-
+		
         handler.overrides = {
-            __id: nextId++,
+            __id: __id,
             __cacheId : cacheId,
             __overlay : null,
             __target: createdTarget,
@@ -1925,6 +1969,7 @@
         target['cachedCallCount'] = cachedCallCount;
         target['clearRepeaterLists'] = clearRepeaterLists;
         target['resetObjectIds'] = resetObjectIds;
+		target['logPattern'] = logPattern;
         return target;
     }
 

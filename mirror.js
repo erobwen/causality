@@ -68,12 +68,34 @@
 	 *-----------------------------------------------*/
 
 	function forAllIncoming(object, property, callback) {
-		
+		if (typeof(object._mirror_incoming_relations) !== 'undefined') {
+			let relations = object._mirror_incoming_relations;
+			if (typeof(relations[property]) !== 'undefined') {
+				let relation = relations[property];
+				let contents = relation.contents;
+				for (id in contents) {
+					let referer = contents[id];
+					callback(referer);
+				}
+				let currentChunk = relation.first
+				while (currentChunk !== null) {
+				let contents = relation.contents;
+					for (id in contents) {
+						let referer = contents[id];
+						callback(referer);
+					}
+					currentChunk = currentChunk.next;
+				}
+			}
+		}
 	} 
 	 
 	function setProperty(object, property, value, createFunction) {
 		let referingObject = getReferingObject(object, property);
 		let relationName = gottenReferingObjectRelation;
+		// console.log("setProperty:");
+		// console.log(referingObject);
+		// console.log(referingObject.__id);
 		
 		if (typeof(object[property]) !== 'undefined') {
 			let previousValue = object[property];
@@ -293,6 +315,9 @@
 	
 	function intitializeAndConstructMirrorStructure(mirrorIncomingRelation, referingObject, createFunction) {
 		let refererId = referingObject.__id;
+		// console.log("intitializeAndConstructMirrorStructure:");
+		// console.log(referingObject);
+		
 		
 		// console.log(activeRecorder);
 		if (typeof(mirrorIncomingRelation.initialized) === 'undefined') {
