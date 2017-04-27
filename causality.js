@@ -507,7 +507,7 @@
         let undefinedKey = !(key in target);
 		let resultValue;
 		if (typeof(target._mirror_is_reflected) !== 'undefined') {
-			resultValue = mirror.setProperty(target, key, value);
+			resultValue = mirror.setProperty(target, key, value, create);
 		} else {
 			resultValue = (target[key] = value);
 		}

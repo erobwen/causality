@@ -9,7 +9,6 @@
         root.causality = factory(); // Support browser global
     }
 }(this, function () {
-	
 	/*-----------------------------------------------
 	 *           Helpers
 	 *-----------------------------------------------*/
@@ -63,108 +62,16 @@
 	}
 	
 	
+		
 	/*-----------------------------------------------
-	 *                Identifiable
+	 *                Getters and setters
 	 *-----------------------------------------------*/
 
-	let nextSpecifierId = 1;
-	
-    let sourcesObserverSetChunkSize = 500;
-	
-	/**
-	* Creater helpers
-	*/	
-	function getSpecifier(object, specifierName, createFunction) {
-		if (typeof(object[specifierName]) === 'undefined' || object[specifierName] === null) {
-			let specifier = { 
-				_mirror_specifier_parent : object, 
-				_mirror_specifier_property : specifierName, 
-				_mirror_incoming_relation : true   // This is a reuse of this object as incoming node as well.
-			}
-			if (typeof(createFunction) !== 'undefined') {
-				object[specifierName] = createFunction(specifier);
-			} else {
-				object[specifierName] = specifier;
-			}
-		}
-		return object[specifierName];
-	} 
-
-	function createArrayIndex(object, property) {
-		let index = [];
-		index._mirror_index_parent = object;
-		index._mirror_index_parent_relation = property;
-		index._mirror_outgoing_parent = object;
-		object[property] = index;
-		return index;
-	}
-	
-	/**
-	 * Traverse the index structure
-	 */
-	
-	let gottenReferingObject;
-	let gottenReferingObjectRelation;
-	function getReferingObject(possibleIndex, relationFromPossibleIndex) {
-		gottenReferingObject = possibleIndex;
-		gottenReferingObjectRelation = relationFromPossibleIndex;
-		while (typeof(gottenReferingObject._mirror_index_parent) !== 'undefined') {
-			gottenReferingObjectRelation = gottenReferingObject._mirror_index_parent_relation;
-			gottenReferingObject = gottenReferingObject._mirror_index_parent;
-		}
+	function forAllIncoming(object, property, callback) {
 		
-		return gottenReferingObject;
-	}
-	
-	
-	/**
-	 * Traverse the incoming relation structure
-	 */
-	
-	function findReferredObject(referredItem) {
-		if (typeof(referredItem._mirror_referencedObject) !== undefined) {
-			return referredItem._mirror_referencedObject;
-		} else {
-			return referredItem;
-		}
-	}
-	
-	function findIncomingRelation(referencedObject, relationName) {
-		if (referencedObject._mirror_incoming_relation === true)  {
-			// The referenced object is the incoming relation itself. 
-			return referencedObject;
-		} else if (typeof(referencedObject._mirror_incoming_relations) === 'undefined') {
-			// The argument is the referenced object itself, dig down into the structure. 
-			let mirrorIncomingRelations = { _mirror_incoming_relations : true, _mirror_referencedObject: referencedObject };
-			referencedObject._mirror_incoming_relations = mirrorIncomingRelations; 
-			let mirrorIncomingRelation = { _mirror_incoming_relation : true, _mirror_referencedObject: referencedObject };
-			mirrorIncomingRelations[relationName] = mirrorIncomingRelation;
-			return mirrorIncomingRelation;
-		} else {
-			if (referencedObject._mirror_incoming_relations === true) {
-				// The argument is the incoming relation set, will never happen?
-				let mirrorIncomingRelation = { _mirror_incoming_relation : true, _mirror_referencedObject: referencedObject };
-				referencedObject[relationName] = mirrorIncomingRelation;
-				return mirrorIncomingRelation;
-			} else {
-				// The argument is the referenced object itself, but has already incoming relations defined. 
-				let mirrorIncomingRelations = referencedObject._mirror_incoming_relations;
-				if (typeof(mirrorIncomingRelations[relationName]) === 'undefined') {
-					mirrorIncomingRelation = { _mirror_incoming_relation : true, _mirror_referencedObject: referencedObject };
-					mirrorIncomingRelations[relationName] = mirrorIncomingRelation;
-					return mirrorIncomingRelation;
-				} else {
-					return mirrorIncomingRelations[relationName];
-				}
-			}
-		}
-	}
-	
-	
-	/**
-	 * Setting and getting relations
-	 */
-	function setProperty(object, property, value) {
+	} 
+	 
+	function setProperty(object, property, value, createFunction) {
 		let referingObject = getReferingObject(object, property);
 		let relationName = gottenReferingObjectRelation;
 		
@@ -174,9 +81,9 @@
 		}
 		
 		let referencedValue = value;
-		if (typeof(value) === 'object') { //TODO: limit backwards referenes to mirror objects only.
-			let mirrorIncomingRelation = findIncomingRelation(referencedObject, property);
-			let incomingRelationChunk = intitializeAndConstructMirrorStructure(mirrorIncomingRelation, referingObject);
+		if (typeof(value) === 'object' && typeof(value._mirror_reflects) !== 'undefined') { //TODO: limit backwards referenes to mirror objects only.
+			let mirrorIncomingRelation = findIncomingRelation(referencedValue, property, createFunction);
+			let incomingRelationChunk = intitializeAndConstructMirrorStructure(mirrorIncomingRelation, referingObject, createFunction);
 			if (incomingRelationChunk !== null) {
 				referencedValue = incomingRelationChunk;
 			}
@@ -228,6 +135,115 @@
 	
 
 	
+	/*-----------------------------------------------
+	 *                Specifiers
+	 *-----------------------------------------------*/
+
+	let nextSpecifierId = 1;
+	
+    let sourcesObserverSetChunkSize = 500;
+	
+	/**
+	* Creater helpers
+	*/	
+	function getSpecifier(object, specifierName, createFunction) {
+		if (typeof(object[specifierName]) === 'undefined' || object[specifierName] === null) {
+			let specifier = { 
+				_mirror_specifier_parent : object, 
+				_mirror_specifier_property : specifierName, 
+				_mirror_incoming_relation : true   // This is a reuse of this object as incoming node as well.
+			}
+			if (typeof(createFunction) !== 'undefined') {
+				object[specifierName] = createFunction(specifier);
+			} else {
+				object[specifierName] = specifier;
+			}
+		}
+		return object[specifierName];
+	} 
+
+	function createArrayIndex(object, property) {
+		let index = [];
+		index._mirror_index_parent = object;
+		index._mirror_index_parent_relation = property;
+		index._mirror_outgoing_parent = object;
+		object[property] = index;
+		return index;
+	}
+	
+	
+	/*-----------------------------------------------
+	 *            Relation structures
+	 *-----------------------------------------------*/
+	
+	/**
+	 * Traverse the index structure
+	 */
+	
+	let gottenReferingObject;
+	let gottenReferingObjectRelation;
+	function getReferingObject(possibleIndex, relationFromPossibleIndex) {
+		gottenReferingObject = possibleIndex;
+		gottenReferingObjectRelation = relationFromPossibleIndex;
+		while (typeof(gottenReferingObject._mirror_index_parent) !== 'undefined') {
+			gottenReferingObjectRelation = gottenReferingObject._mirror_index_parent_relation;
+			gottenReferingObject = gottenReferingObject._mirror_index_parent;
+		}
+		
+		return gottenReferingObject;
+	}
+	
+	
+	/**
+	 * Traverse the incoming relation structure
+	 */
+	
+	function findReferredObject(referredItem) {
+		if (typeof(referredItem._mirror_referencedObject) !== undefined) {
+			return referredItem._mirror_referencedObject;
+		} else {
+			return referredItem;
+		}
+	}
+	
+	function findIncomingRelation(referencedObject, relationName, createFunction) {
+		if (referencedObject._mirror_incoming_relation === true)  {
+			// The referenced object is the incoming relation itself. 
+			return referencedObject;
+		} else if (typeof(referencedObject._mirror_incoming_relations) === 'undefined') {
+			// The argument is the referenced object itself, dig down into the structure. 
+			let mirrorIncomingRelations = { _mirror_incoming_relations : true, _mirror_referencedObject: referencedObject };
+			if (typeof(createFunction) !== 'undefined') mirrorIncomingRelations = createFunction(mirrorIncomingRelations); 
+			
+			referencedObject._mirror_incoming_relations = mirrorIncomingRelations; 
+			let mirrorIncomingRelation = { _mirror_incoming_relation : true, _mirror_referencedObject: referencedObject };
+			if (typeof(createFunction) !== 'undefined') mirrorIncomingRelation = createFunction(mirrorIncomingRelation); 
+			
+			mirrorIncomingRelations[relationName] = mirrorIncomingRelation;
+			return mirrorIncomingRelation;
+		} else {
+			if (referencedObject._mirror_incoming_relations === true) {
+				// The argument is the incoming relation set, will never happen?
+				let mirrorIncomingRelation = { _mirror_incoming_relation : true, _mirror_referencedObject: referencedObject };
+				if (typeof(createFunction) !== 'undefined') mirrorIncomingRelation = createFunction(mirrorIncomingRelation); 
+				referencedObject[relationName] = mirrorIncomingRelation;
+				return mirrorIncomingRelation;
+			} else {
+				// The argument is the referenced object itself, but has already incoming relations defined. 
+				let mirrorIncomingRelations = referencedObject._mirror_incoming_relations;
+				if (typeof(mirrorIncomingRelations[relationName]) === 'undefined') {
+					mirrorIncomingRelation = { _mirror_incoming_relation : true, _mirror_referencedObject: referencedObject };
+					if (typeof(createFunction) !== 'undefined') mirrorIncomingRelation = createFunction(mirrorIncomingRelation);
+					mirrorIncomingRelations[relationName] = mirrorIncomingRelation;
+					return mirrorIncomingRelation;
+				} else {
+					return mirrorIncomingRelations[relationName];
+				}
+			}
+		}
+	}
+	
+	
 	/**
 	* Structure helpers
 	*/				
@@ -275,7 +291,7 @@
 		}
 	}
 	
-	function intitializeAndConstructMirrorStructure(mirrorIncomingRelation, referingObject) {
+	function intitializeAndConstructMirrorStructure(mirrorIncomingRelation, referingObject, createFunction) {
 		let refererId = referingObject.__id;
 		
 		// console.log(activeRecorder);
@@ -295,15 +311,18 @@
 
 		// Move on to new chunk?
 		if (mirrorIncomingRelation.contentsCounter === sourcesObserverSetChunkSize) {
-			let newChunk =
-				{
-					isRoot : false,
-					contents: {},
-					contentsCounter: 0,
-					next: null,
-					previous: null,
-					parent: null
-				};
+			let newChunk = {
+				isRoot : false,
+				contents: {},
+				contentsCounter: 0,
+				next: null,
+				previous: null,
+				parent: null
+			};
+			if (typeof(createFunction) !== 'undefined') {
+				newChunk = createFunction(newChunk);
+			}
+
 			if (mirrorIncomingRelation.isRoot) {
 				newChunk.parent = mirrorIncomingRelation;
 				mirrorIncomingRelation.first = newChunk;
@@ -339,7 +358,8 @@
 		addInArray : addInArray,
 		getProperty : getProperty,
 		setProperty : setProperty,
-		getNextId : getNextId
+		getNextId : getNextId,
+		forAllIncoming : forAllIncoming 
 	};
 }));
 
