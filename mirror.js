@@ -171,9 +171,7 @@
 		
 		if (typeof(object[property]) !== 'undefined') {
 			let previousValue = object[property];
-			if (typeof(previousValue) === 'object' && typeof(previousValue._mirror_incoming_relation) !== 'undefined') {
-				
-			}
+			removeMirrorStructure(object.id, previousValue);
 		}
 		
 		let referencedValue = value;
@@ -230,48 +228,45 @@
 	/**
 	* Structure helpers
 	*/				
-	function removeMirrorStructure(refererId, observerSet) {
-		if (typeof(observerSet._mirror_incoming_relation) !== 'undefined') {
-			// let observerSetContents = getMap(observerSet, 'contents');
-			// if (typeof(observerSet['contents'])) { // Should not be needed
-			//     observerSet['contents'] = {};
-			// }
-			let observerSetContents = observerSet['contents'];
-			delete observerSetContents[refererId];
+	function removeMirrorStructure(refererId, referedEntity) {
+		if (typeof(referedEntity._mirror_incoming_relation) !== 'undefined') {
+			let incomingRelation = referedEntity;
+			let incomingRelationContents = incomingRelation['contents'];
+			delete incomingRelationContents[refererId];
 			let noMoreObservers = false;
-			observerSet.contentsCounter--;
-			if (observerSet.contentsCounter == 0) {
-				if (observerSet.isRoot) {
-					if (observerSet.first === null && observerSet.last === null) {
+			incomingRelation.contentsCounter--;
+			if (incomingRelation.contentsCounter == 0) {
+				if (incomingRelation.isRoot) {
+					if (incomingRelation.first === null && incomingRelation.last === null) {
 						noMoreObservers = true;
 					}
 				} else {
-					if (observerSet.parent.first === observerSet) {
-						observerSet.parent.first === observerSet.next;
+					if (incomingRelation.parent.first === incomingRelation) {
+						incomingRelation.parent.first === incomingRelation.next;
 					}
 
-					if (observerSet.parent.last === observerSet) {
-						observerSet.parent.last === observerSet.previous;
+					if (incomingRelation.parent.last === incomingRelation) {
+						incomingRelation.parent.last === incomingRelation.previous;
 					}
 
-					if (observerSet.next !== null) {
-						observerSet.next.previous = observerSet.previous;
+					if (incomingRelation.next !== null) {
+						incomingRelation.next.previous = incomingRelation.previous;
 					}
 
-					if (observerSet.previous !== null) {
-						observerSet.previous.next = observerSet.next;
+					if (incomingRelation.previous !== null) {
+						incomingRelation.previous.next = incomingRelation.next;
 					}
 
-					observerSet.previous = null;
-					observerSet.next = null;
+					incomingRelation.previous = null;
+					incomingRelation.next = null;
 
-					if (observerSet.parent.first === null && observerSet.parent.last === null) {
+					if (incomingRelation.parent.first === null && incomingRelation.parent.last === null) {
 						noMoreObservers = true;
 					}
 				}
 
-				if (noMoreObservers && typeof(observerSet.noMoreObserversCallback) !== 'undefined') {
-					observerSet.noMoreObserversCallback();
+				if (noMoreObservers && typeof(incomingRelation.noMoreObserversCallback) !== 'undefined') {
+					incomingRelation.noMoreObserversCallback();
 				}
 			}
 		}
