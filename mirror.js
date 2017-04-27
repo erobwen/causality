@@ -164,7 +164,6 @@
 	/**
 	 * Setting and getting relations
 	 */
-	
 	function setProperty(object, property, value) {
 		let referingObject = getReferingObject(object, property);
 		let relationName = gottenReferingObjectRelation;
@@ -206,19 +205,23 @@
 
 			
 	function clearArray(array) {
-		let refererId = null;
-		let referer = array;
-		if (typeof(array._mirror_outgoing_parent) !== 'undefined') {
+		// let refererId = null;
+		// let referer = array;
+		// if (typeof(array._mirror_index_parent) !== 'undefined') {
 			// TODO: loop recursivley
-			refererId = array._mirror_outgoing_parent.id;
-			referer = array._mirror_outgoing_parent
-		} else {
-			refererId = array.id;
-			referer = array;
-		}
+			// refererId = array._mirror_index_parent.id;
+			// referer = array._mirror_index_parent
+		// } else {
+			// refererId = array.id;
+			// referer = array;
+		// }
+		// Find relation name
+		let referingObject = getReferingObject(array, "[]");
+		// let relationName = gottenReferingObjectRelation;
+		
 		
 		array.forEach(function(observerSet) {
-			removeMirrorStructure(refererId, observerSet);
+			removeMirrorStructure(referingObject.id, observerSet);
 		});
 		array.lenght = 0;  // From repeater itself.
 	}
