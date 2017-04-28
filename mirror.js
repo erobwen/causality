@@ -61,7 +61,12 @@
 		return (ypeof(value) === 'object' && typeof(value._i_id) !== 'undefined')
 	}
 	
-	
+	function create() {
+		return {
+			_mirror_is_reflected : true,
+			_mirror_reflects : true
+		};
+	}
 		
 	/*-----------------------------------------------
 	 *                Getters and setters
@@ -105,7 +110,10 @@
 				if (incomingRelationChunk !== null) {
 					referencedValue = incomingRelationChunk;
 				}
-			}	
+			}
+			return referencedValue;
+		} else {
+			return value;
 		}
 	} 
 	 
@@ -117,14 +125,19 @@
 	}
 	
 	function getProperty(object, property) {
-		console.log(property);
-		if (!property.startsWith("_mirror_")) {
-			console.log("Here!");
-			let referedEntity = object[property]
-			return findReferredObject(referedEntity);
-		} else {
+		// if (typeof(property) === 'string') {
+			// console.log("mirror.getProperty:");
+			// property = "" + property;
+			// console.log(property);
+		if (property.startsWith("_mirror_")) {
 			return object[property];
-		}
+		} else {
+			// console.log("Here!");
+			let referedEntity = object[property];
+			// console.log(referedEntity);
+			return findReferredObject(referedEntity);
+		}			
+		// }
 	}
 	
 	function addInArray(array, referencedObject) { // TODO: Push in array
@@ -385,6 +398,7 @@
 				
 	
 	return {
+		create : create,
 		createArrayIndex : createArrayIndex,
 		getSpecifier : getSpecifier,
 		clearArray : clearArray,

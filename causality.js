@@ -474,7 +474,12 @@
      ***************************************************************/
 
     function getHandlerObject(target, key) {
+		// console.log("");
+		// console.log(this.overrides.__id);
         key = key.toString();
+		// if (key instanceof 'Symbol') {
+			// throw "foobar";
+		// }
         if (this.overrides.__overlay !== null && key !== "__overlay" && (typeof(overlayBypass[key]) === 'undefined')) {
             let overlayHandler = this.overrides.__overlay.__handler;
             let result = overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
@@ -495,14 +500,17 @@
                     }
                     scan = Object.getPrototypeOf( scan );
                 }
+				let keyInTarget = key in target;
 				if (inActiveRecording) {
-                    if (key in target) {
+                    if (keyInTarget) {
                         registerAnyChangeObserver(getSpecifier(getSpecifier(this, "_propertyObservers"), key));
                     } else {
                         registerAnyChangeObserver(getSpecifier(this, "_enumerateObservers"));
                     }
                 }
-				if (typeof(target._mirror_is_reflected) !== 'undefined') {
+				if (keyInTarget && typeof(target._mirror_is_reflected) !== 'undefined') {
+					// console.log("causality.getHandlerObject:");
+					// console.log(key);
 					return mirror.getProperty(target, key);
 				} else {
 					return target[key];
@@ -546,8 +554,8 @@
 		if (typeof(target._mirror_is_reflected) !== 'undefined') {
 			// target.__id = this.overrides.__id;
 			if (typeof(previousValue) === 'object') mirror.removeMirrorStructure(this.overrides.__id, previousValue);
-			resultValue = mirror.setupMirrorReference(this.overrides.__proxy, key, value, create);
-			// delete target.__id;
+			let referencedValue = mirror.setupMirrorReference(this.overrides.__proxy, key, value, create);
+			resultValue = (target[key] = referencedValue);
 		} else {
 			resultValue = (target[key] = value);
 		}
