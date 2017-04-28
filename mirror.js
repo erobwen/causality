@@ -90,33 +90,41 @@
 		}
 	} 
 	 
+	function setupMirrorReference(object, property, value, createFunction) {
+		if (!property.startsWith("_mirror_")) {
+			let referingObject = getReferingObject(object, property);
+			let relationName = gottenReferingObjectRelation;
+			// console.log("setProperty:");
+			// console.log(referingObject);
+			// console.log(referingObject.__id);
+					
+			let referencedValue = value;
+			if (typeof(value) === 'object' && typeof(value._mirror_reflects) !== 'undefined') { //TODO: limit backwards referenes to mirror objects only.
+				let mirrorIncomingRelation = findIncomingRelation(referencedValue, property, createFunction);
+				let incomingRelationChunk = intitializeAndConstructMirrorStructure(mirrorIncomingRelation, referingObject, createFunction);
+				if (incomingRelationChunk !== null) {
+					referencedValue = incomingRelationChunk;
+				}
+			}	
+		}
+	} 
+	 
 	function setProperty(object, property, value, createFunction) {
-		let referingObject = getReferingObject(object, property);
-		let relationName = gottenReferingObjectRelation;
-		// console.log("setProperty:");
-		// console.log(referingObject);
-		// console.log(referingObject.__id);
-		
-		if (typeof(object[property]) !== 'undefined') {
-			let previousValue = object[property];
-			removeMirrorStructure(object.__id, previousValue);
-		}
-		
-		let referencedValue = value;
-		if (typeof(value) === 'object' && typeof(value._mirror_reflects) !== 'undefined') { //TODO: limit backwards referenes to mirror objects only.
-			let mirrorIncomingRelation = findIncomingRelation(referencedValue, property, createFunction);
-			let incomingRelationChunk = intitializeAndConstructMirrorStructure(mirrorIncomingRelation, referingObject, createFunction);
-			if (incomingRelationChunk !== null) {
-				referencedValue = incomingRelationChunk;
-			}
-		}
-		
+		let previousValue = object[property];
+		removeMirrorStructure(object.__id, previousValue);
+		setupMirrorReference(object, property, value, createFunction);
 		object[property] = referencedValue;
 	}
 	
 	function getProperty(object, property) {
-		let referedEntity = object[property]
-		return findReferredObject(referedEntity);
+		console.log(property);
+		if (!property.startsWith("_mirror_")) {
+			console.log("Here!");
+			let referedEntity = object[property]
+			return findReferredObject(referedEntity);
+		} else {
+			return object[property];
+		}
 	}
 	
 	function addInArray(array, referencedObject) { // TODO: Push in array
@@ -383,6 +391,8 @@
 		addInArray : addInArray,
 		getProperty : getProperty,
 		setProperty : setProperty,
+		removeMirrorStructure : removeMirrorStructure, 
+		setupMirrorReference : setupMirrorReference,
 		getNextId : getNextId,
 		forAllIncoming : forAllIncoming 
 	};

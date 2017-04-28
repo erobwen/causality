@@ -544,9 +544,10 @@
         let undefinedKey = !(key in target);
 		let resultValue;
 		if (typeof(target._mirror_is_reflected) !== 'undefined') {
-			target.__id = this.overrides.__id;
-			resultValue = mirror.setProperty(target, key, value, create);
-			delete target.__id;
+			// target.__id = this.overrides.__id;
+			if (typeof(previousValue) === 'object') mirror.removeMirrorStructure(this.overrides.__id, previousValue);
+			resultValue = mirror.setupMirrorReference(this.overrides.__proxy, key, value, create);
+			// delete target.__id;
 		} else {
 			resultValue = (target[key] = value);
 		}
@@ -608,7 +609,7 @@
             registerAnyChangeObserver(getSpecifier(this, "_enumerateObservers"));
         }
         let keys = Object.keys(target);
-        // keys.push('__id');
+        keys.unshift('__id');
         return keys;
     }
 
@@ -623,7 +624,7 @@
         if (inActiveRecording) {
             registerAnyChangeObserver(getSpecifier(this, "_enumerateObservers"));
         }
-        return key in target;
+        return (key in target) || key === "__id";
     }
 
     function definePropertyHandlerObject(target, key, descriptor) {

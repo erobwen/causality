@@ -8,14 +8,22 @@ describe("Mirror Relations", function(){
 		let y = create({_mirror_reflects : true});
 		// console.log(x.__id);
 		// console.log(y.__id);
-		// x.foo = y;
-		// logPattern(x, { foo : {}});
-		// logPattern(y, { _mirror_incoming_relations : { foo : { contents: {}}}});
-		
-		// mirror.forAllIncoming(y, 'foo', function(referer) {
-			// logPattern(x, { foo : {}});
-			// logPattern(referer, { foo : {}});
-			// console.log(x === referer);
-		// });
+		x.foo = y;
+		console.log(" ====  After assign ==== "); 
+		logPattern(x.__id);
+		logPattern(x, { foo : {}});
+		logPattern(y.__id);
+		logPattern(y, { _mirror_incoming_relations : { foo : { contents: {}}}});
+		console.log(" ====  All incoming ==== "); 
+		mirror.forAllIncoming(y, 'foo', function(referer) {
+			console.log(" ====  x ==== "); 
+			logPattern(x.__id);
+			logPattern(x, { foo : {}});
+			console.log(" ====  referer ==== "); 
+			logPattern(referer.__id);
+			logPattern(referer, { foo : { contents: { "1": {}}}});
+			console.log(" ====  equals ==== "); 
+			console.log(x === referer);
+		});
     });
 });
