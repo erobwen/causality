@@ -3,6 +3,7 @@ require('../causality').install();
 let mirror = require('../mirror');
 
 describe("Mirror Relations", function(){
+	
     it("Testing mirror relation exists", function(){
 		// let x = create({_mirror_is_reflected : true, _mirror_reflects : true});
 		// let y = create({_mirror_reflects : true, _mirror_is_reflected : true, });
@@ -25,4 +26,68 @@ describe("Mirror Relations", function(){
 		// console.log("========================");
 		assert.equal(yIncomingFoo[0], x);
     });
+	
+	
+	
+    it("Testing getting incoming with method", function(){
+		let x = create(mirror.create());
+		let y = create(mirror.create());
+		
+		// let y = create({});
+		y.incomingFoo = function() {
+			let incoming = [];
+			
+			mirror.forAllIncoming(this, 'foo', function(referer) {
+				incoming.push(referer);
+			});
+			return incoming;
+		}
+		
+		// Assign x.foo
+		x.foo = y;
+		assert.equal(y.incomingFoo()[0], x);
+    });
+	
+	/**
+    it("Testing reaction to change in incoming relation", function(){
+		let x = create(mirror.create());
+		let y = create(mirror.create());
+		
+		// let y = create({});
+		// y.incomingFoo = function() {
+
+			// return incoming;
+		// }
+		
+		let yIncomingFoo;		
+		function updateYIncomingFoo() {
+			console.log("");
+			console.log("Update incoming foo");
+			logPattern(y, { _mirror_incoming_relations : { foo : { contents : {}}}});
+			logPattern(x, { foo : {}});
+			yIncomingFoo = [];
+			mirror.forAllIncoming(y, 'foo', function(referer) {
+				yIncomingFoo.push(referer);
+			});			
+		}
+		
+		repeatOnChange(function() {
+			updateYIncomingFoo();
+		});
+		assert.equal(yIncomingFoo.length, 0);
+		
+		// logPattern(y, { _mirror_incoming_relations : { foo : { contents : {}}}});
+		// logPattern(x, { foo : {}});
+		// Assign x.foo
+		console.log("Assigning");
+		x.foo = y;
+		// updateYIncomingFoo();
+		
+		// updateYIncomingFoo();
+
+		assert.equal(yIncomingFoo.length, 1);
+		assert.equal(yIncomingFoo[0], x);
+    });
+	*/
+
 });

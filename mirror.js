@@ -84,7 +84,7 @@
 				}
 				let currentChunk = relation.first
 				while (currentChunk !== null) {
-				let contents = relation.contents;
+					let contents = currentChunk.contents;
 					for (id in contents) {
 						let referer = contents[id];
 						callback(referer);
@@ -242,7 +242,7 @@
 	 */
 	
 	function findReferredObject(referredItem) {
-		if (typeof(referredItem._mirror_referencedObject) !== undefined) {
+		if (typeof(referredItem) === 'object' && typeof(referredItem._mirror_referencedObject) !== undefined) {
 			return referredItem._mirror_referencedObject;
 		} else {
 			return referredItem;

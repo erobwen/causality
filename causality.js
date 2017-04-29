@@ -347,6 +347,8 @@
         }
         if (!canWrite(this.overrides.__proxy)) return;
         inPulse++;
+		observerNotificationPostponed++;
+
 
         if (!isNaN(key)) {
             // Number index
@@ -374,7 +376,9 @@
         if (--inPulse === 0) postPulseCleanup();
 
         if( target[key] !== value && !(Number.isNaN(target[key]) && Number.isNaN(value)) ) return false; // Write protected?
-        return true;
+        observerNotificationPostponed--;
+        proceedWithPostponedNotifications();
+		return true;
     }
 
     function deletePropertyHandlerArray(target, key) {
