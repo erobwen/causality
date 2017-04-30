@@ -347,7 +347,7 @@
         }
         if (!canWrite(this.overrides.__proxy)) return;
         inPulse++;
-		observerNotificationPostponed++;
+		observerNotificationPostponed++; // TODO: Do this for backwards references from arrays as well...
 
 
         if (!isNaN(key)) {
@@ -373,11 +373,11 @@
             }
         }
 
+        observerNotificationPostponed--;
+        proceedWithPostponedNotifications();
         if (--inPulse === 0) postPulseCleanup();
 
         if( target[key] !== value && !(Number.isNaN(target[key]) && Number.isNaN(value)) ) return false; // Write protected?
-        observerNotificationPostponed--;
-        proceedWithPostponedNotifications();
 		return true;
     }
 
@@ -552,6 +552,7 @@
             return true;
         }
         inPulse++;
+		observerNotificationPostponed++;
 
         let undefinedKey = !(key in target);
 		let resultValue;
@@ -575,6 +576,8 @@
             }
             emitSetEvent(this, key, value, previousValue);
         }
+		observerNotificationPostponed--;
+        proceedWithPostponedNotifications();
         if (--inPulse === 0) postPulseCleanup();
         if( resultValue !== value  && !(Number.isNaN(resultValue) && Number.isNaN(value))) return false; // Write protected?
         return true;
