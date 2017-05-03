@@ -558,9 +558,19 @@
 		let resultValue;
 		if (typeof(target._mirror_is_reflected) !== 'undefined') {
 			// target.__id = this.overrides.__id;
-			if (typeof(previousValue) === 'object') mirror.removeMirrorStructure(this.overrides.__id, previousValue);
-			let referencedValue = mirror.setupMirrorReference(this.overrides.__proxy, key, value, create);
-			resultValue = (target[key] = referencedValue);
+			if (typeof(previousValue) === 'object') {
+				mirror.removeMirrorStructure(this.overrides.__id, previousValue);
+				notifyChangeObservers(previousValue._incoming[key]);
+			}
+			if (typeof(value) === 'object') {
+				let referencedValue = mirror.setupMirrorReference(this.overrides.__proxy, key, value);
+				if (typeof(referencedValue._incoming) !== 'undefined' && typeof(referencedValue._incoming[key]) !== 'undefined') {
+					notifyChangeObservers(referencedValue._incoming[key]);
+				}
+				resultValue = (target[key] = referencedValue);				
+			} else {
+				resultValue = (target[key] = value);
+			}
 		} else {
 			resultValue = (target[key] = value);
 		}
@@ -1944,7 +1954,20 @@
         }
         return returnValue;
     }
+	
+	
+    /************************************************************************
+     *
+     *  For all incoming
+     *
+     ************************************************************************/
 
+	function forAllIncoming(object, property, callback) {
+		registerAnyChangeObserver(getSpecifier(getSpecifier(object, "_incoming"), property));
+		mirror.forAllIncoming(object, property, callback);
+ 	}
+	 
+	 
     /************************************************************************
      *
      *  Module installation
@@ -2006,6 +2029,8 @@
 		setCustomCanRead : setCustomCanRead,
 		setCustomCanWrite : setCustomCanWrite,
 		
-		setUseMirror : setUseMirror
+		setUseMirror : setUseMirror,
+		
+		forAllIncoming : forAllIncoming
     };
 }));
