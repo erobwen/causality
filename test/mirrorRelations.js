@@ -26,7 +26,29 @@ describe("Mirror Relations", function(){
 		assert.equal(yIncomingFoo[0], x);
     });
 	
+	/*
+	it("Testing mirror relation exists for array", function(){
+		let x = create(mirror.create());
+		let y = create(mirror.create());
+		mirror.createArrayIndex(x, "foo", causality.create);
+		
+		
+		x.foo = y;
+		// console.log(x);
+		// console.log(x.foo);
+		// console.log(x.foo.__id);
+
+		// Analyze incoming structure
+		let yIncomingFoo = []
+		mirror.forAllIncoming(y, 'foo', function(referer) {
+			yIncomingFoo.push(referer);
+		});
+		// logPattern(x, { foo : {}});
 	
+		// console.log("========================");
+		assert.equal(yIncomingFoo[0], x);
+    });
+	*/
 	
     it("Testing getting incoming with method", function(){
 		let x = create(mirror.create());

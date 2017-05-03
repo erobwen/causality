@@ -205,8 +205,11 @@
 		return object[specifierName];
 	} 
 
-	function createArrayIndex(object, property) {
+	function createArrayIndex(object, property, createFunction) {
 		let index = [];
+		if (typeof(createFunction) !== 'undefined') {
+			index = createFunction(index);
+		}
 		index._mirror_index_parent = object;
 		index._mirror_index_parent_relation = property;
 		index._mirror_outgoing_parent = object;

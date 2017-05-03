@@ -524,6 +524,7 @@
     }
 
     function setHandlerObject(target, key, value) {
+		// Overlays
         if (this.overrides.__overlay !== null) {
             if (key === "__overlay") {
                 this.overrides.__overlay = value; // Setting a new overlay, should not be possible?
@@ -533,32 +534,37 @@
                 return overlayHandler.set.apply(overlayHandler, [overlayHandler.target, key, value]);
             }
         }
-
-        if (!canWrite(this.overrides.__proxy)) return;
 		
+        // Writeprotection
+		if (!canWrite(this.overrides.__proxy)) return;
+		
+		// Ensure initialized
 		ensureInitialized(this, target);
 		
+		// Get previous value
         let previousValue = target[key]; 
-
-        // If same value as already set, do nothing.
+        
+		// If same value as already set, do nothing.
         if (key in target) {
             if (previousValue === value || (Number.isNaN(previousValue) && Number.isNaN(value)) ) {
                 return true;
             }
         }
-
+		
         // If cumulative assignment, inside recorder and value is undefined, no assignment.
         if (cumulativeAssignment && inActiveRecording && (isNaN(value) || typeof(value) === 'undefined')) {
             return true;
         }
+		
+		// Pulse start
         inPulse++;
 		observerNotificationPostponed++;
-
         let undefinedKey = !(key in target);
+		
+		// Perform assignment with regards to mirror structures.
 		let resultValue;
 		if (typeof(target._mirror_is_reflected) !== 'undefined') {
-			// target.__id = this.overrides.__id;
-			if (typeof(previousValue) === 'object') {
+			if (typeof(previousValue) === 'object' && previousValue._mirror_reflects) {
 				mirror.removeMirrorStructure(this.overrides.__id, previousValue);
 				notifyChangeObservers(previousValue._incoming[key]);
 			}
@@ -574,23 +580,26 @@
 		} else {
 			resultValue = (target[key] = value);
 		}
-        if( resultValue === value || (Number.isNaN(resultValue) && Number.isNaN(value)) ) { // Write protected?
-            if (undefinedKey) {
-                if (typeof(this._enumerateObservers) !== 'undefined') {
-                    notifyChangeObservers(this._enumerateObservers);
-                }
-            } else {
-                if (typeof(this._propertyObservers) !== 'undefined' && typeof(this._propertyObservers[key]) !== 'undefined') {
-                    notifyChangeObservers(this._propertyObservers[key]);
-                }
-            }
-            emitSetEvent(this, key, value, previousValue);
-        }
+		
+		// If assignment was successful, notify change
+		if (undefinedKey) {
+			if (typeof(this._enumerateObservers) !== 'undefined') {
+				notifyChangeObservers(this._enumerateObservers);
+			}
+		} else {
+			if (typeof(this._propertyObservers) !== 'undefined' && typeof(this._propertyObservers[key]) !== 'undefined') {
+				notifyChangeObservers(this._propertyObservers[key]);
+			}
+		}
+
+		// Emit event
+		emitSetEvent(this, key, value, previousValue);
+		
+		// End pulse 
 		observerNotificationPostponed--;
         proceedWithPostponedNotifications();
         if (--inPulse === 0) postPulseCleanup();
-        if( resultValue !== value  && !(Number.isNaN(resultValue) && Number.isNaN(value))) return false; // Write protected?
-        return true;
+		return true;
     }
 
     function deletePropertyHandlerObject(target, key) {
