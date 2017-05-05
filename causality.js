@@ -563,13 +563,14 @@
 		
 		// Perform assignment with regards to mirror structures.
 		let resultValue;
-		if (typeof(target._mirror_is_reflected) !== 'undefined') {
+		let referringObject = mirror.getReferingObject(this.overrides.__proxy, key);
+		if (typeof(referringObject._mirror_is_reflected) !== 'undefined') {
 			if (typeof(previousValue) === 'object' && previousValue._mirror_reflects) {
 				mirror.removeMirrorStructure(this.overrides.__id, previousValue);
 				notifyChangeObservers(previousValue._incoming[key]);
 			}
 			if (typeof(value) === 'object') {
-				let referencedValue = mirror.setupMirrorReference(this.overrides.__proxy, key, value);
+				let referencedValue = mirror.setupMirrorReference(referringObject, key, value);
 				if (typeof(referencedValue._incoming) !== 'undefined' && typeof(referencedValue._incoming[key]) !== 'undefined') {
 					notifyChangeObservers(referencedValue._incoming[key]);
 				}

@@ -411,7 +411,8 @@
 		removeMirrorStructure : removeMirrorStructure, 
 		setupMirrorReference : setupMirrorReference,
 		getNextId : getNextId,
-		forAllIncoming : forAllIncoming 
+		forAllIncoming : forAllIncoming,
+		getReferingObject : getReferingObject
 	};
 }));
 
