@@ -1,5 +1,8 @@
 const assert = require('assert');
-require('../causality').install();
+let causality = require('../causality');
+causality.install();
+causality.setConfiguration({mirrorRelations : true});
+
 let mirror = require('../mirror');
 
 describe("Mirror Relations", function(){

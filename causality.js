@@ -576,7 +576,11 @@
         let undefinedKey = !(key in target);
 		
 		// Perform assignment with regards to mirror structures.
-		resultValue = (target[key] = setupMirrorRelation(this.overrides.__proxy, key, value, previousValue));
+		if (configuration.mirrorRelations) {
+			target[key] = setupMirrorRelation(this.overrides.__proxy, key, value, previousValue);
+		} else {
+			target[key] = value;
+		}
 		
 		// If assignment was successful, notify change
 		if (undefinedKey) {
@@ -2016,13 +2020,13 @@
      *  Module installation
      * @param target
      */
-    function install(target, settings) {
+    function install(target, configuration) {
         if (typeof(target) === 'undefined') {
             target = (typeof(global) !== 'undefined') ? global : window;
         }
 		
-		if (typeof(settings) === 'undefined') {
-			
+		if (typeof(configuration) !== 'undefined') {
+			setConfiguration(configuration);
 		}
 
         // Main API
@@ -2056,7 +2060,7 @@
         setConfiguration : setConfiguration,
 		getConfiguration : getConfiguration,
 		setCumulativeAssignment : setCumulativeAssignment,
-		
+
         create : create,
         c : create,
         uponChangeDo : uponChangeDo,
