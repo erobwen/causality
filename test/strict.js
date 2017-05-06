@@ -1,6 +1,7 @@
 'use strict';
 const assert = require('assert');
-require('../causality').install();
+let causality = require('../causality');
+causality.install();
 const log = console.log.bind(console);
 
 describe("Proxy object traps", function () {
@@ -57,9 +58,9 @@ describe("Array object traps", function () {
     });
 
     it('setCumulativeAssignment',  function () {
-        setCumulativeAssignment(1);
+        causality.setCumulativeAssignment(1);
         stack[1] = undefined;
-        setCumulativeAssignment(0);
+        causality.setCumulativeAssignment(0);
     });
 });
 

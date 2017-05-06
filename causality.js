@@ -274,12 +274,6 @@
         };
     });
 
-    // Cumulative assignment settings.
-    let cumulativeAssignment = false;
-    function setCumulativeAssignment(value) {
-        cumulativeAssignment = value;
-    }
-
     let collecting = [];
     function collect(array, action) {
         collecting.push(array);
@@ -342,7 +336,7 @@
         }
 
         // If cumulative assignment, inside recorder and value is undefined, no assignment.
-        if (cumulativeAssignment && inActiveRecording && (isNaN(value) || typeof(value) === 'undefined')) {
+        if (configuration.cumulativeAssignment && inActiveRecording && (isNaN(value) || typeof(value) === 'undefined')) {
             return true;
         }
         if (!canWrite(this.overrides.__proxy)) return;
@@ -523,11 +517,12 @@
         }
     }
 	
-	function setupMirrorRelation(handler, key, value, previousValue) {
-		let referringObject = mirror.getReferingObject(handler.overrides.__proxy, key);
+	function setupMirrorRelation(proxy, key, value, previousValue) {
+		let referringObject = mirror.getReferingObject(proxy, key);
+		// TODO: Key might change also...
 		if (typeof(referringObject._mirror_is_reflected) !== 'undefined') {
 			if (typeof(previousValue) === 'object' && previousValue._mirror_reflects) {
-				mirror.removeMirrorStructure(handler.overrides.__proxy, previousValue);
+				mirror.removeMirrorStructure(proxy, previousValue);
 				notifyChangeObservers(previousValue._incoming[key]);
 			}
 			if (typeof(value) === 'object') {
@@ -571,7 +566,7 @@
         }
 		
         // If cumulative assignment, inside recorder and value is undefined, no assignment.
-        if (cumulativeAssignment && inActiveRecording && (isNaN(value) || typeof(value) === 'undefined')) {
+        if (configuration.cumulativeAssignment && inActiveRecording && (isNaN(value) || typeof(value) === 'undefined')) {
             return true;
         }
 		
@@ -581,7 +576,7 @@
         let undefinedKey = !(key in target);
 		
 		// Perform assignment with regards to mirror structures.
-		resultValue = (target[key] = setupMirrorRelation(this, key, value, previousValue));
+		resultValue = (target[key] = setupMirrorRelation(this.overrides.__proxy, key, value, previousValue));
 		
 		// If assignment was successful, notify change
 		if (undefinedKey) {
@@ -779,6 +774,9 @@
             __target: createdTarget,
             __handler : handler,
             __proxy : proxy,
+			
+			__mirror_is_reflected : false,
+			__mirror_reflects : false,
 
             // This inside these functions will be the Proxy. Change to handler?
             repeat : genericRepeatMethod,
@@ -1981,18 +1979,51 @@
 	 
     /************************************************************************
      *
-     *  Module installation
+     *  Module installation and configuration
      *
      ************************************************************************/
 
+	let configuration;
+	
+	function getConfiguration() {
+		return configuration;
+	}
+
+	let defaultConfiguration = {
+		mirrorRelations : false,
+		cumulativeAssignment : false
+	}
+	 	
+	function setConfiguration(newConfiguration) {
+		
+		let existingConfiguration = null;
+		if (typeof(configuration) === 'undefined') {
+			existingConfiguration = defaultConfiguration;
+		} else {
+			existingConfiguration = configuration;
+		}
+		
+		Object.assign(existingConfiguration, newConfiguration);
+		configuration = existingConfiguration;
+	}
+	setConfiguration({});
+	
+    function setCumulativeAssignment(value) {
+		setConfiguration({cumulativeAssignment : value}); 
+    }
+	 
     /**
      *  Module installation
      * @param target
      */
-    function install(target) {
+    function install(target, settings) {
         if (typeof(target) === 'undefined') {
             target = (typeof(global) !== 'undefined') ? global : window;
         }
+		
+		if (typeof(settings) === 'undefined') {
+			
+		}
 
         // Main API
         target['create']                  = create;
@@ -2010,10 +2041,7 @@
         target['pulse']                   = pulse; // A sequence of transactions, end with cleanup.
         target['transaction']             = transaction;  // Single transaction, end with cleanup.
         target['addPostPulseAction']      = addPostPulseAction;
-
-        // Experimental
-        target['setCumulativeAssignment'] = setCumulativeAssignment;
-
+		
         // Debugging and testing
         target['observeAll'] = observeAll;
         target['cachedCallCount'] = cachedCallCount;
@@ -2025,7 +2053,10 @@
 
     return {
         install: install,
-        
+        setConfiguration : setConfiguration,
+		getConfiguration : getConfiguration,
+		setCumulativeAssignment : setCumulativeAssignment,
+		
         create : create,
         c : create,
         uponChangeDo : uponChangeDo,
