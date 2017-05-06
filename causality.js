@@ -522,6 +522,27 @@
             }
         }
     }
+	
+	function setupMirrorRelation(handler, target, key, value, previousValue) {
+		let referringObject = mirror.getReferingObject(handler.overrides.__proxy, key);
+		if (typeof(referringObject._mirror_is_reflected) !== 'undefined') {
+			if (typeof(previousValue) === 'object' && previousValue._mirror_reflects) {
+				mirror.removeMirrorStructure(handler.overrides.__proxy, previousValue);
+				notifyChangeObservers(previousValue._incoming[key]);
+			}
+			if (typeof(value) === 'object') {
+				let referencedValue = mirror.setupMirrorReference(referringObject, key, value);
+				if (typeof(referencedValue._incoming) !== 'undefined' && typeof(referencedValue._incoming[key]) !== 'undefined') {
+					notifyChangeObservers(referencedValue._incoming[key]);
+				}
+				resultValue = (target[key] = referencedValue);				
+			} else {
+				resultValue = (target[key] = value);
+			}
+		} else {
+			resultValue = (target[key] = value);
+		}
+	}
 
     function setHandlerObject(target, key, value) {
 		// Overlays
@@ -562,25 +583,7 @@
         let undefinedKey = !(key in target);
 		
 		// Perform assignment with regards to mirror structures.
-		let resultValue;
-		let referringObject = mirror.getReferingObject(this.overrides.__proxy, key);
-		if (typeof(referringObject._mirror_is_reflected) !== 'undefined') {
-			if (typeof(previousValue) === 'object' && previousValue._mirror_reflects) {
-				mirror.removeMirrorStructure(this.overrides.__id, previousValue);
-				notifyChangeObservers(previousValue._incoming[key]);
-			}
-			if (typeof(value) === 'object') {
-				let referencedValue = mirror.setupMirrorReference(referringObject, key, value);
-				if (typeof(referencedValue._incoming) !== 'undefined' && typeof(referencedValue._incoming[key]) !== 'undefined') {
-					notifyChangeObservers(referencedValue._incoming[key]);
-				}
-				resultValue = (target[key] = referencedValue);				
-			} else {
-				resultValue = (target[key] = value);
-			}
-		} else {
-			resultValue = (target[key] = value);
-		}
+		let resultValue = setupMirrorRelation(this, target, key, value, previousValue);
 		
 		// If assignment was successful, notify change
 		if (undefinedKey) {
