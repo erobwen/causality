@@ -9,8 +9,16 @@ describe("Mirror Relations", function(){
     it("Testing mirror relation exists", function(){
 		// let x = create({_mirror_is_reflected : true, _mirror_reflects : true});
 		// let y = create({_mirror_reflects : true, _mirror_is_reflected : true, });
-		let x = create(mirror.create());
-		let y = create(mirror.create());
+		// let x = create(mirror.create());
+		// let y = create(mirror.create());
+
+		let x = create();
+		x.static._mirror_reflects = true;
+		x.static._mirror_is_reflected = true;
+
+		let y = create();
+		y.static._mirror_reflects = true;
+		y.static._mirror_is_reflected = true;
 		
 		// Assign x.foo
 		x.foo = y;

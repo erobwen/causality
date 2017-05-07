@@ -15,9 +15,9 @@ describe("Overlays", function(){
         // Create overlay
         // console.log(" Create overlay ===========================")
         let xOverlay = create({ name: "overlay"});
-        x.__handler.overrides.__overlay = xOverlay;
+        x.static.__overlay = xOverlay;
         // console.log(x.__handler);
-        // console.log(x.__handler.overrides);
+        // console.log(x.__handler.static);
         // console.log(x);
         // console.log(x.__overlay);
         // console.log(x.__handler);
