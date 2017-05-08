@@ -138,11 +138,12 @@
      ***************************************************************/
 
 	 
-	function createAndRemoveMirrorRelations(handler, index, removed, added) {
+	function createAndRemoveMirrorRelations(proxy, index, removed, added) {
 		if (configuration.mirrorRelations) {
 			        
 			// Get refering object 
-            let referringObject = handler.static.proxy;
+            let referringObject = proxy;
+			// console.log(referringObject);
             let referringRelation = "[]";
             while (typeof(referringObject._mirror_index_parent) !==  'undefined') {
                 referringRelation = referringObject._mirror_index_parent_relation;
@@ -165,14 +166,18 @@
 				});
 				
 				// Remove mirror relations for removed
-				removed.forEach(function(removedElement) {
-					if (typeof(removedElement) === 'object' && removedElement._mirror_reflects) {
-						mirror.removeMirrorStructure(handler.static.__proxy, removedElement);
-						notifyChangeObservers(removedElement._incoming[referringRelation]);
-					}					
-				});
+				if (removed !== null) {
+					removed.forEach(function(removedElement) {
+						if (typeof(removedElement) === 'object' && removedElement._mirror_reflects) {
+							mirror.removeMirrorStructure(proxy, removedElement);
+							notifyChangeObservers(removedElement._incoming[referringRelation]);
+						}					
+					});					
+				}
+				return addedAdjusted;
 			}
 		}
+		return added;
 	} 
 
 	
@@ -203,7 +208,7 @@
 			let removed = null;
 			let added = argumentsArray;
 			
-			// added = createAndRemoveMirrorRelations(this, index, removed, added);
+			added = createAndRemoveMirrorRelations(this.static.__proxy, index, removed, added);
 			
             observerNotificationNullified++;
             this.target.push.apply(this.target, argumentsArray);
@@ -211,7 +216,7 @@
             if (this._arrayObservers !== null) {
                 notifyChangeObservers(this._arrayObservers);
             }
-            emitSpliceEvent(this, index, null, added);
+            emitSpliceEvent(this, index, removed, added);
             if (--inPulse === 0) postPulseCleanup();
             return this.target.length;
         },

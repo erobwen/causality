@@ -37,29 +37,31 @@ describe("Mirror Relations", function(){
 		assert.equal(yIncomingFoo[0], x);
     });
 	
-	/*
 	it("Testing mirror relation exists for array", function(){
-		let x = create(mirror.create());
+		let x = create([]);
+		x.static._mirror_is_reflected = true;
+		x.static._mirror_reflects = true;
+		
+		
 		let y = create(mirror.create());
 		mirror.createArrayIndex(x, "foo", causality.create);
 		
 		
-		x.foo = y;
+		x.push(y);
 		// console.log(x);
 		// console.log(x.foo);
 		// console.log(x.foo.__id);
 
 		// Analyze incoming structure
-		let yIncomingFoo = []
-		mirror.forAllIncoming(y, 'foo', function(referer) {
-			yIncomingFoo.push(referer);
+		let yIncomingArray = []
+		mirror.forAllIncoming(y, '[]', function(referer) {
+			yIncomingArray.push(referer);
 		});
 		// logPattern(x, { foo : {}});
 	
 		// console.log("========================");
-		assert.equal(yIncomingFoo[0], x);
+		assert.equal(yIncomingArray[0], x);
     });
-	*/
 	
     it("Testing getting incoming with method", function(){
 		let x = create(mirror.create());
