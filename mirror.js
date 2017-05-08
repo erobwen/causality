@@ -93,11 +93,11 @@
 				}
 			}
 		}
-	} 
+	} 	 
 	 
-	function setupMirrorReference(object, property, value, createFunction) {
+	function setupMirrorReference(referingObject, property, value, createFunction) {
 		if (!property.startsWith("_mirror_")) {
-			let referingObject = getReferingObject(object, property);
+			// let referingObject = getReferingObject(object, property);
 			let relationName = gottenReferingObjectRelation;
 			// console.log("setProperty:");
 			// console.log(referingObject);

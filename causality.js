@@ -140,15 +140,23 @@
 	 
 	function createAndRemoveMirrorRelations(handler, index, removed, added) {
 		if (configuration.mirrorRelations) {
-			let referringObject = mirror.getReferingObject(handler.static.__proxy, "[]");
+			        
+			// Get refering object 
+            let referringObject = handler.static.proxy;
+            let referringRelation = "[]";
+            while (typeof(referringObject._mirror_index_parent) !==  'undefined') {
+                referringRelation = referringObject._mirror_index_parent_relation;
+                referringObject = referringObject._mirror_index_parent;
+            }
+
 			if (typeof(referringObject._mirror_is_reflected) !== 'undefined') {
 				// Create mirror relations for added
 				let addedAdjusted = [];
 				added.forEach(function(addedElement) {
 					if (typeof(addedElement) === 'object' && addedElement._mirror_reflects) {
-						let referencedValue = mirror.setupMirrorReference(referringObject, key, addedElement);
-						if (typeof(referencedValue._incoming) !== 'undefined' && typeof(referencedValue._incoming[key]) !== 'undefined') {
-							notifyChangeObservers(referencedValue._incoming[key]);
+						let referencedValue = mirror.setupMirrorReference(referringObject, referringRelation, addedElement);
+						if (typeof(referencedValue._incoming) !== 'undefined' && typeof(referencedValue._incoming[referringRelation]) !== 'undefined') {
+							notifyChangeObservers(referencedValue._incoming[referringRelation]);
 						}
 						addedAdjusted.push(referencedValue);
 					} else {
@@ -160,7 +168,7 @@
 				removed.forEach(function(removedElement) {
 					if (typeof(removedElement) === 'object' && removedElement._mirror_reflects) {
 						mirror.removeMirrorStructure(handler.static.__proxy, removedElement);
-						notifyChangeObservers(removedElement._incoming[key]);
+						notifyChangeObservers(removedElement._incoming[referringRelation]);
 					}					
 				});
 			}
@@ -555,17 +563,23 @@
     }
 	
 	function setupMirrorRelation(proxy, key, value, previousValue) {
-		let referringObject = mirror.getReferingObject(proxy, key);
-		// TODO: Key might change also...
+		// Get refering object 
+        let referringObject = proxy;
+        let referringRelation = key;
+        while (typeof(referringObject._mirror_index_parent) !==  'undefined') {
+            referringRelation = referringObject._mirror_index_parent_relation;
+            referringObject = referringObject._mirror_index_parent;
+        }
+		
 		if (typeof(referringObject._mirror_is_reflected) !== 'undefined') {
 			if (typeof(previousValue) === 'object' && previousValue._mirror_reflects) {
-				mirror.removeMirrorStructure(proxy, previousValue);
-				notifyChangeObservers(previousValue._incoming[key]);
+				mirror.removeMirrorStructure(referringObject, previousValue);
+				notifyChangeObservers(previousValue._incoming[referringRelation]);
 			}
 			if (typeof(value) === 'object' && value._mirror_reflects) {
-				let referencedValue = mirror.setupMirrorReference(referringObject, key, value);
-				if (typeof(referencedValue._incoming) !== 'undefined' && typeof(referencedValue._incoming[key]) !== 'undefined') {
-					notifyChangeObservers(referencedValue._incoming[key]);
+				let referencedValue = mirror.setupMirrorReference(referringObject, referringRelation, value);
+				if (typeof(referencedValue._incoming) !== 'undefined' && typeof(referencedValue._incoming[referringRelation]) !== 'undefined') {
+					notifyChangeObservers(referencedValue._incoming[referringRelation]);
 				}
 				value = referencedValue;
 			}
@@ -614,7 +628,7 @@
 		
 		// Perform assignment with regards to mirror structures.
 		if (configuration.mirrorRelations) {
-			target[key] = setupMirrorRelation(this.static.__proxy, key, value, previousValue);
+			target[key] = setupMirrorRelation(this['static'].__proxy, key, value, previousValue);
 		} else {
 			target[key] = value;
 		}
