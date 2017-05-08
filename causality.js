@@ -208,7 +208,7 @@
 			let removed = null;
 			let added = argumentsArray;
 			
-			added = createAndRemoveMirrorRelations(this.static.__proxy, index, removed, added);
+			added = createAndRemoveMirrorRelations(this.static.__proxy, index, removed, added); // TODO: implement for other array manipulators as well. 
 			
             observerNotificationNullified++;
             this.target.push.apply(this.target, argumentsArray);
@@ -536,7 +536,7 @@
 		
 		ensureInitialized(this, target);
 				
-        if (typeof(this.static[key]) !== 'undefined') {
+        if (!configuration.transparent && typeof(this.static[key]) !== 'undefined') { // TODO: implement transparent for other readers. 
             return this.static[key];
         } else {
             if (typeof(key) !== 'undefined') {
@@ -2052,7 +2052,8 @@
 
 	let defaultConfiguration = {
 		mirrorRelations : false,
-		cumulativeAssignment : false
+		cumulativeAssignment : false,
+		transparent : false
 	}
 	 	
 	function setConfiguration(newConfiguration) {
