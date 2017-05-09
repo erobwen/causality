@@ -208,7 +208,9 @@
 			let removed = null;
 			let added = argumentsArray;
 			
-			added = createAndRemoveMirrorRelations(this.static.__proxy, index, removed, added); // TODO: implement for other array manipulators as well. 
+			if (configuration.mirrorRelations) {
+				added = createAndRemoveMirrorRelations(this.static.__proxy, index, removed, added); // TODO: implement for other array manipulators as well. 
+			}
 			
             observerNotificationNullified++;
             this.target.push.apply(this.target, argumentsArray);
@@ -629,6 +631,7 @@
 	
 	
     function setHandlerObjectOptimized(target, key, value) {
+		// Overlays
         if (this.static.__overlay !== null) {
             if (key === "__overlay") {
                 this.static.__overlay = value; // Setting a new overlay, should not be possible?
@@ -638,37 +641,53 @@
                 return overlayHandler.set.apply(overlayHandler, [overlayHandler.target, key, value]);
             }
         }
-        if (writeRestriction !== null && typeof(writeRestriction[this.static.__id]) === 'undefined') return;
-
-        let previousValue = target[key];
-
-        // If same value as already set, do nothing.
+		
+        // Writeprotection
+		if (postPulseProcess) {
+			return;
+		}
+		if (writeRestriction !== null && typeof(writeRestriction[object.__id]) === 'undefined') {
+			return;
+		}
+		
+		// Get previous value
+        let previousValue = target[key]; 
+        
+		// If same value as already set, do nothing.
         if (key in target) {
             if (previousValue === value || (Number.isNaN(previousValue) && Number.isNaN(value)) ) {
                 return true;
             }
         }
-
+		
+		// Pulse start
         inPulse++;
-
+		// observerNotificationPostponed++;
         let undefinedKey = !(key in target);
-        target[key]      = value;
-        let resultValue  = target[key];
-        if( resultValue === value || (Number.isNaN(resultValue) && Number.isNaN(value)) ) { // Write protected?
-            if (undefinedKey) {
-                if (typeof(this._enumerateObservers) !== 'undefined') {
-                    notifyChangeObservers("_enumerateObservers", this._enumerateObservers);
-                }
-            } else {
-                if (typeof(this._propertyObservers) !== 'undefined' && typeof(this._propertyObservers[key]) !== 'undefined') {
-                    notifyChangeObservers("_propertyObservers." + key, this._propertyObservers[key]);
-                }
-            }
-            emitSetEvent(this, key, value, previousValue);
-        }
+		
+		// Perform assignment with regards to mirror structures.
+		target[key] = value;
+
+		
+		// If assignment was successful, notify change
+		if (undefinedKey) {
+			if (typeof(this._enumerateObservers) !== 'undefined') {
+				notifyChangeObservers(this._enumerateObservers);
+			}
+		} else {
+			if (typeof(this._propertyObservers) !== 'undefined' && typeof(this._propertyObservers[key]) !== 'undefined') {
+				notifyChangeObservers(this._propertyObservers[key]);
+			}
+		}
+
+		// Emit event
+		emitSetEvent(this, key, value, previousValue);
+		
+		// End pulse 
+		// observerNotificationPostponed--;
+        // proceedWithPostponedNotifications();
         if (--inPulse === 0) postPulseCleanup();
-        if( resultValue !== value  && !(Number.isNaN(resultValue) && Number.isNaN(value))) return false; // Write protected?
-        return true;
+		return true;
     }
 	
 
@@ -890,8 +909,8 @@
                 // _propertyObservers: _propertyObservers,
                 get: ((configuration.activateSpecialFeatures) ? getHandlerObject : getHandlerObjectOptimized),
                 // get: getHandlerObject,
-                set: setHandlerObject,
-                // set: ((configuration.activateSpecialFeatures) ? setHandlerObject : setHandlerObjectOptimized),
+                // set: setHandlerObject,
+                set: ((configuration.activateSpecialFeatures) ? setHandlerObject : setHandlerObjectOptimized),
                 deleteProperty: deletePropertyHandlerObject,
                 ownKeys: ownKeysHandlerObject,
                 has: hasHandlerObject,
