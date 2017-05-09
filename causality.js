@@ -326,6 +326,30 @@
         };
     });
 
+	let staticArrayOverridesOptimized = {};
+	for(functionName in staticArrayOverrides) {
+		staticArrayOverridesOptimized[functionName] = staticArrayOverrides[functionName];
+	}
+	Object.assign(staticArrayOverridesOptimized, {
+		push : function() {
+			if (!canWrite(this.static.__proxy)) return;
+			inPulse++;
+			let index = this.target.length;
+			let argumentsArray = argumentsToArray(arguments);
+			
+			observerNotificationNullified++;
+			this.target.push.apply(this.target, argumentsArray);
+			observerNotificationNullified--;
+			if (this._arrayObservers !== null) {
+				notifyChangeObservers(this._arrayObservers);
+			}
+			emitSpliceEvent(this, index, null, argumentsArray);
+			if (--inPulse === 0) postPulseCleanup();
+			return this.target.length;
+		}	
+	});
+	
+	
     let collecting = [];
     function collect(array, action) {
         collecting.push(array);
@@ -344,7 +368,29 @@
      *  Array Handlers
      *
      ***************************************************************/
-
+	 
+	 
+    function getHandlerArrayOptimized(target, key) {
+        if (this.static.__overlay !== null && (typeof(overlayBypass[key]) === 'undefined')) {
+            let overlayHandler = this.static.__overlay.__handler;
+            return overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
+        }
+		
+		ensureInitialized(this, target);
+		
+        if (staticArrayOverridesOptimized[key]) {
+            return staticArrayOverridesOptimized[key].bind(this);
+        } else if (typeof(this.static[key]) !== 'undefined') {
+            return this.static[key];
+        } else {
+            if (inActiveRecording) {
+                registerAnyChangeObserver(getSpecifier(this, "_arrayObservers"));//object
+            }
+            return target[key];
+        }
+    }
+	
+	
     function getHandlerArray(target, key) {
         if (this.static.__overlay !== null && (typeof(overlayBypass[key]) === 'undefined')) {
             let overlayHandler = this.static.__overlay.__handler;
@@ -884,7 +930,7 @@
                 // preventExtensions: function () {},
                 // apply: function () {},
                 // construct: function () {},
-                get: getHandlerArray,
+				get: getHandlerArray,
                 set: setHandlerArray,
                 deleteProperty: deletePropertyHandlerArray,
                 ownKeys: ownKeysHandlerArray,
@@ -892,6 +938,10 @@
                 defineProperty: definePropertyHandlerArray,
                 getOwnPropertyDescriptor: getOwnPropertyDescriptorHandlerArray
             };
+						// Optimization
+			if (!configuration.activateSpecialFeatures) {
+				handler.get = getHandlerArrayOptimized;
+			}
         } else {
             // let _propertyObservers = {};
             // for (property in createdTarget) {
@@ -907,16 +957,19 @@
                 // construct: function () {},
                 // _enumerateObservers : {},
                 // _propertyObservers: _propertyObservers,
-                get: ((configuration.activateSpecialFeatures) ? getHandlerObject : getHandlerObjectOptimized),
-                // get: getHandlerObject,
-                // set: setHandlerObject,
-                set: ((configuration.activateSpecialFeatures) ? setHandlerObject : setHandlerObjectOptimized),
+                get: getHandlerObject,
+                set: setHandlerObject,
                 deleteProperty: deletePropertyHandlerObject,
                 ownKeys: ownKeysHandlerObject,
                 has: hasHandlerObject,
                 defineProperty: definePropertyHandlerObject,
                 getOwnPropertyDescriptor: getOwnPropertyDescriptorHandlerObject
             };
+			// Optimization
+			if (!configuration.activateSpecialFeatures) {
+				handler.set = setHandlerObjectOptimized;
+				handler.get = getHandlerObjectOptimized;
+			}
         }
 
         handler.target = createdTarget;
@@ -2151,7 +2204,7 @@
 	}
 
 	let defaultConfiguration = {
-		// Main feature switch, turn off for performance!
+		// Main feature switch, turn off for performance! This property will be set automatically depending on the other settings.
 		activateSpecialFeatures : false, 
 		
 		// Special features
