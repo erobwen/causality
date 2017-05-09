@@ -521,6 +521,41 @@
      *
      ***************************************************************/
 
+    function getHandlerObjectOptimized(target, key) {
+        key = key.toString();
+
+        if (this.static.__overlay !== null && key !== "__overlay" && (typeof(overlayBypass[key]) === 'undefined')) {
+            let overlayHandler = this.static.__overlay.__handler;
+            let result = overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
+            return result;
+        }
+				
+        if (typeof(this.static[key]) !== 'undefined') { // TODO: implement transparent for other readers. 
+            return this.static[key];
+        } else {
+            if (typeof(key) !== 'undefined') {
+                let scan = target;
+                while ( scan !== null && typeof(scan) !== 'undefined' ) {
+                    let descriptor = Object.getOwnPropertyDescriptor(scan, key);
+                    if (typeof(descriptor) !== 'undefined' && typeof(descriptor.get) !== 'undefined') {
+                        return descriptor.get.bind(this.static.__proxy)();
+                    }
+                    scan = Object.getPrototypeOf( scan );
+                }
+				let keyInTarget = key in target;
+				if (inActiveRecording) {
+                    if (keyInTarget) {
+                        registerAnyChangeObserver(getSpecifier(getSpecifier(this, "_propertyObservers"), key));
+                    } else {
+                        registerAnyChangeObserver(getSpecifier(this, "_enumerateObservers"));
+                    }
+                }
+				return target[key];
+            }
+        }
+    }
+	
+	
     function getHandlerObject(target, key) {
 		// console.log("");
 		// console.log(this.static.__id);
@@ -591,6 +626,50 @@
 		}
 		return value;
 	}
+	
+	
+    function setHandlerObjectOptimized(target, key, value) {
+        if (this.static.__overlay !== null) {
+            if (key === "__overlay") {
+                this.static.__overlay = value; // Setting a new overlay, should not be possible?
+                return true;
+            } else {
+                let overlayHandler = this.static.__overlay.__handler;
+                return overlayHandler.set.apply(overlayHandler, [overlayHandler.target, key, value]);
+            }
+        }
+        if (writeRestriction !== null && typeof(writeRestriction[this.static.__id]) === 'undefined') return;
+
+        let previousValue = target[key];
+
+        // If same value as already set, do nothing.
+        if (key in target) {
+            if (previousValue === value || (Number.isNaN(previousValue) && Number.isNaN(value)) ) {
+                return true;
+            }
+        }
+
+        inPulse++;
+
+        let undefinedKey = !(key in target);
+        target[key]      = value;
+        let resultValue  = target[key];
+        if( resultValue === value || (Number.isNaN(resultValue) && Number.isNaN(value)) ) { // Write protected?
+            if (undefinedKey) {
+                if (typeof(this._enumerateObservers) !== 'undefined') {
+                    notifyChangeObservers("_enumerateObservers", this._enumerateObservers);
+                }
+            } else {
+                if (typeof(this._propertyObservers) !== 'undefined' && typeof(this._propertyObservers[key]) !== 'undefined') {
+                    notifyChangeObservers("_propertyObservers." + key, this._propertyObservers[key]);
+                }
+            }
+            emitSetEvent(this, key, value, previousValue);
+        }
+        if (--inPulse === 0) postPulseCleanup();
+        if( resultValue !== value  && !(Number.isNaN(resultValue) && Number.isNaN(value))) return false; // Write protected?
+        return true;
+    }
 	
 
     function setHandlerObject(target, key, value) {
@@ -809,8 +888,10 @@
                 // construct: function () {},
                 // _enumerateObservers : {},
                 // _propertyObservers: _propertyObservers,
-                get: getHandlerObject,
+                get: ((configuration.activateSpecialFeatures) ? getHandlerObject : getHandlerObjectOptimized),
+                // get: getHandlerObject,
                 set: setHandlerObject,
+                // set: ((configuration.activateSpecialFeatures) ? setHandlerObject : setHandlerObjectOptimized),
                 deleteProperty: deletePropertyHandlerObject,
                 ownKeys: ownKeysHandlerObject,
                 has: hasHandlerObject,
@@ -2051,6 +2132,10 @@
 	}
 
 	let defaultConfiguration = {
+		// Main feature switch, turn off for performance!
+		activateSpecialFeatures : false, 
+		
+		// Special features
 		mirrorRelations : false,
 		cumulativeAssignment : false,
 		transparent : false
@@ -2067,6 +2152,13 @@
 		
 		Object.assign(existingConfiguration, newConfiguration);
 		configuration = existingConfiguration;
+		let anySet = false;
+		for (property in configuration) {
+			anySet = configuration[property] || anySet;
+		}
+		if (anySet) {
+			configuration.activateSpecialFeatures = true;
+		}
 	}
 	setConfiguration({});
 	
