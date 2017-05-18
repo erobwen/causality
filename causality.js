@@ -605,8 +605,7 @@
 	
 	
     function getHandlerObject(target, key) {
-		// console.log("");
-		// console.log(this.static.__id);
+		if (configuration.objectActivityList) registerActivity(this);
         key = key.toString();
 		// if (key instanceof 'Symbol') {
 			// throw "foobar";
@@ -676,7 +675,7 @@
 	}
 	
 	
-    function setHandlerObjectOptimized(target, key, value) {
+    function setHandlerObjectOptimized(target, key, value) {		
 		// Overlays
         if (this.static.__overlay !== null) {
             if (key === "__overlay") {
@@ -738,6 +737,8 @@
 	
 
     function setHandlerObject(target, key, value) {
+		if (configuration.objectActivityList) registerActivity(this);
+				
 		// Overlays
         if (this.static.__overlay !== null) {
             if (key === "__overlay") {
@@ -908,7 +909,7 @@
     function create(createdTarget, cacheId) {
 		let __id = nextId++;
 		
-		let = initializer = null;
+		let initializer = null;
         if (typeof(createdTarget) === 'undefined') {
             createdTarget = {};
         } else if (typeof(createdTarget) === 'function') {
@@ -2190,6 +2191,65 @@
 		mirror.forAllIncoming(object, property, callback);
  	}
 	 
+    /************************************************************************
+     *
+     *   Object activity list
+     *
+     ************************************************************************/
+	 
+	let activityListFirst = null; 
+	let activityListLast = null; 
+
+	function getActivityListLast() {
+		return activityListLast.static.__proxy;
+	}
+
+	function getActivityListFirst() {
+		return activityListFirst.static.__proxy;
+	}
+
+	function removeFromActivityList(proxy) {
+		removeFromActivityListHandler(proxy.__handler);
+	}
+	
+	function registerActivity(handler) {
+		// Init if not initialized
+		if (typeof(handler.activityListNext) === 'undefined') {
+			handler.activityListNext = null;
+			handler.activityListPrevious = null;
+		}
+		
+		// Remove from wherever it is in the structure
+		removeFromActivityListHandler(handler);
+
+		// Add first
+		handler.activityListPrevious = null;
+		if (activityListFirst !== null) {
+			activityListFirst.activityListPrevious = handler;
+			handler.activityListNext = activityListFirst;
+		} else {
+			activityListLast = handler;
+		}
+		activityListFirst = handler;
+	}
+	
+	function removeFromActivityListHandler(handler) {
+		// Remove from wherever it is in the structure
+		if (handler.activityListNext !== null) {
+			handler.activityListNext.previous = handler.activityListPrevious;
+		}
+		if (handler.activityListPrevious !== null) {
+			handler.activityListPrevious.next = handler.activityListNext;
+		}
+		if (activityListLast === handler) {
+			activityListLast = handler.activityListPrevious;
+		}
+		if (activityListFirst === handler) {
+			activityListFirst = handler.activityListNext;
+		}
+		handler.activityListNext = null;
+		handler.activityListPrevious = null;
+	}
 	 
     /************************************************************************
      *
@@ -2210,7 +2270,8 @@
 		// Special features
 		mirrorRelations : false,
 		cumulativeAssignment : false,
-		transparent : false
+		transparent : false,
+		objectActivityList : false
 	}
 	 	
 	function setConfiguration(newConfiguration) {
@@ -2299,6 +2360,10 @@
 		
 		setUseMirror : setUseMirror,
 		
-		forAllIncoming : forAllIncoming
+		forAllIncoming : forAllIncoming,
+		
+		getActivityListLast : getActivityListLast,
+		getActivityListFirst : getActivityListFirst,
+		removeFromActivityList : removeFromActivityList
     };
 }));
