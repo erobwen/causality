@@ -1276,7 +1276,7 @@
         postPulseHooks.forEach(function(callback) {
             callback(pulseEvents);
         });
-		pulseEvents.length = 0;
+		pulseEvents = [];
 		postPulseProcess = false;
     }
 
@@ -2265,11 +2265,12 @@
 		mirrorRelations : false,
 		cumulativeAssignment : false,
 		transparent : false,
-		objectActivityList : false
+		objectActivityList : false,
+		recordPulseEvents : false
 	}
 	 	
 	function setConfiguration(newConfiguration) {
-		
+		// Find existing configuration
 		let existingConfiguration = null;
 		if (typeof(configuration) === 'undefined') {
 			existingConfiguration = defaultConfiguration;
@@ -2277,6 +2278,7 @@
 			existingConfiguration = configuration;
 		}
 		
+		// Merge
 		Object.assign(existingConfiguration, newConfiguration);
 		configuration = existingConfiguration;
 		let anySet = false;
@@ -2286,6 +2288,9 @@
 		if (anySet) {
 			configuration.activateSpecialFeatures = true;
 		}
+		
+		// Assign optimized variables (reduce one object indexing)
+		recordPulseEvents = configuration.recordPulseEvents;
 	}
 	setConfiguration({});
 	
@@ -2351,8 +2356,6 @@
 
 		setCustomCanRead : setCustomCanRead,
 		setCustomCanWrite : setCustomCanWrite,
-		
-		setUseMirror : setUseMirror,
 		
 		forAllIncoming : forAllIncoming,
 		
