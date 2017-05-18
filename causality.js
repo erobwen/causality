@@ -124,12 +124,6 @@
 	
 	let getSpecifier = mirror.getSpecifier; 
 	
-	let useMirror = false;
-	
-	function setUseMirror(value) {
-		useMirror = value;
-	}
-	
 
     /***************************************************************
      *
