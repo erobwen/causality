@@ -1,6 +1,6 @@
 {
     "name": "causalityjs_advanced",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "A library for reactive programming based on Javascript proxies. The advanced package is less efficient (so far) for the basic features, but has more features in general.",
     "main": "causality.js",
     "scripts": {
