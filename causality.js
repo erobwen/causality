@@ -903,7 +903,7 @@
 	let nextHandlerId = 1;
 	 
     function create(createdTarget, cacheId) {
-		
+		inPulse++;
 		let __id = nextId++;
 		
 		let initializer = null;
@@ -1032,6 +1032,7 @@
         }
 		
 		emitCreationEvent(handler);
+		if (--inPulse === 0) postPulseCleanup();
         return proxy;
     }
 
