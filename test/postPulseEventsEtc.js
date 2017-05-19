@@ -21,9 +21,9 @@ describe("Post pulse events etc", function(){
 			y.fooY = 31;
 			z.fumZ = 3;			
 		});
-		assert.equal(3, pulseEvents.length);
-		assert.equal('set', pulseEvents[0].type);
-		assert.equal('fooX', pulseEvents[0].property);
+		assert.equal(6, pulseEvents.length);
+		assert.equal('set', pulseEvents[3].type);
+		assert.equal('fooX', pulseEvents[3].property);
 	});
 
     it("should distinguish between causality objects and other things", function(){

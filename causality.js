@@ -122,7 +122,7 @@
      *
      ***************************************************************/
 
-	let mirror = require('./mirror');
+	let mirror = require('./mirror.js');
 	
 	let getSpecifier = mirror.getSpecifier; 
 	
@@ -634,7 +634,7 @@
                         registerAnyChangeObserver(getSpecifier(this, "_enumerateObservers"));
                     }
                 }
-				if (keyInTarget && typeof(target._mirror_is_reflected) !== 'undefined') {
+				if (keyInTarget && !exposeMirrorRelationIntermediary && typeof(target._mirror_is_reflected) !== 'undefined') {
 					// console.log("causality.getHandlerObject:");
 					// console.log(key);
 					return mirror.getProperty(target, key);
@@ -903,6 +903,7 @@
 	let nextHandlerId = 1;
 	 
     function create(createdTarget, cacheId) {
+		
 		let __id = nextId++;
 		
 		let initializer = null;
@@ -1029,7 +1030,8 @@
         if (writeRestriction !== null) {
             writeRestriction[proxy.__id] = true;
         }
-
+		
+		emitCreationEvent(handler);
         return proxy;
     }
 
@@ -1251,16 +1253,16 @@
 	
     function pulse(action) {
         inPulse++;
-        callback();
+        action();
         if (--inPulse === 0) postPulseCleanup();
     }
 
     let transaction = postponeObserverNotification;
 
-    function postponeObserverNotification(callback) {
+    function postponeObserverNotification(action) {
         inPulse++;
         observerNotificationPostponed++;
-        callback();
+        action();
         observerNotificationPostponed--;
         proceedWithPostponedNotifications();
         if (--inPulse === 0) postPulseCleanup();
@@ -1298,6 +1300,12 @@
      *
      **********************************/
 
+	function emitCreationEvent(handler) {
+        if (recordPulseEvents) {
+			emitEvent(handler, { type: 'creation' });
+		}		
+	} 
+	 
     function emitSpliceEvent(handler, index, removed, added) {
         if (recordPulseEvents || typeof(handler.observers) !== 'undefined') {
             emitEvent(handler, { type: 'splice', index: index, removed: removed, added: added});
@@ -2259,6 +2267,8 @@
 
 	let configuration;
 	
+	let exposeMirrorRelationIntermediary;
+	
 	function getConfiguration() {
 		return configuration;
 	}
@@ -2268,6 +2278,7 @@
 		activateSpecialFeatures : false, 
 		
 		// Special features
+		exposeMirrorRelationIntermediary : false,
 		mirrorRelations : false,
 		cumulativeAssignment : false,
 		transparent : false,
@@ -2297,6 +2308,7 @@
 		
 		// Assign optimized variables (reduce one object indexing)
 		recordPulseEvents = configuration.recordPulseEvents;
+		exposeMirrorRelationIntermediary = configuration.exposeMirrorRelationIntermediary;
 	}
 	setConfiguration({});
 	
