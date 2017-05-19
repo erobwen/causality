@@ -10,7 +10,7 @@ function postPulse(events) {
 	pulseEvents = events;
 }
 
-describe("Post pulse events", function(){
+describe("Post pulse events etc", function(){
     it("Check post pulse events", function(){
 		let x = create({id : "x"});
 		let y = create({id : "y"});
@@ -24,5 +24,15 @@ describe("Post pulse events", function(){
 		assert.equal(3, pulseEvents.length);
 		assert.equal('set', pulseEvents[0].type);
 		assert.equal('fooX', pulseEvents[0].property);
+	});
+
+    it("should distinguish between causality objects and other things", function(){
+		let x = create({id : "x"});
+		let y = { id : "y" };
+		let z = 1;
+
+		assert.equal(true, isObject(x));
+		assert.equal(false, isObject(y));
+		assert.equal(false, isObject(z));
 	});
 });	

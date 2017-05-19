@@ -17,6 +17,8 @@
         }
         return vals;
     }
+	
+	let causalityCoreIdentity = {};
 
     // Helper to quickly get a child object (this function was a great idea, but caused performance issues in stress-tests)
     function getMap() {
@@ -976,6 +978,7 @@
         let proxy = new Proxy(createdTarget, handler);
 		
         handler.static = {
+			__causalityCoreIdentity : causalityCoreIdentity,
             __id: __id,
             __cacheId : cacheId,
             __overlay : null,
@@ -1030,7 +1033,10 @@
         return proxy;
     }
 
-
+	function isObject(entity) {
+		return typeof(entity) === 'object' && entity.__causalityCoreIdentity === causalityCoreIdentity;
+	}
+	
     /**********************************
      *
      * Initialization
@@ -2298,6 +2304,39 @@
 		setConfiguration({cumulativeAssignment : value}); 
     }
 	 
+
+	// Language extensions
+	let languageExtensions = {
+		// Object creation and identification
+		create : create,
+        c : create,
+		isObject: isObject,
+		
+		// Reactive primitives
+        uponChangeDo : uponChangeDo,
+        repeatOnChange : repeatOnChange,
+		repeat: repeatOnChange,
+		
+		// Global modifiers
+        withoutSideEffects : withoutSideEffects,
+        withoutRecording : withoutRecording,
+        withoutNotifyChange : nullifyObserverNotification,
+		
+		// Pulses and transactions
+        pulse : pulse, // A sequence of transactions, end with cleanup.
+        transaction: transaction, // Single transaction, end with cleanup. 	
+		forAllIncoming : forAllIncoming,
+	}
+	
+	// Debugging and testing
+	let debuggingAndTesting = {
+		observeAll : observeAll,
+        cachedCallCount : cachedCallCount,
+        clearRepeaterLists : clearRepeaterLists,
+        resetObjectIds : resetObjectIds,
+		logPattern : logPattern
+	}
+		
     /**
      *  Module installation
      * @param target
@@ -2305,62 +2344,35 @@
     function install(target, configuration) {
         if (typeof(target) === 'undefined') {
             target = (typeof(global) !== 'undefined') ? global : window;
-        }
-		
-		if (typeof(configuration) !== 'undefined') {
-			setConfiguration(configuration);
+        } else {
+			if (typeof(configuration) !== 'undefined') {
+				setConfiguration(configuration);
+			}			
 		}
 
-        // Main API
-        target['create']                  = create;
-        target['c']                       = create;
-        target['uponChangeDo']            = uponChangeDo;
-        target['repeatOnChange']          = repeatOnChange;
-        target['repeat']                  = repeatOnChange;
-        target['withoutSideEffects']      = withoutSideEffects;
-
-        // Modifiers
-        target['withoutRecording']        = withoutRecording;
-        target['withoutNotifyChange']     = nullifyObserverNotification;
-
-        // Pulse
-        target['pulse']                   = pulse; // A sequence of transactions, end with cleanup.
-        target['transaction']             = transaction;  // Single transaction, end with cleanup.
-        target['addPostPulseAction']      = addPostPulseAction;
-		
-        // Debugging and testing
-        target['observeAll'] = observeAll;
-        target['cachedCallCount'] = cachedCallCount;
-        target['clearRepeaterLists'] = clearRepeaterLists;
-        target['resetObjectIds'] = resetObjectIds;
-		target['logPattern'] = logPattern;
+		Object.assign(target, languageExtensions);
+		Object.assign(target, debuggingAndTesting);
         return target;
     }
 
-    return {
-        install: install,
+	let module = {
+		install : install,
+		
+		// Framework setup (usually not used by application code)
         setConfiguration : setConfiguration,
 		getConfiguration : getConfiguration,
 		setCumulativeAssignment : setCumulativeAssignment,
-
-        create : create,
-        c : create,
-        uponChangeDo : uponChangeDo,
-        repeatOnChange : repeatOnChange,
-        withoutSideEffects : withoutSideEffects,
-        withoutRecording : withoutRecording,
-        withoutNotifyChange : nullifyObserverNotification,
-        pulse : pulse,
-        transaction: transaction,
+		
+		// Setup & Configuration
         addPostPulseAction : addPostPulseAction,
-
 		setCustomCanRead : setCustomCanRead,
 		setCustomCanWrite : setCustomCanWrite,
-		
-		forAllIncoming : forAllIncoming,
-		
+
+		// Framework interface
 		getActivityListLast : getActivityListLast,
 		getActivityListFirst : getActivityListFirst,
 		removeFromActivityList : removeFromActivityList
-    };
+	}
+	Object.assign(module, languageExtensions);
+    return module;
 }));
