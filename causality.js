@@ -135,7 +135,7 @@
 
 	 
 	function createAndRemoveMirrorRelations(proxy, index, removed, added) {
-		if (configuration.mirrorRelations) {
+		if (mirrorRelations) {
 			        
 			// Get refering object 
             let referringObject = proxy;
@@ -151,7 +151,12 @@
 				let addedAdjusted = [];
 				added.forEach(function(addedElement) {
 					if (typeof(addedElement) === 'object' && addedElement._mirror_reflects) {
-						let referencedValue = mirror.setupMirrorReference(referringObject, referringRelation, addedElement);
+						let referencedValue;
+						if (configuration.mirrorStructuresAsCausalityObjects) {
+							referencedValue = mirror.setupMirrorReference(referringObject, referringRelation, addedElement, create);
+						} else {
+							referencedValue = mirror.setupMirrorReference(referringObject, referringRelation, addedElement);
+						}
 						if (typeof(referencedValue._incoming) !== 'undefined' && typeof(referencedValue._incoming[referringRelation]) !== 'undefined') {
 							notifyChangeObservers(referencedValue._incoming[referringRelation]);
 						}
@@ -204,7 +209,7 @@
 			let removed = null;
 			let added = argumentsArray;
 			
-			if (configuration.mirrorRelations) {
+			if (mirrorRelations) {
 				added = createAndRemoveMirrorRelations(this.static.__proxy, index, removed, added); // TODO: implement for other array manipulators as well. 
 			}
 			
@@ -691,9 +696,8 @@
 			return;
 		}
 		
-		// Get previous value
-        let previousValue = target[key]; 
-        
+		let previousValue = target[key];
+		
 		// If same value as already set, do nothing.
         if (key in target) {
             if (previousValue === value || (Number.isNaN(previousValue) && Number.isNaN(value)) ) {
@@ -752,8 +756,17 @@
 		// Ensure initialized
 		ensureInitialized(this, target);
 		
-		// Get previous value
-        let previousValue = target[key]; 
+		// Get previous value		// Get previous value
+		let previousValue;
+		let previousMirrorStructure;
+		if (mirrorRelations && typeof(target._mirror_is_reflected) !== 'undefined') {
+			// console.log("causality.getHandlerObject:");
+			// console.log(key);
+			previousMirrorStructure = target[key];
+			previousValue = mirror.getProperty(target, key);
+		} else {
+			previousValue = target[key]; 
+		}
         
 		// If same value as already set, do nothing.
         if (key in target) {
@@ -773,8 +786,10 @@
         let undefinedKey = !(key in target);
 		
 		// Perform assignment with regards to mirror structures.
-		if (configuration.mirrorRelations) {
-			target[key] = setupMirrorRelation(this['static'].__proxy, key, value, previousValue);
+		let mirrorStructureValue;
+		if (mirrorRelations) {
+			mirrorStructureValue = setupMirrorRelation(this['static'].__proxy, key, value, previousValue);
+			target[key] = mirrorStructureValue; 
 		} else {
 			target[key] = value;
 		}
@@ -791,6 +806,10 @@
 		}
 
 		// Emit event
+		if (exposeMirrorRelationIntermediary) {
+			previousValue = previousMirrorStructure;
+			value = mirrorStructureValue;
+		}
 		emitSetEvent(this, key, value, previousValue);
 		
 		// End pulse 
@@ -2197,7 +2216,9 @@
 
 	function forAllIncoming(object, property, callback) {
 		registerAnyChangeObserver(getSpecifier(getSpecifier(object, "_incoming"), property));
-		mirror.forAllIncoming(object, property, callback);
+		withoutRecording(function() { // This is needed for setups where incoming structures are made out of causality objects. 
+			mirror.forAllIncoming(object, property, callback);
+		});
  	}
 	 
     /************************************************************************
@@ -2268,7 +2289,9 @@
 
 	let configuration;
 	
+	let mirrorRelations;
 	let exposeMirrorRelationIntermediary;
+	let mirrorStructuresAsCausalityObjects;
 	
 	function getConfiguration() {
 		return configuration;
@@ -2279,8 +2302,10 @@
 		activateSpecialFeatures : false, 
 		
 		// Special features
-		exposeMirrorRelationIntermediary : false,
 		mirrorRelations : false,
+		exposeMirrorRelationIntermediary : false,
+		mirrorStructuresAsCausalityObjects: false,
+		
 		cumulativeAssignment : false,
 		transparent : false,
 		objectActivityList : false,
@@ -2309,7 +2334,9 @@
 		
 		// Assign optimized variables (reduce one object indexing)
 		recordPulseEvents = configuration.recordPulseEvents;
+		mirrorRelations = configuration.mirrorRelations;
 		exposeMirrorRelationIntermediary = configuration.exposeMirrorRelationIntermediary;
+		mirrorStructuresAsCausalityObjects = configuration.mirrorStructuresAsCausalityObjects;
 	}
 	setConfiguration({});
 	
