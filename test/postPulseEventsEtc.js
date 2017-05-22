@@ -35,4 +35,16 @@ describe("Post pulse events etc", function(){
 		assert.equal(false, isObject(y));
 		assert.equal(false, isObject(z));
 	});
+	
+	it("should be possible to use initializers", function(){
+		function initializer(object) {
+			object.foobar = 42;
+		}
+		let x = create(initializer);
+
+		assert.equal(42, x.foobar);
+		x.foobar = 1942;
+		x.static.initializer = initializer;
+		assert.equal(42, x.foobar);
+	});
 });	

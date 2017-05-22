@@ -992,12 +992,11 @@
         handler.target = createdTarget;
 		
 		// createdTarget.__id = __id; // TODO ??? 
-		
-		handler.initializer = initializer;
-		
+				
         let proxy = new Proxy(createdTarget, handler);
 		
         handler.static = {
+			initializer : initializer,
 			__causalityCoreIdentity : causalityCoreIdentity,
             __id: __id,
             __cacheId : cacheId,
@@ -1066,9 +1065,10 @@
      **********************************/
 	 
 	function ensureInitialized(handler, target) {
-		if (handler.initializer !== null) {
-			handler.initializer(target);
-			handler.initializer = null;
+		if (handler.static.initializer !== null) {
+			let initializer = handler.static.initializer;
+			initializer(target);
+			handler.static.initializer = null;
 		}		 
 	}
 	 
