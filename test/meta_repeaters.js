@@ -34,7 +34,7 @@ describe("Meta repeaters", function(){
             // console.log(array);
             array.forEach(function(node) {
                 // console.log(node);
-                node.repeat('emitHelloEvent', 'some', 'argument');
+                node.static.repeat('emitHelloEvent', 'some', 'argument');
             });
         });
 
@@ -98,7 +98,7 @@ describe("Meta repeaters", function(){
             // console.log(array);
             array.forEach(function(node) {
                 // console.log(node);
-                node.repeat('emitHelloEvent', 'some', 'argument');
+                node.static.repeat('emitHelloEvent', 'some', 'argument');
             });
         });
 
@@ -115,7 +115,7 @@ describe("Meta repeaters", function(){
             // console.log(array);
             arrayB.forEach(function(node) {
                 // console.log(node);
-                node.repeat('emitHelloEvent', 'some', 'argument');
+                node.static.repeat('emitHelloEvent', 'some', 'argument');
             });
         });
 
@@ -162,10 +162,10 @@ describe("Meta repeaters", function(){
         }
 
         let a = createNode('a');
-        a.repeat('emitHelloEvent', 'some', 'argument');
-        a.repeat('emitHelloEvent', 2);
-        a.repeat('emitHelloEvent', 54);
-        a.repeat('emitHelloEvent', 54);
+        a.static.repeat('emitHelloEvent', 'some', 'argument');
+        a.static.repeat('emitHelloEvent', 2);
+        a.static.repeat('emitHelloEvent', 54);
+        a.static.repeat('emitHelloEvent', 54);
 
         // Assert all repeaters run once upon creation
         assert.equal(events.length, 3);

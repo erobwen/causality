@@ -1009,25 +1009,25 @@
 			// __mirror_reflects : false,
 
             // This inside these functions will be the Proxy. Change to handler?
-            repeat : genericRepeatMethod,
-            tryStopRepeat : genericStopRepeatFunction,
+            repeat : genericRepeatMethod.bind(proxy),
+            tryStopRepeat : genericStopRepeatFunction.bind(proxy),
 
-            observe: genericObserveFunction,
+            observe: genericObserveFunction.bind(proxy),
 
-            cached : genericCallAndCacheFunction,
-            cachedInCache : genericCallAndCacheInCacheFunction,
-            reCached : genericReCacheFunction,
-            reCachedInCache : genericReCacheInCacheFunction,
-            tryUncache : genericUnCacheFunction,
+            cached : genericCallAndCacheFunction.bind(proxy),
+            cachedInCache : genericCallAndCacheInCacheFunction.bind(proxy),
+            reCached : genericReCacheFunction.bind(proxy),
+            reCachedInCache : genericReCacheInCacheFunction.bind(proxy),
+            tryUncache : genericUnCacheFunction.bind(proxy),
 
             // reCache aliases
-            project : genericReCacheFunction,
-            projectInProjectionOrCache : genericReCacheInCacheFunction,
+            project : genericReCacheFunction.bind(proxy),
+            projectInProjectionOrCache : genericReCacheInCacheFunction.bind(proxy),
 
             // Identity and state
-            mergeFrom : genericMergeFrom,
-            forwardTo : genericForwarder,
-            removeForwarding : genericRemoveForwarding,
+            mergeFrom : genericMergeFrom.bind(proxy),
+            forwardTo : genericForwarder.bind(proxy),
+            removeForwarding : genericRemoveForwarding.bind(proxy),
             mergeAndRemoveForwarding: genericMergeAndRemoveForwarding
         };
 		handler.static.static = handler.static;
@@ -1069,7 +1069,7 @@
 			let initializer = handler.static.initializer;
 			initializer(target);
 			handler.static.initializer = null;
-		}		 
+		}
 	}
 	 
 	// function purge(object) {
