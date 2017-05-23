@@ -605,8 +605,8 @@
     }
 	
 	let blocklist = {
-		// initializer : true,
-		// __causalityCoreIdentity : true,
+		initializer : true,
+		__causalityCoreIdentity : true,
 		// __id: true,
 		// __cacheId : true,
 		// __overlay : true,
@@ -1079,7 +1079,7 @@
     }
 
 	function isObject(entity) {
-		return typeof(entity) === 'object' && entity.__causalityCoreIdentity === causalityCoreIdentity;
+		return typeof(entity) === 'object' && entity !== null && typeof(entity.static) !== 'undefined' && entity.static.__causalityCoreIdentity === causalityCoreIdentity;
 	}
 	
     /**********************************
