@@ -1,8 +1,8 @@
 const assert = require('assert');
-let causality = require('../causality');
-causality.install();
-causality.setConfiguration({mirrorRelations : true});
-
+const requireUncached = require('require-uncached');
+let causality = requireUncached('../causality');
+let create = causality.create;
+// causality.setConfiguration({mirrorRelations : true, directStaticAccess: true});
 let mirror = require('../mirror');
 
 describe("Mirror Relations", function(){

@@ -604,6 +604,30 @@
         }
     }
 	
+	let blocklist = {
+		// initializer : true,
+		// __causalityCoreIdentity : true,
+		// __id: true,
+		// __cacheId : true,
+		// __overlay : true,
+		// __target: true,
+		// __handler : true,
+		// __proxy : true,
+		// repeat : true,
+		// tryStopRepeat : true,
+		// observe: true,
+		// cached : true,
+		// cachedInCache : true,
+		// reCached : true,
+		// reCachedInCache : true,
+		// tryUncache : true,
+		// project : true,
+		// projectInProjectionOrCache : true,
+		// mergeFrom : true,
+		// forwardTo : true,
+		// removeForwarding : true,
+		// mergeAndRemoveForwarding: true
+	};
 	
     function getHandlerObject(target, key) {
 		if (configuration.objectActivityList) registerActivity(this);
@@ -619,7 +643,7 @@
 		
 		ensureInitialized(this, target);
 				
-        if (configuration.directStaticAccess && typeof(this.static[key]) !== 'undefined') { // TODO: implement directStaticAccess for other readers. 
+        if (configuration.directStaticAccess && typeof(this.static[key]) !== 'undefined' && (typeof(blocklist[key]) === 'undefined')) { // TODO: implement directStaticAccess for other readers. 
             return this.static[key];
         } else {
             if (typeof(key) !== 'undefined') {

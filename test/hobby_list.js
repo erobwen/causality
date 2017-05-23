@@ -1,5 +1,6 @@
 const assert = require('assert');
-require('../causality').install();
+let causality = require('../causality');
+let create = causality.create;
 
 
 const log = console.log.bind(console);
@@ -10,7 +11,7 @@ describe("object tree modifications", function(){
 	const state = create({});
 	let out = {};
 	
-	repeatOnChange(function(){
+	causality.repeatOnChange(function(){
 		// console.log("=== Reevaluate ===");
 		cnt++;
 		for( let key in state ){
@@ -26,13 +27,13 @@ describe("object tree modifications", function(){
 	});
 
 	it("Setting a", function(){
-		state.a = c({name:"Apa"});
+		state.a = causality.c({name:"Apa"});
 		assert.equal(cnt,2);
 		assert.equal(out.a, undefined);
 	});
 
 	it("Setting a.hobby", function(){
-		state.a.hobby = c([]);
+		state.a.hobby = causality.c([]);
 		assert.equal(cnt,3);
 		//log(state['a'].hobby);
 		//log(state['a'].hobby.length);
