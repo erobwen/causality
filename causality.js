@@ -372,7 +372,7 @@
 	 
 	 
     function getHandlerArrayOptimized(target, key) {
-        if (this.static.__overlay !== null) { //  && (typeof(overlayBypass[key]) === 'undefined')
+        if (this.static.__overlay !== null && key !== 'nonForwardStatic') { //  && (typeof(overlayBypass[key]) === 'undefined')
             let overlayHandler = this.static.__overlay.__handler;
             return overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
         }
@@ -393,7 +393,7 @@
 	
 	
     function getHandlerArray(target, key) {
-        if (this.static.__overlay !== null) { // && (typeof(overlayBypass[key]) === 'undefined')
+        if (this.static.__overlay !== null && key !== 'nonForwardStatic') { // && (typeof(overlayBypass[key]) === 'undefined')
             let overlayHandler = this.static.__overlay.__handler;
             return overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
         }
