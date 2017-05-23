@@ -579,7 +579,7 @@
             return result;
         }
 				
-        if (typeof(this.static[key]) !== 'undefined') { // TODO: implement transparent for other readers. 
+        if (typeof(this.static[key]) !== 'undefined') { // TODO: implement directStaticAccess for other readers. 
             return this.static[key];
         } else {
             if (typeof(key) !== 'undefined') {
@@ -619,7 +619,7 @@
 		
 		ensureInitialized(this, target);
 				
-        if (!configuration.transparent && typeof(this.static[key]) !== 'undefined') { // TODO: implement transparent for other readers. 
+        if (configuration.directStaticAccess && typeof(this.static[key]) !== 'undefined') { // TODO: implement directStaticAccess for other readers. 
             return this.static[key];
         } else {
             if (typeof(key) !== 'undefined') {
@@ -2307,7 +2307,7 @@
 		mirrorStructuresAsCausalityObjects: false,
 		
 		cumulativeAssignment : false,
-		transparent : false,
+		directStaticAccess : true,
 		objectActivityList : false,
 		recordPulseEvents : false
 	}
