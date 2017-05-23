@@ -608,7 +608,7 @@
 		initializer : true,
 		__causalityCoreIdentity : true,
 		__id: true,
-		// __cacheId : true,
+		__cacheId : true,
 		// __overlay : true,
 		// __target: true,
 		// __handler : true,
@@ -2173,10 +2173,10 @@
                                 mergeOverlayIntoObject(created);
                             } else {
                                 // console.log("Infusion id of newly created:");
-                                // console.log(created.__cacheId);
-                                if (created.__cacheId !== null) {
+                                // console.log(created.static.__cacheId);
+                                if (created.static.__cacheId !== null) {
 
-                                    cacheRecord.cacheIdObjectMap[created.__cacheId] = created;
+                                    cacheRecord.cacheIdObjectMap[created.static.__cacheId] = created;
                                 }
                             }
                         });
