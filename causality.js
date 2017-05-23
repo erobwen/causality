@@ -373,7 +373,7 @@
 	 
     function getHandlerArrayOptimized(target, key) {
         if (this.static.__overlay !== null && key !== 'nonForwardStatic') { //  && (typeof(overlayBypass[key]) === 'undefined')
-            let overlayHandler = this.static.__overlay.__handler;
+            let overlayHandler = this.static.__overlay.static.__handler;
             return overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
         }
 		
@@ -394,7 +394,7 @@
 	
     function getHandlerArray(target, key) {
         if (this.static.__overlay !== null && key !== 'nonForwardStatic') { // && (typeof(overlayBypass[key]) === 'undefined')
-            let overlayHandler = this.static.__overlay.__handler;
+            let overlayHandler = this.static.__overlay.static.__handler;
             return overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
         }
 		
@@ -418,7 +418,7 @@
                 this.static.__overlay = value;
                 return true;
             } else {
-                let overlayHandler = this.static.__overlay.__handler;
+                let overlayHandler = this.static.__overlay.static.__handler;
                 return overlayHandler.set.apply(overlayHandler, [overlayHandler.target, key, value]);
             }
         }
@@ -476,7 +476,7 @@
 
     function deletePropertyHandlerArray(target, key) {
         if (this.static.__overlay !== null) {
-            let overlayHandler = this.static.__overlay.__handler;
+            let overlayHandler = this.static.__overlay.static.__handler;
             return overlayHandler.deleteProperty.apply(overlayHandler, [overlayHandler.target, key]);
         }
         if (!(key in target)) {
@@ -503,7 +503,7 @@
 
     function ownKeysHandlerArray(target) {
         if (this.static.__overlay !== null) {
-            let overlayHandler = this.static.__overlay.__handler;
+            let overlayHandler = this.static.__overlay.static.__handler;
             return overlayHandler.ownKeys.apply(overlayHandler, [overlayHandler.target]);
         }
 
@@ -519,7 +519,7 @@
 
     function hasHandlerArray(target, key) {
         if (this.static.__overlay !== null) {
-            let overlayHandler = this.static.__overlay.__handler;
+            let overlayHandler = this.static.__overlay.static.__handler;
             return overlayHandler.has.apply(overlayHandler, [target, key]);
         }
 		
@@ -533,7 +533,7 @@
 
     function definePropertyHandlerArray(target, key, oDesc) {
         if (this.static.__overlay !== null) {
-            let overlayHandler = this.static.__overlay.__handler;
+            let overlayHandler = this.static.__overlay.static.__handler;
             return overlayHandler.defineProperty.apply(overlayHandler, [overlayHandler.target, key, oDesc]);
         }
         if (!canWrite(this.static.__proxy)) return;
@@ -551,7 +551,7 @@
 
     function getOwnPropertyDescriptorHandlerArray(target, key) {
         if (this.static.__overlay !== null) {
-            let overlayHandler = this.static.__overlay.__handler;
+            let overlayHandler = this.static.__overlay.static.__handler;
             return overlayHandler.getOwnPropertyDescriptor.apply(overlayHandler, [overlayHandler.target, key]);
         }
 
@@ -574,7 +574,7 @@
         key = key.toString();
 
         if (this.static.__overlay !== null && key !== "nonForwardStatic") {
-            let overlayHandler = this.static.__overlay.__handler;
+            let overlayHandler = this.static.__overlay.static.__handler;
             let result = overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
             return result;
         }
@@ -610,8 +610,8 @@
 		__id: true,
 		__cacheId : true,
 		__overlay : true,
-		// __target: true,
-		// __handler : true,
+		__target: true,
+		__handler : true,
 		// __proxy : true,
 		// repeat : true,
 		// tryStopRepeat : true,
@@ -636,7 +636,7 @@
 			// throw "foobar";
 		// }
         if (this.static.__overlay !== null && key !== "nonForwardStatic") {
-            let overlayHandler = this.static.__overlay.__handler;
+            let overlayHandler = this.static.__overlay.static.__handler;
             let result = overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
             return result;
         }
@@ -703,7 +703,7 @@
     function setHandlerObjectOptimized(target, key, value) {		
 		// Overlays
         if (this.static.__overlay !== null) {
-			let overlayHandler = this.static.__overlay.__handler;
+			let overlayHandler = this.static.__overlay.static.__handler;
 			return overlayHandler.set.apply(overlayHandler, [overlayHandler.target, key, value]);
         }
 		
@@ -760,7 +760,7 @@
 				
 		// Overlays
         if (this.static.__overlay !== null) {
-			let overlayHandler = this.static.__overlay.__handler;
+			let overlayHandler = this.static.__overlay.static.__handler;
 			return overlayHandler.set.apply(overlayHandler, [overlayHandler.target, key, value]);
         }
 		
@@ -835,7 +835,7 @@
 
     function deletePropertyHandlerObject(target, key) {
         if (this.static.__overlay !== null) {
-            let overlayHandler = this.static.__overlay.__handler;
+            let overlayHandler = this.static.__overlay.static.__handler;
             overlayHandler.deleteProperty.apply(overlayHandler, [overlayHandler.target, key]);
             return true;
         }
@@ -864,7 +864,7 @@
 
     function ownKeysHandlerObject(target, key) { // Not inherited?
         if (this.static.__overlay !== null) {
-            let overlayHandler = this.static.__overlay.__handler;
+            let overlayHandler = this.static.__overlay.static.__handler;
             return overlayHandler.ownKeys.apply(overlayHandler, [overlayHandler.target, key]);
         }
 		
@@ -880,7 +880,7 @@
 
     function hasHandlerObject(target, key) {
         if (this.static.__overlay !== null) {
-            let overlayHandler = this.static.__overlay.__handler;
+            let overlayHandler = this.static.__overlay.static.__handler;
             return overlayHandler.has.apply(overlayHandler, [overlayHandler.target, key]);
         }
 		
@@ -894,7 +894,7 @@
 
     function definePropertyHandlerObject(target, key, descriptor) {
         if (this.static.__overlay !== null) {
-            let overlayHandler = this.static.__overlay.__handler;
+            let overlayHandler = this.static.__overlay.static.__handler;
             return overlayHandler.defineProperty.apply(overlayHandler, [overlayHandler.target, key]);
         }
 				
@@ -915,7 +915,7 @@
 
     function getOwnPropertyDescriptorHandlerObject(target, key) {
         if (this.static.__overlay !== null) {
-            let overlayHandler = this.static.__overlay.__handler;
+            let overlayHandler = this.static.__overlay.static.__handler;
             return overlayHandler.getOwnPropertyDescriptor.apply(overlayHandler, [overlayHandler.target, key]);
         }
 		
@@ -1051,7 +1051,7 @@
             if (cacheId !== null &&  typeof(context.cacheIdObjectMap[cacheId]) !== 'undefined') {
                 // Overlay previously created
                 let infusionTarget = context.cacheIdObjectMap[cacheId];
-                infusionTarget.__handler.static.__overlay = proxy;
+                infusionTarget.static.__handler.static.__overlay = proxy;
                 context.newlyCreated.push(infusionTarget);
                 return infusionTarget;   // Borrow identity of infusion target.
             } else {
@@ -1386,7 +1386,7 @@
     }
 
     function genericObserveFunction(observerFunction) {
-        let handler = this.__handler;
+        let handler = this.static.__handler;
         if (typeof(handler.observers) === 'undefined') {
             handler.observers = [];
         }
@@ -1684,7 +1684,7 @@
     }
 
 	function getObjectAttatchedCache(object, cacheStoreName, functionName) {
-		// object = object.__handler;
+		// object = object.static.__handler;
 		// let functionCaches = getMap(object, cacheStoreName, functionName);
         if (typeof(object[cacheStoreName]) === 'undefined') {
             object[cacheStoreName] = {};
@@ -2061,7 +2061,7 @@
     function mergeInto(source, target) {
 		// console.log("merge into!!");
         if (source instanceof Array) {
-            let splices = differentialSplices(target.__target, source.__target);
+            let splices = differentialSplices(target.static.__target, source.static.__target);
             splices.forEach(function(splice) {
                 let spliceArguments = [];
                 spliceArguments.push(splice.index, splice.removed.length);
@@ -2254,7 +2254,7 @@
 	}
 
 	function removeFromActivityList(proxy) {
-		removeFromActivityListHandler(proxy.__handler);
+		removeFromActivityListHandler(proxy.static.__handler);
 	}
 	
 	function registerActivity(handler) {
