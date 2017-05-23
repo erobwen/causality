@@ -607,7 +607,7 @@
 	let blocklist = {
 		initializer : true,
 		__causalityCoreIdentity : true,
-		// __id: true,
+		__id: true,
 		// __cacheId : true,
 		// __overlay : true,
 		// __target: true,
@@ -716,7 +716,7 @@
 		if (postPulseProcess) {
 			return;
 		}
-		if (writeRestriction !== null && typeof(writeRestriction[object.__id]) === 'undefined') {
+		if (writeRestriction !== null && typeof(writeRestriction[object.static.__id]) === 'undefined') {
 			return;
 		}
 		
@@ -1015,7 +1015,7 @@
 
         handler.target = createdTarget;
 		
-		// createdTarget.__id = __id; // TODO ??? 
+		// createdTarget.static.__id = __id; // TODO ??? 
 				
         let proxy = new Proxy(createdTarget, handler);
 		
@@ -1070,7 +1070,7 @@
         }
 
         if (writeRestriction !== null) {
-            writeRestriction[proxy.__id] = true;
+            writeRestriction[proxy.static.__id] = true;
         }
 		
 		emitCreationEvent(handler);
@@ -1117,7 +1117,7 @@
 		if (postPulseProcess) {
 			return false;
 		}
-		if (writeRestriction !== null && typeof(writeRestriction[object.__id]) === 'undefined') {
+		if (writeRestriction !== null && typeof(writeRestriction[object.static.__id]) === 'undefined') {
 			return false;
 		}
 		if (customCanWrite !== null) {
@@ -1589,7 +1589,7 @@
             description: description,
             action: repeaterAction,
             remove: function() {
-                // console.log("removeRepeater: " + repeater.__id + "." + repeater.description);
+                // console.log("removeRepeater: " + repeater.static.__id + "." + repeater.description);
                 removeChildContexts(this);
                 detatchRepeater(this);
                 this.micro.remove(); // Remove recorder!
@@ -1715,8 +1715,8 @@
                     hash += ",";
                 }
 
-                if (typeof(argument.__id) !== 'undefined') { //typeof(argument) === 'object' &&
-                    hash += "{id=" + argument.__id + "}";
+                if (isObject(argument)) { //typeof(argument) === 'object' &&
+                    hash += "{id=" + argument.static.__id + "}";
                 } else if (typeof(argument) === 'number' || typeof(argument) === 'string') { // String or integer
                     hash += argument;
                 } else {

@@ -48,8 +48,8 @@ describe("Projections", function(){
     var createTreeNode = function(value, children) {
         return create({
             flattenArrayPreOrder : function() {
-                let result = create([], this.__id + "_array");
-                result.push(create({value: value}, this.__id + "_node"));
+                let result = create([], this.static.__id + "_array");
+                result.push(create({value: value}, this.static.__id + "_node"));
 
                 this.children.forEach(function(child) {
                     let childList = child.flattenArrayPreOrder();
@@ -60,9 +60,9 @@ describe("Projections", function(){
             },
 
             flattenArrayPreOrderRecursive : function() {
-                // console.log("flattenArrayPreOrderRecursive " + this.__id + "_array");
-                let result = create([], this.__id + "_array");
-                result.push(create({value: value}, this.__id + "_node"));
+                // console.log("flattenArrayPreOrderRecursive " + this.static.__id + "_array");
+                let result = create([], this.static.__id + "_array");
+                result.push(create({value: value}, this.static.__id + "_node"));
 
                 this.children.forEach(function(child) {
                     let childList = child.reCached('flattenArrayPreOrderRecursive');
@@ -73,7 +73,7 @@ describe("Projections", function(){
             },
 
             flattenLinkedPreOrder : function() {
-                let firstNode = createListNode(this.value, this.__id + "_list");
+                let firstNode = createListNode(this.value, this.static.__id + "_list");
                 let node = firstNode;
 
                 this.children.forEach(function(child) {
@@ -88,9 +88,9 @@ describe("Projections", function(){
             },
 
             flattenLinkedPreOrderRecursive : function() {
-                // console.log("flattenLinkedPreOrderRecursive " + this.__id + "_head");
-                let listHead = createListHead(this.__id + "_head");
-                let firstNode = createTransparentListNode(this.value, this.__id + "_node");
+                // console.log("flattenLinkedPreOrderRecursive " + this.static.__id + "_head");
+                let listHead = createListHead(this.static.__id + "_head");
+                let firstNode = createTransparentListNode(this.value, this.static.__id + "_node");
 
                 listHead.first = firstNode;
                 // firstNode.previous = null;
@@ -100,7 +100,7 @@ describe("Projections", function(){
                 this.children.forEach(function(child) {
                     // child.reCachedInCache('flattenLinkedPreOrder');
                     let childList = child.reCached('flattenLinkedPreOrderRecursive');
-                    // console.log("linking next and previous together" + node.__id +  " -> " + childList.first.__id);
+                    // console.log("linking next and previous together" + node.static.__id +  " -> " + childList.first.static.__id);
                     node.next = childList.first;
                     childList.first.previous = node;
                     node = childList.last;
