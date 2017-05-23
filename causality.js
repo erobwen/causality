@@ -372,7 +372,7 @@
 	 
 	 
     function getHandlerArrayOptimized(target, key) {
-        if (this.static.__overlay !== null && (typeof(overlayBypass[key]) === 'undefined')) {
+        if (this.static.__overlay !== null) { //  && (typeof(overlayBypass[key]) === 'undefined')
             let overlayHandler = this.static.__overlay.__handler;
             return overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
         }
@@ -393,7 +393,7 @@
 	
 	
     function getHandlerArray(target, key) {
-        if (this.static.__overlay !== null && (typeof(overlayBypass[key]) === 'undefined')) {
+        if (this.static.__overlay !== null) { // && (typeof(overlayBypass[key]) === 'undefined')
             let overlayHandler = this.static.__overlay.__handler;
             return overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
         }
@@ -2052,13 +2052,14 @@
      *
      ************************************************************************/
 
-    let overlayBypass = {
-        '__overlay' : true,
-        'removeForwarding' : true,
-        'mergeAndRemoveForwarding' : true
-    };
+    // let overlayBypass = {  // maybe useful when direct static access?
+        // '__overlay' : true,
+        // 'removeForwarding' : true,
+        // 'mergeAndRemoveForwarding' : true
+    // };
 
     function mergeInto(source, target) {
+		// console.log("merge into!!");
         if (source instanceof Array) {
             let splices = differentialSplices(target.__target, source.__target);
             splices.forEach(function(splice) {
@@ -2158,9 +2159,8 @@
                     // console.log("Assimilating:");
                     withoutRecording(function() { // Do not observe reads from the overlays
                         cacheRecord.newlyCreated.forEach(function(created) {
-                            if (created.static.__overlay !== null) {
-                                // console.log("Has overlay!");
-                                // console.log(created.static.__overlay);
+                            if (created.nonForwardStatic.__overlay !== null) {
+                                // console.log("Has overlay, merge!!!!");
                                 mergeOverlayIntoObject(created);
                             } else {
                                 // console.log("Infusion id of newly created:");

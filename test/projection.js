@@ -176,9 +176,19 @@ describe("Projections", function(){
         });
 
         // Update tree
-        // console.log("Update tree");
+        // console.log("===== Update tree =====");
         tree.children[0].children.push(createTreeNode(4.5, []));
-
+		// console.log("===== Update tree =====");
+				
+        // Assert updated
+        expectedValues = [1, 2, 3, 4, 4.5, 5, 6, 7];
+        flattenedNode = flattened;
+        assert.equal(flattenedNode.value, expectedValues.shift());
+        while(flattenedNode.next !== null) {
+            flattenedNode = flattenedNode.next;
+            assert.equal(flattenedNode.value, expectedValues.shift());
+        }
+		
         // Assert eventws
         assert.equal(detectedEvents[0].type, 'set');
 		assert.equal(detectedEvents[0].object.value, 4);
@@ -191,15 +201,6 @@ describe("Projections", function(){
         assert.equal(detectedEvents[1].property, 'previous');
         assert.equal(detectedEvents[1].newValue.value, 4.5);
         assert.equal(detectedEvents[1].oldValue.value, 4);
-
-        // Assert updated
-        expectedValues = [1, 2, 3, 4, 4.5, 5, 6, 7];
-        flattenedNode = flattened;
-        assert.equal(flattenedNode.value, expectedValues.shift());
-        while(flattenedNode.next !== null) {
-            flattenedNode = flattenedNode.next;
-            assert.equal(flattenedNode.value, expectedValues.shift());
-        }
     });
 
     it("Testing non-recursive projection, array version", function(){
