@@ -8,9 +8,9 @@ describe("Proxy object traps", function () {
     const box = create();
 
     it('overlay',  function () {
-        box.static.__overlay = create({ name: "overlay"});
+        box.static.static.__overlay = create({ name: "overlay"});
         box.other = null;
-        box.__overlay = null;
+        box.static.__overlay = null;
     });
 
     it('nochange',  function () {
@@ -39,9 +39,9 @@ describe("Array object traps", function () {
     const stack = create([]);
 
     it('overlay',  function () {
-        stack.__handler.static.__overlay = create(['aa','bb']);
+        stack.__handler.static.static.__overlay = create(['aa','bb']);
         stack[2] = false;
-        stack.__overlay = null;
+        stack.static.__overlay = null;
     });
 
 

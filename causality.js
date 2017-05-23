@@ -573,7 +573,7 @@
     function getHandlerObjectOptimized(target, key) {
         key = key.toString();
 
-        if (this.static.__overlay !== null && key !== "__overlay" && (typeof(overlayBypass[key]) === 'undefined')) {
+        if (this.static.__overlay !== null && key !== "nonForwardStatic") {
             let overlayHandler = this.static.__overlay.__handler;
             let result = overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
             return result;
@@ -609,7 +609,7 @@
 		__causalityCoreIdentity : true,
 		__id: true,
 		__cacheId : true,
-		// __overlay : true,
+		__overlay : true,
 		// __target: true,
 		// __handler : true,
 		// __proxy : true,
@@ -635,7 +635,7 @@
 		// if (key instanceof 'Symbol') {
 			// throw "foobar";
 		// }
-        if (this.static.__overlay !== null && key !== "__overlay" && (typeof(overlayBypass[key]) === 'undefined')) {
+        if (this.static.__overlay !== null && key !== "nonForwardStatic") {
             let overlayHandler = this.static.__overlay.__handler;
             let result = overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
             return result;
@@ -703,13 +703,8 @@
     function setHandlerObjectOptimized(target, key, value) {		
 		// Overlays
         if (this.static.__overlay !== null) {
-            if (key === "__overlay") {
-                this.static.__overlay = value; // Setting a new overlay, should not be possible?
-                return true;
-            } else {
-                let overlayHandler = this.static.__overlay.__handler;
-                return overlayHandler.set.apply(overlayHandler, [overlayHandler.target, key, value]);
-            }
+			let overlayHandler = this.static.__overlay.__handler;
+			return overlayHandler.set.apply(overlayHandler, [overlayHandler.target, key, value]);
         }
 		
         // Writeprotection
@@ -765,13 +760,8 @@
 				
 		// Overlays
         if (this.static.__overlay !== null) {
-            if (key === "__overlay") {
-                this.static.__overlay = value; // Setting a new overlay, should not be possible?
-                return true;
-            } else {
-                let overlayHandler = this.static.__overlay.__handler;
-                return overlayHandler.set.apply(overlayHandler, [overlayHandler.target, key, value]);
-            }
+			let overlayHandler = this.static.__overlay.__handler;
+			return overlayHandler.set.apply(overlayHandler, [overlayHandler.target, key, value]);
         }
 		
         // Writeprotection
@@ -1052,9 +1042,10 @@
             mergeFrom : genericMergeFrom.bind(proxy),
             forwardTo : genericForwarder.bind(proxy),
             removeForwarding : genericRemoveForwarding.bind(proxy),
-            mergeAndRemoveForwarding: genericMergeAndRemoveForwarding
+            mergeAndRemoveForwarding: genericMergeAndRemoveForwarding.bind(proxy)
         };
 		handler.static.static = handler.static;
+		handler.static.nonForwardStatic = handler.static;
 
         if (inReCache()) {
             if (cacheId !== null &&  typeof(context.cacheIdObjectMap[cacheId]) !== 'undefined') {
@@ -2090,8 +2081,8 @@
     }
 
     function mergeOverlayIntoObject(object) {
-        let overlay = object.__overlay;
-        object.__overlay = null;
+        let overlay = object.nonForwardStatic.__overlay;
+        object.nonForwardStatic.__overlay = null;
         mergeInto(overlay, object);
     }
 
@@ -2100,11 +2091,11 @@
     }
 
     function genericForwarder(otherObject) {
-        this.__overlay = otherObject;
+        this.static.__overlay = otherObject;
     }
 
     function genericRemoveForwarding() {
-        this.__overlay = null;
+        this.nonForwardStatic.__overlay = null;
     }
 
     function genericMergeAndRemoveForwarding() {
@@ -2167,9 +2158,9 @@
                     // console.log("Assimilating:");
                     withoutRecording(function() { // Do not observe reads from the overlays
                         cacheRecord.newlyCreated.forEach(function(created) {
-                            if (created.__overlay !== null) {
+                            if (created.static.__overlay !== null) {
                                 // console.log("Has overlay!");
-                                // console.log(created.__overlay);
+                                // console.log(created.static.__overlay);
                                 mergeOverlayIntoObject(created);
                             } else {
                                 // console.log("Infusion id of newly created:");
