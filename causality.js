@@ -612,7 +612,7 @@
 		__overlay : true,
 		__target: true,
 		__handler : true,
-		// __proxy : true,
+		__proxy : true,
 		// repeat : true,
 		// tryStopRepeat : true,
 		// observe: true,

@@ -19,11 +19,11 @@ describe("Overlays", function(){
 		xOverlay.static.tag = "xOverlay";
         x.static.__overlay = xOverlay;
 
-        // console.log(x.__handler);
-        // console.log(x.__handler.static);
+        // console.log(x.static.__handler);
+        // console.log(x.static.__handler.static);
         // console.log(x);
         // console.log(x.static.__overlay);
-        // console.log(x.__handler);
+        // console.log(x.static.__handler);
         // console.log(x.foo);
         assert.equal(typeof(x.foo), 'undefined');
 

@@ -39,7 +39,7 @@ describe("Array object traps", function () {
     const stack = create([]);
 
     it('overlay',  function () {
-        stack.__handler.static.static.__overlay = create(['aa','bb']);
+        stack.static.__handler.static.static.__overlay = create(['aa','bb']);
         stack[2] = false;
         stack.static.__overlay = null;
     });
