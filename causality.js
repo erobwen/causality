@@ -579,8 +579,8 @@
             return result;
         }
 				
-        if (typeof(this.static[key]) !== 'undefined') { // TODO: implement directStaticAccess for other readers. 
-            return this.static[key];
+        if (key === 'static') {
+            return this.static;
         } else {
             if (typeof(key) !== 'undefined') {
                 let scan = target;
@@ -643,9 +643,11 @@
 		
 		ensureInitialized(this, target);
 				
-        if (configuration.directStaticAccess && typeof(this.static[key]) !== 'undefined' && (typeof(blocklist[key]) === 'undefined')) { // TODO: implement directStaticAccess for other readers. 
+        if (configuration.directStaticAccess && typeof(this.static[key]) !== 'undefined') { // TODO: implement directStaticAccess for other readers. 
             return this.static[key];
-        } else {
+        } else if (key === "static") {
+			return this.static;
+		} else {
             if (typeof(key) !== 'undefined') {
                 let scan = target;
                 while ( scan !== null && typeof(scan) !== 'undefined' ) {
