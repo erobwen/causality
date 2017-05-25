@@ -65,7 +65,7 @@ describe("Projections", function(){
                 result.push(create({value: value}, this.static.__id + "_node"));
 
                 this.children.forEach(function(child) {
-                    let childList = child.reCached('flattenArrayPreOrderRecursive');
+                    let childList = child.static.reCached('flattenArrayPreOrderRecursive');
                     result.push.apply(result, childList);
                 });
 
@@ -77,7 +77,7 @@ describe("Projections", function(){
                 let node = firstNode;
 
                 this.children.forEach(function(child) {
-                    // child.reCachedInCache('flattenLinkedPreOrder');
+                    // child.static.reCachedInCache('flattenLinkedPreOrder');
                     let childList = child.flattenLinkedPreOrder();
                     node.next = childList;
                     childList.previous = node;
@@ -98,8 +98,8 @@ describe("Projections", function(){
                 let node = firstNode;
 
                 this.children.forEach(function(child) {
-                    // child.reCachedInCache('flattenLinkedPreOrder');
-                    let childList = child.reCached('flattenLinkedPreOrderRecursive');
+                    // child.static.reCachedInCache('flattenLinkedPreOrder');
+                    let childList = child.static.reCached('flattenLinkedPreOrderRecursive');
                     // console.log("linking next and previous together" + node.static.__id +  " -> " + childList.first.static.__id);
                     node.next = childList.first;
                     childList.first.previous = node;
@@ -151,7 +151,7 @@ describe("Projections", function(){
             ])
         ]);
 
-        var flattened = tree.reCached('flattenLinkedPreOrder');
+        var flattened = tree.static.reCached('flattenLinkedPreOrder');
 
         // Assert original shape
         var expectedValues = [1, 2, 3, 4, 5, 6, 7];
@@ -216,7 +216,7 @@ describe("Projections", function(){
             ])
         ]);
 
-        var flattened = tree.reCached('flattenArrayPreOrder');
+        var flattened = tree.static.reCached('flattenArrayPreOrder');
 
         // Assert original shape
         assert.deepEqual(flattened.map((object) => { return object.value; }), [1, 2, 3, 4, 5, 6, 7]);
@@ -258,7 +258,7 @@ describe("Projections", function(){
             ])
         ]);
 
-        var flattened = tree.reCached('flattenArrayPreOrderRecursive');
+        var flattened = tree.static.reCached('flattenArrayPreOrderRecursive');
 
         // Assert original shape
         assert.deepEqual(flattened.map((object) => { return object.value; }), [1, 2, 3, 4, 5, 6, 7]);
@@ -298,7 +298,7 @@ describe("Projections", function(){
             ])
         ]);
 
-        var flattened = tree.reCached('flattenLinkedPreOrderRecursive');
+        var flattened = tree.static.reCached('flattenLinkedPreOrderRecursive');
 
         // Assert original shape
         var expectedValues = [1, 2, 3, 4, 5, 6, 7];

@@ -20,7 +20,7 @@ describe("Test cached functions", function(){
                 // console.log("summarize!");
                 var childSum = 0;
                 this.children.forEach(function(child) {
-                    childSum += child.cachedInCache('summarize');
+                    childSum += child.static.cachedInCache('summarize');
                 });
                 return this.value + childSum;
             },

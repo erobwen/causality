@@ -617,16 +617,16 @@
 		tryStopRepeat : true,
 		observe: true,
 		cached : true,
-		// cachedInCache : true,
-		// reCached : true,
-		// reCachedInCache : true,
-		// tryUncache : true,
-		// project : true,
-		// projectInProjectionOrCache : true,
-		// mergeFrom : true,
-		// forwardTo : true,
-		// removeForwarding : true,
-		// mergeAndRemoveForwarding: true
+		cachedInCache : true,
+		reCached : true,
+		reCachedInCache : true,
+		tryUncache : true,
+		project : true,
+		projectInProjectionOrCache : true,
+		mergeFrom : true,
+		forwardTo : true,
+		removeForwarding : true,
+		mergeAndRemoveForwarding: true
 	};
 	
     function getHandlerObject(target, key) {
@@ -2112,7 +2112,7 @@
     function genericReCacheInCacheFunction() {
         let argumentsArray = argumentsToArray(arguments);
         if (inReCache() > 0) {
-            return this.reCached.apply(this, argumentsArray);
+            return this.static.reCached.apply(this, argumentsArray);
         } else {
             let functionName = argumentsArray.shift();
             return this[functionName].apply(this, argumentsArray);
