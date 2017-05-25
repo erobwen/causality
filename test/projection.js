@@ -48,8 +48,8 @@ describe("Projections", function(){
     var createTreeNode = function(value, children) {
         return create({
             flattenArrayPreOrder : function() {
-                let result = create([], this.static.__id + "_array");
-                result.push(create({value: value}, this.static.__id + "_node"));
+                let result = create([], this.const.__id + "_array");
+                result.push(create({value: value}, this.const.__id + "_node"));
 
                 this.children.forEach(function(child) {
                     let childList = child.flattenArrayPreOrder();
@@ -60,12 +60,12 @@ describe("Projections", function(){
             },
 
             flattenArrayPreOrderRecursive : function() {
-                // console.log("flattenArrayPreOrderRecursive " + this.static.__id + "_array");
-                let result = create([], this.static.__id + "_array");
-                result.push(create({value: value}, this.static.__id + "_node"));
+                // console.log("flattenArrayPreOrderRecursive " + this.const.__id + "_array");
+                let result = create([], this.const.__id + "_array");
+                result.push(create({value: value}, this.const.__id + "_node"));
 
                 this.children.forEach(function(child) {
-                    let childList = child.static.reCached('flattenArrayPreOrderRecursive');
+                    let childList = child.const.reCached('flattenArrayPreOrderRecursive');
                     result.push.apply(result, childList);
                 });
 
@@ -73,11 +73,11 @@ describe("Projections", function(){
             },
 
             flattenLinkedPreOrder : function() {
-                let firstNode = createListNode(this.value, this.static.__id + "_list");
+                let firstNode = createListNode(this.value, this.const.__id + "_list");
                 let node = firstNode;
 
                 this.children.forEach(function(child) {
-                    // child.static.reCachedInCache('flattenLinkedPreOrder');
+                    // child.const.reCachedInCache('flattenLinkedPreOrder');
                     let childList = child.flattenLinkedPreOrder();
                     node.next = childList;
                     childList.previous = node;
@@ -88,9 +88,9 @@ describe("Projections", function(){
             },
 
             flattenLinkedPreOrderRecursive : function() {
-                // console.log("flattenLinkedPreOrderRecursive " + this.static.__id + "_head");
-                let listHead = createListHead(this.static.__id + "_head");
-                let firstNode = createTransparentListNode(this.value, this.static.__id + "_node");
+                // console.log("flattenLinkedPreOrderRecursive " + this.const.__id + "_head");
+                let listHead = createListHead(this.const.__id + "_head");
+                let firstNode = createTransparentListNode(this.value, this.const.__id + "_node");
 
                 listHead.first = firstNode;
                 // firstNode.previous = null;
@@ -98,9 +98,9 @@ describe("Projections", function(){
                 let node = firstNode;
 
                 this.children.forEach(function(child) {
-                    // child.static.reCachedInCache('flattenLinkedPreOrder');
-                    let childList = child.static.reCached('flattenLinkedPreOrderRecursive');
-                    // console.log("linking next and previous together" + node.static.__id +  " -> " + childList.first.static.__id);
+                    // child.const.reCachedInCache('flattenLinkedPreOrder');
+                    let childList = child.const.reCached('flattenLinkedPreOrderRecursive');
+                    // console.log("linking next and previous together" + node.const.__id +  " -> " + childList.first.const.__id);
                     node.next = childList.first;
                     childList.first.previous = node;
                     node = childList.last;
@@ -151,7 +151,7 @@ describe("Projections", function(){
             ])
         ]);
 
-        var flattened = tree.static.reCached('flattenLinkedPreOrder');
+        var flattened = tree.const.reCached('flattenLinkedPreOrder');
 
         // Assert original shape
         var expectedValues = [1, 2, 3, 4, 5, 6, 7];
@@ -216,14 +216,14 @@ describe("Projections", function(){
             ])
         ]);
 
-        var flattened = tree.static.reCached('flattenArrayPreOrder');
+        var flattened = tree.const.reCached('flattenArrayPreOrder');
 
         // Assert original shape
         assert.deepEqual(flattened.map((object) => { return object.value; }), [1, 2, 3, 4, 5, 6, 7]);
 
         // Observe array
         let detectedEvents = [];
-        flattened.static.observe(function(event) {
+        flattened.const.observe(function(event) {
             detectedEvents.push(event);
         });
 
@@ -258,14 +258,14 @@ describe("Projections", function(){
             ])
         ]);
 
-        var flattened = tree.static.reCached('flattenArrayPreOrderRecursive');
+        var flattened = tree.const.reCached('flattenArrayPreOrderRecursive');
 
         // Assert original shape
         assert.deepEqual(flattened.map((object) => { return object.value; }), [1, 2, 3, 4, 5, 6, 7]);
 
         // Observe array
         let detectedEvents = [];
-        flattened.static.observe(function(event) {
+        flattened.const.observe(function(event) {
             detectedEvents.push(event);
         });
 
@@ -298,7 +298,7 @@ describe("Projections", function(){
             ])
         ]);
 
-        var flattened = tree.static.reCached('flattenLinkedPreOrderRecursive');
+        var flattened = tree.const.reCached('flattenLinkedPreOrderRecursive');
 
         // Assert original shape
         var expectedValues = [1, 2, 3, 4, 5, 6, 7];

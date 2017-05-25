@@ -10,20 +10,20 @@ describe("Overlays", function(){
         // console.log(" Simple object ===========================")
         let x = create({name: "original"});
         x.foo = 1;
-		x.static.tag = "x";
+		x.const.tag = "x";
         assert.equal(x.foo, 1);
 
         // Create overlay
         // console.log(" Create overlay ===========================")
         let xOverlay = create({ name: "overlay"});
-		xOverlay.static.tag = "xOverlay";
-        x.static.__overlay = xOverlay;
+		xOverlay.const.tag = "xOverlay";
+        x.const.__overlay = xOverlay;
 
-        // console.log(x.static.__handler);
-        // console.log(x.static.__handler.static);
+        // console.log(x.const.__handler);
+        // console.log(x.const.__handler.const);
         // console.log(x);
-        // console.log(x.static.__overlay);
-        // console.log(x.static.__handler);
+        // console.log(x.const.__overlay);
+        // console.log(x.const.__handler);
         // console.log(x.foo);
         assert.equal(typeof(x.foo), 'undefined');
 
@@ -37,7 +37,7 @@ describe("Overlays", function(){
 
         // Remove overlay
         x.nonForwardStatic.__overlay = null;
-		// console.log(x.static.tag);
+		// console.log(x.const.tag);
 		// console.log("no more overlay");
         assert.equal(x.foo, 1);
         assert.equal(typeof(x.fie), 'undefined');

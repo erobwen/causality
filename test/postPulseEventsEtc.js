@@ -44,7 +44,7 @@ describe("Post pulse events etc", function(){
 
 		assert.equal(42, x.foobar);
 		x.foobar = 1942;
-		x.static.initializer = initializer;
+		x.const.initializer = initializer;
 		assert.equal(42, x.foobar);
 	});
 });	

@@ -13,18 +13,18 @@ describe("Mirror Relations", function(){
 		// let y = create(mirror.create());
 
 		let x = create();
-		x.static._mirror_reflects = true;
-		x.static._mirror_is_reflected = true;
+		x.const._mirror_reflects = true;
+		x.const._mirror_is_reflected = true;
 
 		let y = create();
-		y.static._mirror_reflects = true;
-		y.static._mirror_is_reflected = true;
+		y.const._mirror_reflects = true;
+		y.const._mirror_is_reflected = true;
 		
 		// Assign x.foo
 		x.foo = y;
 		// console.log(x);
 		// console.log(x.foo);
-		// console.log(x.foo.static.__id);
+		// console.log(x.foo.const.__id);
 
 		// Analyze incoming structure
 		let yIncomingFoo = []
@@ -39,8 +39,8 @@ describe("Mirror Relations", function(){
 	
 	it("Testing mirror relation exists for array", function(){
 		let x = create([]);
-		x.static._mirror_is_reflected = true;
-		x.static._mirror_reflects = true;
+		x.const._mirror_is_reflected = true;
+		x.const._mirror_reflects = true;
 		
 		
 		let y = create(mirror.create());
@@ -50,7 +50,7 @@ describe("Mirror Relations", function(){
 		x.push(y);
 		// console.log(x);
 		// console.log(x.foo);
-		// console.log(x.foo.static.__id);
+		// console.log(x.foo.const.__id);
 
 		// Analyze incoming structure
 		let yIncomingArray = []

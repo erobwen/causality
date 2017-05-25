@@ -129,7 +129,7 @@
 
     /***************************************************************
      *
-     *  Array static
+     *  Array const
      *
      ***************************************************************/
 
@@ -182,9 +182,9 @@
 	} 
 
 	
-    let staticArrayOverrides = {
+    let constArrayOverrides = {
         pop : function() {
-            if (!canWrite(this.static.__proxy)) return;
+            if (!canWrite(this.const.__proxy)) return;
             inPulse++;
 
             let index = this.target.length - 1;
@@ -200,7 +200,7 @@
         },
 
         push : function() {
-            if (!canWrite(this.static.__proxy)) return;
+            if (!canWrite(this.const.__proxy)) return;
             inPulse++;
 
             let index = this.target.length;
@@ -210,7 +210,7 @@
 			let added = argumentsArray;
 			
 			if (mirrorRelations) {
-				added = createAndRemoveMirrorRelations(this.static.__proxy, index, removed, added); // TODO: implement for other array manipulators as well. 
+				added = createAndRemoveMirrorRelations(this.const.__proxy, index, removed, added); // TODO: implement for other array manipulators as well. 
 			}
 			
             observerNotificationNullified++;
@@ -225,7 +225,7 @@
         },
 
         shift : function() {
-            if (!canWrite(this.static.__proxy)) return;
+            if (!canWrite(this.const.__proxy)) return;
             inPulse++;
 
             observerNotificationNullified++;
@@ -241,7 +241,7 @@
         },
 
         unshift : function() {
-            if (!canWrite(this.static.__proxy)) return;
+            if (!canWrite(this.const.__proxy)) return;
             inPulse++;
 
             let index = this.target.length;
@@ -258,7 +258,7 @@
         },
 
         splice : function() {
-            if (!canWrite(this.static.__proxy)) return;
+            if (!canWrite(this.const.__proxy)) return;
             inPulse++;
 
             let argumentsArray = argumentsToArray(arguments);
@@ -280,7 +280,7 @@
         },
 
         copyWithin: function(target, start, end) {
-            if (!canWrite(this.static.__proxy)) return;
+            if (!canWrite(this.const.__proxy)) return;
             inPulse++;
 
             if (target < 0) { start = this.target.length - target; }
@@ -308,8 +308,8 @@
     };
 
     ['reverse', 'sort', 'fill'].forEach(function(functionName) {
-        staticArrayOverrides[functionName] = function() {
-            if (!canWrite(this.static.__proxy)) return;
+        constArrayOverrides[functionName] = function() {
+            if (!canWrite(this.const.__proxy)) return;
             inPulse++;
 
             let argumentsArray = argumentsToArray(arguments);
@@ -327,13 +327,13 @@
         };
     });
 
-	let staticArrayOverridesOptimized = {};
-	for(functionName in staticArrayOverrides) {
-		staticArrayOverridesOptimized[functionName] = staticArrayOverrides[functionName];
+	let constArrayOverridesOptimized = {};
+	for(functionName in constArrayOverrides) {
+		constArrayOverridesOptimized[functionName] = constArrayOverrides[functionName];
 	}
-	Object.assign(staticArrayOverridesOptimized, {
+	Object.assign(constArrayOverridesOptimized, {
 		push : function() {
-			if (!canWrite(this.static.__proxy)) return;
+			if (!canWrite(this.const.__proxy)) return;
 			inPulse++;
 			let index = this.target.length;
 			let argumentsArray = argumentsToArray(arguments);
@@ -372,17 +372,17 @@
 	 
 	 
     function getHandlerArrayOptimized(target, key) {
-        if (this.static.__overlay !== null && key !== 'nonForwardStatic') { //  && (typeof(overlayBypass[key]) === 'undefined')
-            let overlayHandler = this.static.__overlay.static.__handler;
+        if (this.const.__overlay !== null && key !== 'nonForwardStatic') { //  && (typeof(overlayBypass[key]) === 'undefined')
+            let overlayHandler = this.const.__overlay.const.__handler;
             return overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
         }
 		
 		ensureInitialized(this, target);
 		
-        if (staticArrayOverridesOptimized[key]) {
-            return staticArrayOverridesOptimized[key].bind(this);
-        } else if (typeof(this.static[key]) !== 'undefined') {
-            return this.static[key];
+        if (constArrayOverridesOptimized[key]) {
+            return constArrayOverridesOptimized[key].bind(this);
+        } else if (typeof(this.const[key]) !== 'undefined') {
+            return this.const[key];
         } else {
             if (inActiveRecording) {
                 registerAnyChangeObserver(getSpecifier(this, "_arrayObservers"));//object
@@ -393,17 +393,17 @@
 	
 	
     function getHandlerArray(target, key) {
-        if (this.static.__overlay !== null && key !== 'nonForwardStatic') { // && (typeof(overlayBypass[key]) === 'undefined')
-            let overlayHandler = this.static.__overlay.static.__handler;
+        if (this.const.__overlay !== null && key !== 'nonForwardStatic') { // && (typeof(overlayBypass[key]) === 'undefined')
+            let overlayHandler = this.const.__overlay.const.__handler;
             return overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
         }
 		
 		ensureInitialized(this, target);
 		
-        if (staticArrayOverrides[key]) {
-            return staticArrayOverrides[key].bind(this);
-        } else if (typeof(this.static[key]) !== 'undefined') {
-            return this.static[key];
+        if (constArrayOverrides[key]) {
+            return constArrayOverrides[key].bind(this);
+        } else if (typeof(this.const[key]) !== 'undefined') {
+            return this.const[key];
         } else {
             if (inActiveRecording) {
                 registerAnyChangeObserver(getSpecifier(this, "_arrayObservers"));//object
@@ -413,12 +413,12 @@
     }
 
     function setHandlerArray(target, key, value) {
-        if (this.static.__overlay !== null) {
+        if (this.const.__overlay !== null) {
             if (key === "__overlay") {
-                this.static.__overlay = value;
+                this.const.__overlay = value;
                 return true;
             } else {
-                let overlayHandler = this.static.__overlay.static.__handler;
+                let overlayHandler = this.const.__overlay.const.__handler;
                 return overlayHandler.set.apply(overlayHandler, [overlayHandler.target, key, value]);
             }
         }
@@ -438,7 +438,7 @@
         if (configuration.cumulativeAssignment && inActiveRecording && (isNaN(value) || typeof(value) === 'undefined')) {
             return true;
         }
-        if (!canWrite(this.static.__proxy)) return;
+        if (!canWrite(this.const.__proxy)) return;
         inPulse++;
 		observerNotificationPostponed++; // TODO: Do this for backwards references from arrays as well...
 
@@ -475,14 +475,14 @@
     }
 
     function deletePropertyHandlerArray(target, key) {
-        if (this.static.__overlay !== null) {
-            let overlayHandler = this.static.__overlay.static.__handler;
+        if (this.const.__overlay !== null) {
+            let overlayHandler = this.const.__overlay.const.__handler;
             return overlayHandler.deleteProperty.apply(overlayHandler, [overlayHandler.target, key]);
         }
         if (!(key in target)) {
             return true;
         }
-        if (!canWrite(this.static.__proxy)) return true;
+        if (!canWrite(this.const.__proxy)) return true;
 		
 		ensureInitialized(this, target);
 		
@@ -502,8 +502,8 @@
     }
 
     function ownKeysHandlerArray(target) {
-        if (this.static.__overlay !== null) {
-            let overlayHandler = this.static.__overlay.static.__handler;
+        if (this.const.__overlay !== null) {
+            let overlayHandler = this.const.__overlay.const.__handler;
             return overlayHandler.ownKeys.apply(overlayHandler, [overlayHandler.target]);
         }
 
@@ -518,8 +518,8 @@
     }
 
     function hasHandlerArray(target, key) {
-        if (this.static.__overlay !== null) {
-            let overlayHandler = this.static.__overlay.static.__handler;
+        if (this.const.__overlay !== null) {
+            let overlayHandler = this.const.__overlay.const.__handler;
             return overlayHandler.has.apply(overlayHandler, [target, key]);
         }
 		
@@ -532,11 +532,11 @@
     }
 
     function definePropertyHandlerArray(target, key, oDesc) {
-        if (this.static.__overlay !== null) {
-            let overlayHandler = this.static.__overlay.static.__handler;
+        if (this.const.__overlay !== null) {
+            let overlayHandler = this.const.__overlay.const.__handler;
             return overlayHandler.defineProperty.apply(overlayHandler, [overlayHandler.target, key, oDesc]);
         }
-        if (!canWrite(this.static.__proxy)) return;
+        if (!canWrite(this.const.__proxy)) return;
 		
 		ensureInitialized(this, target);
 		
@@ -550,8 +550,8 @@
     }
 
     function getOwnPropertyDescriptorHandlerArray(target, key) {
-        if (this.static.__overlay !== null) {
-            let overlayHandler = this.static.__overlay.static.__handler;
+        if (this.const.__overlay !== null) {
+            let overlayHandler = this.const.__overlay.const.__handler;
             return overlayHandler.getOwnPropertyDescriptor.apply(overlayHandler, [overlayHandler.target, key]);
         }
 
@@ -573,21 +573,21 @@
     function getHandlerObjectOptimized(target, key) {
         key = key.toString();
 
-        if (this.static.__overlay !== null && key !== "nonForwardStatic") {
-            let overlayHandler = this.static.__overlay.static.__handler;
+        if (this.const.__overlay !== null && key !== "nonForwardStatic") {
+            let overlayHandler = this.const.__overlay.const.__handler;
             let result = overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
             return result;
         }
 				
-        if (key === 'static') {
-            return this.static;
+        if (key === 'const') {
+            return this.const;
         } else {
             if (typeof(key) !== 'undefined') {
                 let scan = target;
                 while ( scan !== null && typeof(scan) !== 'undefined' ) {
                     let descriptor = Object.getOwnPropertyDescriptor(scan, key);
                     if (typeof(descriptor) !== 'undefined' && typeof(descriptor.get) !== 'undefined') {
-                        return descriptor.get.bind(this.static.__proxy)();
+                        return descriptor.get.bind(this.const.__proxy)();
                     }
                     scan = Object.getPrototypeOf( scan );
                 }
@@ -635,25 +635,25 @@
 		// if (key instanceof 'Symbol') {
 			// throw "foobar";
 		// }
-        if (this.static.__overlay !== null && key !== "nonForwardStatic") {
-            let overlayHandler = this.static.__overlay.static.__handler;
+        if (this.const.__overlay !== null && key !== "nonForwardStatic") {
+            let overlayHandler = this.const.__overlay.const.__handler;
             let result = overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
             return result;
         }
 		
 		ensureInitialized(this, target);
 				
-        if (configuration.directStaticAccess && typeof(this.static[key]) !== 'undefined') { // TODO: implement directStaticAccess for other readers. 
-            return this.static[key];
-        } else if (key === "static") {
-			return this.static;
+        if (configuration.directStaticAccess && typeof(this.const[key]) !== 'undefined') { // TODO: implement directStaticAccess for other readers. 
+            return this.const[key];
+        } else if (key === "const") {
+			return this.const;
 		} else {
             if (typeof(key) !== 'undefined') {
                 let scan = target;
                 while ( scan !== null && typeof(scan) !== 'undefined' ) {
                     let descriptor = Object.getOwnPropertyDescriptor(scan, key);
                     if (typeof(descriptor) !== 'undefined' && typeof(descriptor.get) !== 'undefined') {
-                        return descriptor.get.bind(this.static.__proxy)();
+                        return descriptor.get.bind(this.const.__proxy)();
                     }
                     scan = Object.getPrototypeOf( scan );
                 }
@@ -704,8 +704,8 @@
 	
     function setHandlerObjectOptimized(target, key, value) {		
 		// Overlays
-        if (this.static.__overlay !== null) {
-			let overlayHandler = this.static.__overlay.static.__handler;
+        if (this.const.__overlay !== null) {
+			let overlayHandler = this.const.__overlay.const.__handler;
 			return overlayHandler.set.apply(overlayHandler, [overlayHandler.target, key, value]);
         }
 		
@@ -713,7 +713,7 @@
 		if (postPulseProcess) {
 			return;
 		}
-		if (writeRestriction !== null && typeof(writeRestriction[object.static.__id]) === 'undefined') {
+		if (writeRestriction !== null && typeof(writeRestriction[object.const.__id]) === 'undefined') {
 			return;
 		}
 		
@@ -761,13 +761,13 @@
 		if (configuration.objectActivityList) registerActivity(this);
 				
 		// Overlays
-        if (this.static.__overlay !== null) {
-			let overlayHandler = this.static.__overlay.static.__handler;
+        if (this.const.__overlay !== null) {
+			let overlayHandler = this.const.__overlay.const.__handler;
 			return overlayHandler.set.apply(overlayHandler, [overlayHandler.target, key, value]);
         }
 		
         // Writeprotection
-		if (!canWrite(this.static.__proxy)) return;
+		if (!canWrite(this.const.__proxy)) return;
 		
 		// Ensure initialized
 		ensureInitialized(this, target);
@@ -804,7 +804,7 @@
 		// Perform assignment with regards to mirror structures.
 		let mirrorStructureValue;
 		if (mirrorRelations) {
-			mirrorStructureValue = setupMirrorRelation(this['static'].__proxy, key, value, previousValue);
+			mirrorStructureValue = setupMirrorRelation(this['const'].__proxy, key, value, previousValue);
 			target[key] = mirrorStructureValue; 
 		} else {
 			target[key] = value;
@@ -836,13 +836,13 @@
     }
 
     function deletePropertyHandlerObject(target, key) {
-        if (this.static.__overlay !== null) {
-            let overlayHandler = this.static.__overlay.static.__handler;
+        if (this.const.__overlay !== null) {
+            let overlayHandler = this.const.__overlay.const.__handler;
             overlayHandler.deleteProperty.apply(overlayHandler, [overlayHandler.target, key]);
             return true;
         }
 
-        if (!canWrite(this.static.__proxy)) return true;
+        if (!canWrite(this.const.__proxy)) return true;
 		
 		ensureInitialized(this, target);
 		
@@ -865,8 +865,8 @@
     }
 
     function ownKeysHandlerObject(target, key) { // Not inherited?
-        if (this.static.__overlay !== null) {
-            let overlayHandler = this.static.__overlay.static.__handler;
+        if (this.const.__overlay !== null) {
+            let overlayHandler = this.const.__overlay.const.__handler;
             return overlayHandler.ownKeys.apply(overlayHandler, [overlayHandler.target, key]);
         }
 		
@@ -881,8 +881,8 @@
     }
 
     function hasHandlerObject(target, key) {
-        if (this.static.__overlay !== null) {
-            let overlayHandler = this.static.__overlay.static.__handler;
+        if (this.const.__overlay !== null) {
+            let overlayHandler = this.const.__overlay.const.__handler;
             return overlayHandler.has.apply(overlayHandler, [overlayHandler.target, key]);
         }
 		
@@ -895,12 +895,12 @@
     }
 
     function definePropertyHandlerObject(target, key, descriptor) {
-        if (this.static.__overlay !== null) {
-            let overlayHandler = this.static.__overlay.static.__handler;
+        if (this.const.__overlay !== null) {
+            let overlayHandler = this.const.__overlay.const.__handler;
             return overlayHandler.defineProperty.apply(overlayHandler, [overlayHandler.target, key]);
         }
 				
-        if (!canWrite(this.static.__proxy)) return;
+        if (!canWrite(this.const.__proxy)) return;
 
 		ensureInitialized(this, target);
 		
@@ -916,8 +916,8 @@
     }
 
     function getOwnPropertyDescriptorHandlerObject(target, key) {
-        if (this.static.__overlay !== null) {
-            let overlayHandler = this.static.__overlay.static.__handler;
+        if (this.const.__overlay !== null) {
+            let overlayHandler = this.const.__overlay.const.__handler;
             return overlayHandler.getOwnPropertyDescriptor.apply(overlayHandler, [overlayHandler.target, key]);
         }
 		
@@ -1007,11 +1007,11 @@
 
         handler.target = createdTarget;
 		
-		// createdTarget.static.__id = __id; // TODO ??? 
+		// createdTarget.const.__id = __id; // TODO ??? 
 				
         let proxy = new Proxy(createdTarget, handler);
 		
-        handler.static = {
+        handler.const = {
 			initializer : initializer,
 			__causalityCoreIdentity : causalityCoreIdentity,
             __id: __id,
@@ -1046,14 +1046,14 @@
             removeForwarding : genericRemoveForwarding.bind(proxy),
             mergeAndRemoveForwarding: genericMergeAndRemoveForwarding.bind(proxy)
         };
-		handler.static.static = handler.static;
-		handler.static.nonForwardStatic = handler.static;
+		handler.const.const = handler.const;
+		handler.const.nonForwardStatic = handler.const;
 
         if (inReCache()) {
             if (cacheId !== null &&  typeof(context.cacheIdObjectMap[cacheId]) !== 'undefined') {
                 // Overlay previously created
                 let infusionTarget = context.cacheIdObjectMap[cacheId];
-                infusionTarget.static.__handler.static.__overlay = proxy;
+                infusionTarget.const.__handler.const.__overlay = proxy;
                 context.newlyCreated.push(infusionTarget);
                 return infusionTarget;   // Borrow identity of infusion target.
             } else {
@@ -1063,7 +1063,7 @@
         }
 
         if (writeRestriction !== null) {
-            writeRestriction[proxy.static.__id] = true;
+            writeRestriction[proxy.const.__id] = true;
         }
 		
 		emitCreationEvent(handler);
@@ -1072,7 +1072,7 @@
     }
 
 	function isObject(entity) {
-		return typeof(entity) === 'object' && entity !== null && typeof(entity.static) !== 'undefined' && entity.static.__causalityCoreIdentity === causalityCoreIdentity;
+		return typeof(entity) === 'object' && entity !== null && typeof(entity.const) !== 'undefined' && entity.const.__causalityCoreIdentity === causalityCoreIdentity;
 	}
 	
     /**********************************
@@ -1082,10 +1082,10 @@
      **********************************/
 	 
 	function ensureInitialized(handler, target) {
-		if (handler.static.initializer !== null) {
-			let initializer = handler.static.initializer;
+		if (handler.const.initializer !== null) {
+			let initializer = handler.const.initializer;
 			initializer(target);
-			handler.static.initializer = null;
+			handler.const.initializer = null;
 		}
 	}
 	 
@@ -1110,7 +1110,7 @@
 		if (postPulseProcess) {
 			return false;
 		}
-		if (writeRestriction !== null && typeof(writeRestriction[object.static.__id]) === 'undefined') {
+		if (writeRestriction !== null && typeof(writeRestriction[object.const.__id]) === 'undefined') {
 			return false;
 		}
 		if (customCanWrite !== null) {
@@ -1369,8 +1369,8 @@
 
     function emitEvent(handler, event) {
         // console.log(event);
-        // event.objectId = handler.static.__id;
-		event.object = handler.static.__proxy; 
+        // event.objectId = handler.const.__id;
+		event.object = handler.const.__proxy; 
 		if (recordPulseEvents) {
 			pulseEvents.push(event);
 		}
@@ -1383,12 +1383,12 @@
 
     function observeAll(array, callback) {
         array.forEach(function(element) {
-            element.static.observe(callback);
+            element.const.observe(callback);
         });
     }
 
     function genericObserveFunction(observerFunction) {
-        let handler = this.static.__handler;
+        let handler = this.const.__handler;
         if (typeof(handler.observers) === 'undefined') {
             handler.observers = [];
         }
@@ -1582,7 +1582,7 @@
             description: description,
             action: repeaterAction,
             remove: function() {
-                // console.log("removeRepeater: " + repeater.static.__id + "." + repeater.description);
+                // console.log("removeRepeater: " + repeater.const.__id + "." + repeater.description);
                 removeChildContexts(this);
                 detatchRepeater(this);
                 this.micro.remove(); // Remove recorder!
@@ -1686,7 +1686,7 @@
     }
 
 	function getObjectAttatchedCache(object, cacheStoreName, functionName) {
-		// object = object.static.__handler;
+		// object = object.const.__handler;
 		// let functionCaches = getMap(object, cacheStoreName, functionName);
         if (typeof(object[cacheStoreName]) === 'undefined') {
             object[cacheStoreName] = {};
@@ -1709,7 +1709,7 @@
                 }
 
                 if (isObject(argument)) { //typeof(argument) === 'object' &&
-                    hash += "{id=" + argument.static.__id + "}";
+                    hash += "{id=" + argument.const.__id + "}";
                 } else if (typeof(argument) === 'number' || typeof(argument) === 'string') { // String or integer
                     hash += argument;
                 } else {
@@ -1875,7 +1875,7 @@
     function genericCallAndCacheInCacheFunction() {
         let argumentsArray = argumentsToArray(arguments);
         if (inCachedCall() > 0) {
-            return this.static.cached.apply(this, argumentsArray);
+            return this.const.cached.apply(this, argumentsArray);
         } else {
             let functionName = argumentsArray.shift();
             return this[functionName].apply(this, argumentsArray);
@@ -2054,7 +2054,7 @@
      *
      ************************************************************************/
 
-    // let overlayBypass = {  // maybe useful when direct static access?
+    // let overlayBypass = {  // maybe useful when direct const access?
         // '__overlay' : true,
         // 'removeForwarding' : true,
         // 'mergeAndRemoveForwarding' : true
@@ -2063,7 +2063,7 @@
     function mergeInto(source, target) {
 		// console.log("merge into!!");
         if (source instanceof Array) {
-            let splices = differentialSplices(target.static.__target, source.static.__target);
+            let splices = differentialSplices(target.const.__target, source.const.__target);
             splices.forEach(function(splice) {
                 let spliceArguments = [];
                 spliceArguments.push(splice.index, splice.removed.length);
@@ -2094,7 +2094,7 @@
     }
 
     function genericForwarder(otherObject) {
-        this.static.__overlay = otherObject;
+        this.const.__overlay = otherObject;
     }
 
     function genericRemoveForwarding() {
@@ -2114,7 +2114,7 @@
     function genericReCacheInCacheFunction() {
         let argumentsArray = argumentsToArray(arguments);
         if (inReCache() > 0) {
-            return this.static.reCached.apply(this, argumentsArray);
+            return this.const.reCached.apply(this, argumentsArray);
         } else {
             let functionName = argumentsArray.shift();
             return this[functionName].apply(this, argumentsArray);
@@ -2166,10 +2166,10 @@
                                 mergeOverlayIntoObject(created);
                             } else {
                                 // console.log("Infusion id of newly created:");
-                                // console.log(created.static.__cacheId);
-                                if (created.static.__cacheId !== null) {
+                                // console.log(created.const.__cacheId);
+                                if (created.const.__cacheId !== null) {
 
-                                    cacheRecord.cacheIdObjectMap[created.static.__cacheId] = created;
+                                    cacheRecord.cacheIdObjectMap[created.const.__cacheId] = created;
                                 }
                             }
                         });
@@ -2248,15 +2248,15 @@
 	let activityListLast = null; 
 
 	function getActivityListLast() {
-		return activityListLast.static.__proxy;
+		return activityListLast.const.__proxy;
 	}
 
 	function getActivityListFirst() {
-		return activityListFirst.static.__proxy;
+		return activityListFirst.const.__proxy;
 	}
 
 	function removeFromActivityList(proxy) {
-		removeFromActivityListHandler(proxy.static.__handler);
+		removeFromActivityListHandler(proxy.const.__handler);
 	}
 	
 	function registerActivity(handler) {

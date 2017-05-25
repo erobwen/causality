@@ -20,7 +20,7 @@ describe("Test cached functions", function(){
                 // console.log("summarize!");
                 var childSum = 0;
                 this.children.forEach(function(child) {
-                    childSum += child.static.cachedInCache('summarize');
+                    childSum += child.const.cachedInCache('summarize');
                 });
                 return this.value + childSum;
             },
@@ -59,7 +59,7 @@ describe("Test cached functions", function(){
         // console.log('======== Test recursive cached call in repeater ========');
         repeatOnChange(function() {
             // console.log('--- repeating');
-            heapSum = heap.static.cached('summarize');
+            heapSum = heap.const.cached('summarize');
             // console.log('--- ');
         });
         // console.log('======== Finished Test recursive cached call in repeater ========');
@@ -69,7 +69,7 @@ describe("Test cached functions", function(){
     });
     //
     // it('Test no extra call', function () {
-    //     heap.static.cached('summarize');
+    //     heap.const.cached('summarize');
     //     assert.equal(cachedCallCount(), 4);
     // });
     //
