@@ -603,7 +603,7 @@
             }
         }
     }
-	
+
 	let blocklist = {
 		initializer : true,
 		__causalityCoreIdentity : true,
@@ -613,10 +613,10 @@
 		__target: true,
 		__handler : true,
 		__proxy : true,
-		// repeat : true,
-		// tryStopRepeat : true,
-		// observe: true,
-		// cached : true,
+		repeat : true,
+		tryStopRepeat : true,
+		observe: true,
+		cached : true,
 		// cachedInCache : true,
 		// reCached : true,
 		// reCachedInCache : true,
@@ -1381,7 +1381,7 @@
 
     function observeAll(array, callback) {
         array.forEach(function(element) {
-            element.observe(callback);
+            element.static.observe(callback);
         });
     }
 
@@ -1873,7 +1873,7 @@
     function genericCallAndCacheInCacheFunction() {
         let argumentsArray = argumentsToArray(arguments);
         if (inCachedCall() > 0) {
-            return this.cached.apply(this, argumentsArray);
+            return this.static.cached.apply(this, argumentsArray);
         } else {
             let functionName = argumentsArray.shift();
             return this[functionName].apply(this, argumentsArray);

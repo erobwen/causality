@@ -223,7 +223,7 @@ describe("Projections", function(){
 
         // Observe array
         let detectedEvents = [];
-        flattened.observe(function(event) {
+        flattened.static.observe(function(event) {
             detectedEvents.push(event);
         });
 
@@ -265,7 +265,7 @@ describe("Projections", function(){
 
         // Observe array
         let detectedEvents = [];
-        flattened.observe(function(event) {
+        flattened.static.observe(function(event) {
             detectedEvents.push(event);
         });
 

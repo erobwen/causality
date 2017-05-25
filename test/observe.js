@@ -5,7 +5,7 @@ describe("Observe", function(){
     it("Test observe object", function(){
         let events = [];
         let x = create();
-        x.observe(function(event) {
+        x.static.observe(function(event) {
             events.push(event);
         });
 

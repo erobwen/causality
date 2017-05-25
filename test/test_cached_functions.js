@@ -59,7 +59,7 @@ describe("Test cached functions", function(){
         // console.log('======== Test recursive cached call in repeater ========');
         repeatOnChange(function() {
             // console.log('--- repeating');
-            heapSum = heap.cached('summarize');
+            heapSum = heap.static.cached('summarize');
             // console.log('--- ');
         });
         // console.log('======== Finished Test recursive cached call in repeater ========');
@@ -69,7 +69,7 @@ describe("Test cached functions", function(){
     });
     //
     // it('Test no extra call', function () {
-    //     heap.cached('summarize');
+    //     heap.static.cached('summarize');
     //     assert.equal(cachedCallCount(), 4);
     // });
     //

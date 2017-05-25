@@ -8,7 +8,7 @@ describe("observe arrays", function(){
     
 	var result;
 	var observedArray = c(['a', 'b', 'c']);
-    observedArray.observe(
+    observedArray.static.observe(
 		function(event) {
 			result = event;
 		}
