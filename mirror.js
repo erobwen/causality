@@ -95,7 +95,7 @@
 		}
 	} 	 
 	 
-	function setupMirrorReference(referingObject, property, value, createFunction) {
+	function setupMirrorReference(referingObject, referingObjectId, property, value, createFunction) {
 		if (!property.startsWith("_mirror_")) {
 			// let referingObject = getReferingObject(object, property);
 			let relationName = gottenReferingObjectRelation;
@@ -106,7 +106,7 @@
 			let referencedValue = value;
 			if (typeof(value) === 'object') { //TODO: limit backwards referenes to mirror objects only.
 				let mirrorIncomingRelation = findIncomingRelation(referencedValue, property, createFunction);
-				let incomingRelationChunk = intitializeAndConstructMirrorStructure(mirrorIncomingRelation, referingObject, createFunction);
+				let incomingRelationChunk = intitializeAndConstructMirrorStructure(mirrorIncomingRelation, referingObject, referingObjectId, createFunction);
 				if (incomingRelationChunk !== null) {
 					referencedValue = incomingRelationChunk;
 				}
@@ -143,11 +143,12 @@
 	function addInArray(array, referencedObject) { // TODO: Push in array
 		// Find relation name
 		let referingObject = getReferingObject(array, "[]");
+		let referingObjectId = referingObject.__id;
 		let relationName = gottenReferingObjectRelation;
 
 		// Find right place in the incoming structure.
 		let mirrorIncomingRelation = findIncomingRelation(referencedObject, relationName);
-		let incomingRelationChunk = intitializeAndConstructMirrorStructure(mirrorIncomingRelation, referingObject);
+		let incomingRelationChunk = intitializeAndConstructMirrorStructure(mirrorIncomingRelation, referingObject, referingObjectId);
 		if (incomingRelationChunk !== null) {
 			array.push(incomingRelationChunk);
 		}
@@ -337,8 +338,8 @@
 		}
 	}
 	
-	function intitializeAndConstructMirrorStructure(mirrorIncomingRelation, referingObject, createFunction) {
-		let refererId = referingObject.__id;
+	function intitializeAndConstructMirrorStructure(mirrorIncomingRelation, referingObject, referingObjectId, createFunction) {
+		let refererId = referingObjectId;
 		// console.log("intitializeAndConstructMirrorStructure:");
 		// console.log(referingObject);
 		

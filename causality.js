@@ -157,9 +157,9 @@
 						// console.log("and here");
 						let referencedValue;
 						if (configuration.mirrorStructuresAsCausalityObjects) {
-							referencedValue = mirror.setupMirrorReference(referringObject, referringRelation, addedElement, create);
+							referencedValue = mirror.setupMirrorReference(referringObject, referringObject.const.__id, referringRelation, addedElement, create);
 						} else {
-							referencedValue = mirror.setupMirrorReference(referringObject, referringRelation, addedElement);
+							referencedValue = mirror.setupMirrorReference(referringObject, referringObject.const.__id, referringRelation, addedElement);
 						}
 						if (typeof(referencedValue._incoming) !== 'undefined' && typeof(referencedValue._incoming[referringRelation]) !== 'undefined') {
 							notifyChangeObservers(referencedValue._incoming[referringRelation]);
@@ -702,7 +702,7 @@
 			// console.log("here");
 			if (isObject(value) && value.const._mirror_reflects) {
 				// console.log("Setup mirror relation")
-				let referencedValue = mirror.setupMirrorReference(referringObject, referringRelation, value);
+				let referencedValue = mirror.setupMirrorReference(referringObject, referringObject.const.__id, referringRelation, value);
 				if (typeof(referencedValue._incoming) !== 'undefined' && typeof(referencedValue._incoming[referringRelation]) !== 'undefined') {
 					notifyChangeObservers(referencedValue._incoming[referringRelation]);
 				}
@@ -2335,7 +2335,7 @@
 		mirrorStructuresAsCausalityObjects: false,
 		
 		cumulativeAssignment : false,
-		directStaticAccess : true,
+		directStaticAccess : false,
 		objectActivityList : false,
 		recordPulseEvents : false
 	}
