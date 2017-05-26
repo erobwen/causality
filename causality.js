@@ -174,7 +174,7 @@
 				if (removed !== null) {
 					removed.forEach(function(removedElement) {
 						if (isObject(removedElement) && removedElement.const._mirror_reflects) {
-							mirror.removeMirrorStructure(proxy, removedElement);
+							mirror.removeMirrorStructure(proxy.const.__id, removedElement);
 							notifyChangeObservers(removedElement._incoming[referringRelation]);
 						}					
 					});					
@@ -610,30 +610,6 @@
         }
     }
 */
-	let blocklist = {
-		initializer : true,
-		__causalityCoreIdentity : true,
-		__id: true,
-		__cacheId : true,
-		__overlay : true,
-		__target: true,
-		__handler : true,
-		__proxy : true,
-		repeat : true,
-		tryStopRepeat : true,
-		observe: true,
-		cached : true,
-		cachedInCache : true,
-		reCached : true,
-		reCachedInCache : true,
-		tryUncache : true,
-		project : true,
-		projectInProjectionOrCache : true,
-		mergeFrom : true,
-		forwardTo : true,
-		removeForwarding : true,
-		mergeAndRemoveForwarding: true
-	};
 	
     function getHandlerObject(target, key) {
 		if (configuration.objectActivityList) registerActivity(this);
@@ -651,7 +627,7 @@
 				
         if (key === "const" || key === "nonForwardStatic") {
 			return this.const;
-		} else if (configuration.directStaticAccess && typeof(this.const[key]) !== 'undefined' && typeof(blocklist[key]) === 'undefined') { // TODO: implement directStaticAccess for other readers. 
+		} else if (configuration.directStaticAccess && typeof(this.const[key]) !== 'undefined') { // TODO: implement directStaticAccess for other readers. 
             console.log(key);
 			return this.const[key];
         } else {
@@ -696,7 +672,7 @@
 		// console.log("here too");
 		if (typeof(referringObject.const._mirror_is_reflected) !== 'undefined') {
 			if (isObject(previousValue) && previousValue.const._mirror_reflects) {
-				mirror.removeMirrorStructure(referringObject, previousValue);
+				mirror.removeMirrorStructure(referringObject.const.__id, previousValue);
 				notifyChangeObservers(previousValue._incoming[referringRelation]);
 			}
 			// console.log("here");

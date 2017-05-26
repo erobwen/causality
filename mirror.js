@@ -119,7 +119,7 @@
 	 
 	function setProperty(object, property, value, createFunction) {
 		let previousValue = object[property];
-		removeMirrorStructure(object, previousValue);
+		removeMirrorStructure(object.__id, previousValue);
 		setupMirrorReference(object, property, value, createFunction);
 		object[property] = referencedValue;
 	}
@@ -172,7 +172,7 @@
 		
 		
 		array.forEach(function(observerSet) {
-			removeMirrorStructure(referingObject, observerSet);
+			removeMirrorStructure(referingObject.__id, observerSet);
 		});
 		array.lenght = 0;  // From repeater itself.
 	}
@@ -294,11 +294,11 @@
 	/**
 	* Structure helpers
 	*/				
-	function removeMirrorStructure(referer, referedEntity) {
+	function removeMirrorStructure(refererId, referedEntity) {
 		if (typeof(referedEntity._mirror_incoming_relation) !== 'undefined') {
 			let incomingRelation = referedEntity;
 			let incomingRelationContents = incomingRelation['contents'];
-			delete incomingRelationContents[referer.__id];
+			delete incomingRelationContents[refererId];
 			let noMoreObservers = false;
 			incomingRelation.contentsCounter--;
 			if (incomingRelation.contentsCounter == 0) {
