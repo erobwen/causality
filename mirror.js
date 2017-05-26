@@ -104,7 +104,7 @@
 			// console.log(referingObject.__id);
 					
 			let referencedValue = value;
-			if (typeof(value) === 'object' && typeof(value._mirror_reflects) !== 'undefined') { //TODO: limit backwards referenes to mirror objects only.
+			if (typeof(value) === 'object') { //TODO: limit backwards referenes to mirror objects only.
 				let mirrorIncomingRelation = findIncomingRelation(referencedValue, property, createFunction);
 				let incomingRelationChunk = intitializeAndConstructMirrorStructure(mirrorIncomingRelation, referingObject, createFunction);
 				if (incomingRelationChunk !== null) {

@@ -135,22 +135,26 @@
 
 	 
 	function createAndRemoveMirrorRelations(proxy, index, removed, added) {
-		if (mirrorRelations) {
-			        
+		// console.log("createAndRemoveMirrorRelations " + mirrorRelations);
+		if (mirrorRelations) {     
+			// console.log("inside");
 			// Get refering object 
             let referringObject = proxy;
-			// console.log(referringObject);
+			// console.log("heref");
             let referringRelation = "[]";
             while (typeof(referringObject._mirror_index_parent) !==  'undefined') {
+				console.log(looping);
                 referringRelation = referringObject._mirror_index_parent_relation;
                 referringObject = referringObject._mirror_index_parent;
             }
-
-			if (typeof(referringObject._mirror_is_reflected) !== 'undefined') {
+			// console.log("??");
+			// console.log(referringObject.const._mirror_is_reflected);
+			if (typeof(referringObject.const._mirror_is_reflected) !== 'undefined') {
 				// Create mirror relations for added
 				let addedAdjusted = [];
 				added.forEach(function(addedElement) {
-					if (typeof(addedElement) === 'object' && addedElement._mirror_reflects) {
+					if (isObject(addedElement) && addedElement.const._mirror_reflects) {
+						// console.log("and here");
 						let referencedValue;
 						if (configuration.mirrorStructuresAsCausalityObjects) {
 							referencedValue = mirror.setupMirrorReference(referringObject, referringRelation, addedElement, create);
@@ -169,7 +173,7 @@
 				// Remove mirror relations for removed
 				if (removed !== null) {
 					removed.forEach(function(removedElement) {
-						if (typeof(removedElement) === 'object' && removedElement._mirror_reflects) {
+						if (isObject(removedElement) && removedElement.const._mirror_reflects) {
 							mirror.removeMirrorStructure(proxy, removedElement);
 							notifyChangeObservers(removedElement._incoming[referringRelation]);
 						}					
@@ -370,7 +374,7 @@
      *
      ***************************************************************/
 	 
-	 
+	/*
     function getHandlerArrayOptimized(target, key) {
         if (this.const.__overlay !== null && key !== 'nonForwardStatic') { //  && (typeof(overlayBypass[key]) === 'undefined')
             let overlayHandler = this.const.__overlay.const.__handler;
@@ -390,7 +394,7 @@
             return target[key];
         }
     }
-	
+	*/
 	
     function getHandlerArray(target, key) {
         if (this.const.__overlay !== null && key !== 'nonForwardStatic') { // && (typeof(overlayBypass[key]) === 'undefined')
@@ -400,9 +404,11 @@
 		
 		ensureInitialized(this, target);
 		
-        if (constArrayOverrides[key]) {
+		if (key === "const" || key === "nonForwardStatic") {
+			return this.const;
+		} else if (constArrayOverrides[key]) {
             return constArrayOverrides[key].bind(this);
-        } else if (typeof(this.const[key]) !== 'undefined') {
+        } else if (configuration.directStaticAccess && typeof(this.const[key]) !== 'undefined') {
             return this.const[key];
         } else {
             if (inActiveRecording) {
@@ -569,7 +575,7 @@
      *  Object Handlers
      *
      ***************************************************************/
-
+/*
     function getHandlerObjectOptimized(target, key) {
         key = key.toString();
 
@@ -603,7 +609,7 @@
             }
         }
     }
-
+*/
 	let blocklist = {
 		initializer : true,
 		__causalityCoreIdentity : true,
@@ -643,11 +649,12 @@
 		
 		ensureInitialized(this, target);
 				
-        if (configuration.directStaticAccess && typeof(this.const[key]) !== 'undefined') { // TODO: implement directStaticAccess for other readers. 
-            return this.const[key];
-        } else if (key === "const") {
+        if (key === "const" || key === "nonForwardStatic") {
 			return this.const;
-		} else {
+		} else if (configuration.directStaticAccess && typeof(this.const[key]) !== 'undefined' && typeof(blocklist[key]) === 'undefined') { // TODO: implement directStaticAccess for other readers. 
+            console.log(key);
+			return this.const[key];
+        } else {
             if (typeof(key) !== 'undefined') {
                 let scan = target;
                 while ( scan !== null && typeof(scan) !== 'undefined' ) {
@@ -665,7 +672,7 @@
                         registerAnyChangeObserver(getSpecifier(this, "_enumerateObservers"));
                     }
                 }
-				if (keyInTarget && !exposeMirrorRelationIntermediary && typeof(target._mirror_is_reflected) !== 'undefined') {
+				if (keyInTarget && !exposeMirrorRelationIntermediary && typeof(this.const._mirror_is_reflected) !== 'undefined') {
 					// console.log("causality.getHandlerObject:");
 					// console.log(key);
 					return mirror.getProperty(target, key);
@@ -677,6 +684,7 @@
     }
 	
 	function setupMirrorRelation(proxy, key, value, previousValue) {
+		// console.log("setup mirror relation");
 		// Get refering object 
         let referringObject = proxy;
         let referringRelation = key;
@@ -685,12 +693,15 @@
             referringObject = referringObject._mirror_index_parent;
         }
 		
-		if (typeof(referringObject._mirror_is_reflected) !== 'undefined') {
-			if (typeof(previousValue) === 'object' && previousValue._mirror_reflects) {
+		// console.log("here too");
+		if (typeof(referringObject.const._mirror_is_reflected) !== 'undefined') {
+			if (isObject(previousValue) && previousValue.const._mirror_reflects) {
 				mirror.removeMirrorStructure(referringObject, previousValue);
 				notifyChangeObservers(previousValue._incoming[referringRelation]);
 			}
-			if (typeof(value) === 'object' && value._mirror_reflects) {
+			// console.log("here");
+			if (isObject(value) && value.const._mirror_reflects) {
+				// console.log("Setup mirror relation")
 				let referencedValue = mirror.setupMirrorReference(referringObject, referringRelation, value);
 				if (typeof(referencedValue._incoming) !== 'undefined' && typeof(referencedValue._incoming[referringRelation]) !== 'undefined') {
 					notifyChangeObservers(referencedValue._incoming[referringRelation]);
@@ -701,7 +712,7 @@
 		return value;
 	}
 	
-	
+	/*
     function setHandlerObjectOptimized(target, key, value) {		
 		// Overlays
         if (this.const.__overlay !== null) {
@@ -755,7 +766,7 @@
         if (--inPulse === 0) postPulseCleanup();
 		return true;
     }
-	
+	*/
 
     function setHandlerObject(target, key, value) {
 		if (configuration.objectActivityList) registerActivity(this);
@@ -775,7 +786,7 @@
 		// Get previous value		// Get previous value
 		let previousValue;
 		let previousMirrorStructure;
-		if (mirrorRelations && typeof(target._mirror_is_reflected) !== 'undefined') {
+		if (mirrorRelations && typeof(this.const._mirror_is_reflected) !== 'undefined') {
 			// console.log("causality.getHandlerObject:");
 			// console.log(key);
 			previousMirrorStructure = target[key];
@@ -972,9 +983,9 @@
                 getOwnPropertyDescriptor: getOwnPropertyDescriptorHandlerArray
             };
 						// Optimization
-			if (!configuration.activateSpecialFeatures) {
-				handler.get = getHandlerArrayOptimized;
-			}
+			// if (!configuration.activateSpecialFeatures) {
+				// handler.get = getHandlerArrayOptimized;
+			// }
         } else {
             // let _propertyObservers = {};
             // for (property in createdTarget) {
@@ -999,10 +1010,10 @@
                 getOwnPropertyDescriptor: getOwnPropertyDescriptorHandlerObject
             };
 			// Optimization
-			if (!configuration.activateSpecialFeatures) {
-				handler.set = setHandlerObjectOptimized;
-				handler.get = getHandlerObjectOptimized;
-			}
+			// if (!configuration.activateSpecialFeatures) {
+				// handler.set = setHandlerObjectOptimized;
+				// handler.get = getHandlerObjectOptimized;
+			// }
         }
 
         handler.target = createdTarget;
