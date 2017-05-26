@@ -55,7 +55,7 @@ describe("Mirror Relations", function(){
 		x.push(y);
 		// console.log(x);
 		// console.log(x.foo);
-		// console.log(x.foo.const.__id);
+		// console.log(x.foo.const.id);
 
 		// Analyze incoming structure
 		let yIncomingArray = []

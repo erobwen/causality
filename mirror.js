@@ -101,7 +101,7 @@
 			let relationName = gottenReferingObjectRelation;
 			// console.log("setProperty:");
 			// console.log(referingObject);
-			// console.log(referingObject.__id);
+			// console.log(referingObject.id);
 					
 			let referencedValue = value;
 			if (typeof(value) === 'object') { //TODO: limit backwards referenes to mirror objects only.
@@ -119,7 +119,7 @@
 	 
 	function setProperty(object, property, value, createFunction) {
 		let previousValue = object[property];
-		removeMirrorStructure(object.__id, previousValue);
+		removeMirrorStructure(object.id, previousValue);
 		setupMirrorReference(object, property, value, createFunction);
 		object[property] = referencedValue;
 	}
@@ -143,7 +143,7 @@
 	function addInArray(array, referencedObject) { // TODO: Push in array
 		// Find relation name
 		let referingObject = getReferingObject(array, "[]");
-		let referingObjectId = referingObject.__id;
+		let referingObjectId = referingObject.id;
 		let relationName = gottenReferingObjectRelation;
 
 		// Find right place in the incoming structure.
@@ -160,10 +160,10 @@
 		// let referer = array;
 		// if (typeof(array._mirror_index_parent) !== 'undefined') {
 			// TODO: loop recursivley
-			// refererId = array._mirror_index_parent.__id;
+			// refererId = array._mirror_index_parent.id;
 			// referer = array._mirror_index_parent
 		// } else {
-			// refererId = array.__id;
+			// refererId = array.id;
 			// referer = array;
 		// }
 		// Find relation name
@@ -172,7 +172,7 @@
 		
 		
 		array.forEach(function(observerSet) {
-			removeMirrorStructure(referingObject.__id, observerSet);
+			removeMirrorStructure(referingObject.id, observerSet);
 		});
 		array.lenght = 0;  // From repeater itself.
 	}
@@ -468,7 +468,7 @@
 			if (sourceImage[propertyName] === targetImage) {
 				// Internal back reference
 				let incomingIntegrated = this.getMap(targetImage, 'incomingIntegrated');
-				let key = sourceImage.__id + ":" + propertyName;
+				let key = sourceImage.id + ":" + propertyName;
 				delete incomingIntegrated[key];
 				this.setDirty(targetImage, ['incomingIntegrated', key]);			
 			} else {
@@ -482,7 +482,7 @@
 		storeBackReferenceInFeather : function(sourceImage, propertyName, targetImage) {
 			let incomingIntegrated = this.getMap(targetImage, 'incomingIntegrated');
 			if (Object.keys(incomingIntegrated).count < 100) {
-				let key = sourceImage.__id + ":" + propertyName;
+				let key = sourceImage.id + ":" + propertyName;
 				incomingIntegrated[key] = sourceImage;
 				this.setDirty(targetImage, ['incomingIntegrated', key]);
 			} else {

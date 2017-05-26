@@ -157,9 +157,9 @@
 						// console.log("and here");
 						let referencedValue;
 						if (configuration.mirrorStructuresAsCausalityObjects) {
-							referencedValue = mirror.setupMirrorReference(referringObject, referringObject.const.__id, referringRelation, addedElement, create);
+							referencedValue = mirror.setupMirrorReference(referringObject, referringObject.const.id, referringRelation, addedElement, create);
 						} else {
-							referencedValue = mirror.setupMirrorReference(referringObject, referringObject.const.__id, referringRelation, addedElement);
+							referencedValue = mirror.setupMirrorReference(referringObject, referringObject.const.id, referringRelation, addedElement);
 						}
 						if (typeof(referencedValue._incoming) !== 'undefined' && typeof(referencedValue._incoming[referringRelation]) !== 'undefined') {
 							notifyChangeObservers(referencedValue._incoming[referringRelation]);
@@ -174,7 +174,7 @@
 				if (removed !== null) {
 					removed.forEach(function(removedElement) {
 						if (isObject(removedElement) && removedElement.const._mirror_reflects) {
-							mirror.removeMirrorStructure(proxy.const.__id, removedElement);
+							mirror.removeMirrorStructure(proxy.const.id, removedElement);
 							notifyChangeObservers(removedElement._incoming[referringRelation]);
 						}					
 					});					
@@ -188,7 +188,7 @@
 	
     let constArrayOverrides = {
         pop : function() {
-            if (!canWrite(this.const.__proxy)) return;
+            if (!canWrite(this.const.object)) return;
             inPulse++;
 
             let index = this.target.length - 1;
@@ -204,7 +204,7 @@
         },
 
         push : function() {
-            if (!canWrite(this.const.__proxy)) return;
+            if (!canWrite(this.const.object)) return;
             inPulse++;
 
             let index = this.target.length;
@@ -214,7 +214,7 @@
 			let added = argumentsArray;
 			
 			if (mirrorRelations) {
-				added = createAndRemoveMirrorRelations(this.const.__proxy, index, removed, added); // TODO: implement for other array manipulators as well. 
+				added = createAndRemoveMirrorRelations(this.const.object, index, removed, added); // TODO: implement for other array manipulators as well. 
 			}
 			
             observerNotificationNullified++;
@@ -229,7 +229,7 @@
         },
 
         shift : function() {
-            if (!canWrite(this.const.__proxy)) return;
+            if (!canWrite(this.const.object)) return;
             inPulse++;
 
             observerNotificationNullified++;
@@ -245,7 +245,7 @@
         },
 
         unshift : function() {
-            if (!canWrite(this.const.__proxy)) return;
+            if (!canWrite(this.const.object)) return;
             inPulse++;
 
             let index = this.target.length;
@@ -262,7 +262,7 @@
         },
 
         splice : function() {
-            if (!canWrite(this.const.__proxy)) return;
+            if (!canWrite(this.const.object)) return;
             inPulse++;
 
             let argumentsArray = argumentsToArray(arguments);
@@ -284,7 +284,7 @@
         },
 
         copyWithin: function(target, start, end) {
-            if (!canWrite(this.const.__proxy)) return;
+            if (!canWrite(this.const.object)) return;
             inPulse++;
 
             if (target < 0) { start = this.target.length - target; }
@@ -313,7 +313,7 @@
 
     ['reverse', 'sort', 'fill'].forEach(function(functionName) {
         constArrayOverrides[functionName] = function() {
-            if (!canWrite(this.const.__proxy)) return;
+            if (!canWrite(this.const.object)) return;
             inPulse++;
 
             let argumentsArray = argumentsToArray(arguments);
@@ -337,7 +337,7 @@
 	}
 	Object.assign(constArrayOverridesOptimized, {
 		push : function() {
-			if (!canWrite(this.const.__proxy)) return;
+			if (!canWrite(this.const.object)) return;
 			inPulse++;
 			let index = this.target.length;
 			let argumentsArray = argumentsToArray(arguments);
@@ -376,8 +376,8 @@
 	 
 	/*
     function getHandlerArrayOptimized(target, key) {
-        if (this.const.__overlay !== null && key !== 'nonForwardStatic') { //  && (typeof(overlayBypass[key]) === 'undefined')
-            let overlayHandler = this.const.__overlay.const.__handler;
+        if (this.const.forwardsTo !== null && key !== 'nonForwardStatic') { //  && (typeof(overlayBypass[key]) === 'undefined')
+            let overlayHandler = this.const.forwardsTo.const.handler;
             return overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
         }
 		
@@ -397,8 +397,9 @@
 	*/
 	
     function getHandlerArray(target, key) {
-        if (this.const.__overlay !== null && key !== 'nonForwardStatic') { // && (typeof(overlayBypass[key]) === 'undefined')
-            let overlayHandler = this.const.__overlay.const.__handler;
+        if (this.const.forwardsTo !== null && key !== 'nonForwardStatic') { // && (typeof(overlayBypass[key]) === 'undefined')
+			// console.log(this.const.forwardsTo);
+            let overlayHandler = this.const.forwardsTo.const.handler;
             return overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
         }
 		
@@ -419,12 +420,12 @@
     }
 
     function setHandlerArray(target, key, value) {
-        if (this.const.__overlay !== null) {
-            if (key === "__overlay") {
-                this.const.__overlay = value;
+        if (this.const.forwardsTo !== null) {
+            if (key === "forwardsTo") {
+                this.const.forwardsTo = value;
                 return true;
             } else {
-                let overlayHandler = this.const.__overlay.const.__handler;
+                let overlayHandler = this.const.forwardsTo.const.handler;
                 return overlayHandler.set.apply(overlayHandler, [overlayHandler.target, key, value]);
             }
         }
@@ -444,7 +445,7 @@
         if (configuration.cumulativeAssignment && inActiveRecording && (isNaN(value) || typeof(value) === 'undefined')) {
             return true;
         }
-        if (!canWrite(this.const.__proxy)) return;
+        if (!canWrite(this.const.object)) return;
         inPulse++;
 		observerNotificationPostponed++; // TODO: Do this for backwards references from arrays as well...
 
@@ -481,14 +482,14 @@
     }
 
     function deletePropertyHandlerArray(target, key) {
-        if (this.const.__overlay !== null) {
-            let overlayHandler = this.const.__overlay.const.__handler;
+        if (this.const.forwardsTo !== null) {
+            let overlayHandler = this.const.forwardsTo.const.handler;
             return overlayHandler.deleteProperty.apply(overlayHandler, [overlayHandler.target, key]);
         }
         if (!(key in target)) {
             return true;
         }
-        if (!canWrite(this.const.__proxy)) return true;
+        if (!canWrite(this.const.object)) return true;
 		
 		ensureInitialized(this, target);
 		
@@ -508,8 +509,8 @@
     }
 
     function ownKeysHandlerArray(target) {
-        if (this.const.__overlay !== null) {
-            let overlayHandler = this.const.__overlay.const.__handler;
+        if (this.const.forwardsTo !== null) {
+            let overlayHandler = this.const.forwardsTo.const.handler;
             return overlayHandler.ownKeys.apply(overlayHandler, [overlayHandler.target]);
         }
 
@@ -524,8 +525,8 @@
     }
 
     function hasHandlerArray(target, key) {
-        if (this.const.__overlay !== null) {
-            let overlayHandler = this.const.__overlay.const.__handler;
+        if (this.const.forwardsTo !== null) {
+            let overlayHandler = this.const.forwardsTo.const.handler;
             return overlayHandler.has.apply(overlayHandler, [target, key]);
         }
 		
@@ -538,11 +539,11 @@
     }
 
     function definePropertyHandlerArray(target, key, oDesc) {
-        if (this.const.__overlay !== null) {
-            let overlayHandler = this.const.__overlay.const.__handler;
+        if (this.const.forwardsTo !== null) {
+            let overlayHandler = this.const.forwardsTo.const.handler;
             return overlayHandler.defineProperty.apply(overlayHandler, [overlayHandler.target, key, oDesc]);
         }
-        if (!canWrite(this.const.__proxy)) return;
+        if (!canWrite(this.const.object)) return;
 		
 		ensureInitialized(this, target);
 		
@@ -556,8 +557,8 @@
     }
 
     function getOwnPropertyDescriptorHandlerArray(target, key) {
-        if (this.const.__overlay !== null) {
-            let overlayHandler = this.const.__overlay.const.__handler;
+        if (this.const.forwardsTo !== null) {
+            let overlayHandler = this.const.forwardsTo.const.handler;
             return overlayHandler.getOwnPropertyDescriptor.apply(overlayHandler, [overlayHandler.target, key]);
         }
 
@@ -579,8 +580,8 @@
     function getHandlerObjectOptimized(target, key) {
         key = key.toString();
 
-        if (this.const.__overlay !== null && key !== "nonForwardStatic") {
-            let overlayHandler = this.const.__overlay.const.__handler;
+        if (this.const.forwardsTo !== null && key !== "nonForwardStatic") {
+            let overlayHandler = this.const.forwardsTo.const.handler;
             let result = overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
             return result;
         }
@@ -593,7 +594,7 @@
                 while ( scan !== null && typeof(scan) !== 'undefined' ) {
                     let descriptor = Object.getOwnPropertyDescriptor(scan, key);
                     if (typeof(descriptor) !== 'undefined' && typeof(descriptor.get) !== 'undefined') {
-                        return descriptor.get.bind(this.const.__proxy)();
+                        return descriptor.get.bind(this.const.object)();
                     }
                     scan = Object.getPrototypeOf( scan );
                 }
@@ -617,8 +618,8 @@
 		// if (key instanceof 'Symbol') {
 			// throw "foobar";
 		// }
-        if (this.const.__overlay !== null && key !== "nonForwardStatic") {
-            let overlayHandler = this.const.__overlay.const.__handler;
+        if (this.const.forwardsTo !== null && key !== "nonForwardStatic") {
+            let overlayHandler = this.const.forwardsTo.const.handler;
             let result = overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
             return result;
         }
@@ -636,7 +637,7 @@
                 while ( scan !== null && typeof(scan) !== 'undefined' ) {
                     let descriptor = Object.getOwnPropertyDescriptor(scan, key);
                     if (typeof(descriptor) !== 'undefined' && typeof(descriptor.get) !== 'undefined') {
-                        return descriptor.get.bind(this.const.__proxy)();
+                        return descriptor.get.bind(this.const.object)();
                     }
                     scan = Object.getPrototypeOf( scan );
                 }
@@ -672,13 +673,13 @@
 		// console.log("here too");
 		if (typeof(referringObject.const._mirror_is_reflected) !== 'undefined') {
 			if (isObject(previousValue) && previousValue.const._mirror_reflects) {
-				mirror.removeMirrorStructure(referringObject.const.__id, previousValue);
+				mirror.removeMirrorStructure(referringObject.const.id, previousValue);
 				notifyChangeObservers(previousValue._incoming[referringRelation]);
 			}
 			// console.log("here");
 			if (isObject(value) && value.const._mirror_reflects) {
 				// console.log("Setup mirror relation")
-				let referencedValue = mirror.setupMirrorReference(referringObject, referringObject.const.__id, referringRelation, value);
+				let referencedValue = mirror.setupMirrorReference(referringObject, referringObject.const.id, referringRelation, value);
 				if (typeof(referencedValue._incoming) !== 'undefined' && typeof(referencedValue._incoming[referringRelation]) !== 'undefined') {
 					notifyChangeObservers(referencedValue._incoming[referringRelation]);
 				}
@@ -691,8 +692,8 @@
 	/*
     function setHandlerObjectOptimized(target, key, value) {		
 		// Overlays
-        if (this.const.__overlay !== null) {
-			let overlayHandler = this.const.__overlay.const.__handler;
+        if (this.const.forwardsTo !== null) {
+			let overlayHandler = this.const.forwardsTo.const.handler;
 			return overlayHandler.set.apply(overlayHandler, [overlayHandler.target, key, value]);
         }
 		
@@ -700,7 +701,7 @@
 		if (postPulseProcess) {
 			return;
 		}
-		if (writeRestriction !== null && typeof(writeRestriction[object.const.__id]) === 'undefined') {
+		if (writeRestriction !== null && typeof(writeRestriction[object.const.id]) === 'undefined') {
 			return;
 		}
 		
@@ -748,13 +749,13 @@
 		if (configuration.objectActivityList) registerActivity(this);
 				
 		// Overlays
-        if (this.const.__overlay !== null) {
-			let overlayHandler = this.const.__overlay.const.__handler;
+        if (this.const.forwardsTo !== null) {
+			let overlayHandler = this.const.forwardsTo.const.handler;
 			return overlayHandler.set.apply(overlayHandler, [overlayHandler.target, key, value]);
         }
 		
         // Writeprotection
-		if (!canWrite(this.const.__proxy)) return;
+		if (!canWrite(this.const.object)) return;
 		
 		// Ensure initialized
 		ensureInitialized(this, target);
@@ -791,7 +792,7 @@
 		// Perform assignment with regards to mirror structures.
 		let mirrorStructureValue;
 		if (mirrorRelations) {
-			mirrorStructureValue = setupMirrorRelation(this['const'].__proxy, key, value, previousValue);
+			mirrorStructureValue = setupMirrorRelation(this['const'].object, key, value, previousValue);
 			target[key] = mirrorStructureValue; 
 		} else {
 			target[key] = value;
@@ -823,13 +824,13 @@
     }
 
     function deletePropertyHandlerObject(target, key) {
-        if (this.const.__overlay !== null) {
-            let overlayHandler = this.const.__overlay.const.__handler;
+        if (this.const.forwardsTo !== null) {
+            let overlayHandler = this.const.forwardsTo.const.handler;
             overlayHandler.deleteProperty.apply(overlayHandler, [overlayHandler.target, key]);
             return true;
         }
 
-        if (!canWrite(this.const.__proxy)) return true;
+        if (!canWrite(this.const.object)) return true;
 		
 		ensureInitialized(this, target);
 		
@@ -852,8 +853,8 @@
     }
 
     function ownKeysHandlerObject(target, key) { // Not inherited?
-        if (this.const.__overlay !== null) {
-            let overlayHandler = this.const.__overlay.const.__handler;
+        if (this.const.forwardsTo !== null) {
+            let overlayHandler = this.const.forwardsTo.const.handler;
             return overlayHandler.ownKeys.apply(overlayHandler, [overlayHandler.target, key]);
         }
 		
@@ -863,13 +864,13 @@
             registerAnyChangeObserver(getSpecifier(this, "_enumerateObservers"));
         }
         let keys = Object.keys(target);
-        keys.unshift('__id');
+        keys.unshift('id');
         return keys;
     }
 
     function hasHandlerObject(target, key) {
-        if (this.const.__overlay !== null) {
-            let overlayHandler = this.const.__overlay.const.__handler;
+        if (this.const.forwardsTo !== null) {
+            let overlayHandler = this.const.forwardsTo.const.handler;
             return overlayHandler.has.apply(overlayHandler, [overlayHandler.target, key]);
         }
 		
@@ -878,16 +879,16 @@
         if (inActiveRecording) {
             registerAnyChangeObserver(getSpecifier(this, "_enumerateObservers"));
         }
-        return (key in target) || key === "__id";
+        return (key in target) || key === "id";
     }
 
     function definePropertyHandlerObject(target, key, descriptor) {
-        if (this.const.__overlay !== null) {
-            let overlayHandler = this.const.__overlay.const.__handler;
+        if (this.const.forwardsTo !== null) {
+            let overlayHandler = this.const.forwardsTo.const.handler;
             return overlayHandler.defineProperty.apply(overlayHandler, [overlayHandler.target, key]);
         }
 				
-        if (!canWrite(this.const.__proxy)) return;
+        if (!canWrite(this.const.object)) return;
 
 		ensureInitialized(this, target);
 		
@@ -903,8 +904,8 @@
     }
 
     function getOwnPropertyDescriptorHandlerObject(target, key) {
-        if (this.const.__overlay !== null) {
-            let overlayHandler = this.const.__overlay.const.__handler;
+        if (this.const.forwardsTo !== null) {
+            let overlayHandler = this.const.forwardsTo.const.handler;
             return overlayHandler.getOwnPropertyDescriptor.apply(overlayHandler, [overlayHandler.target, key]);
         }
 		
@@ -926,7 +927,7 @@
 	 
     function create(createdTarget, cacheId) {
 		inPulse++;
-		let __id = nextId++;
+		let id = nextId++;
 		
 		let initializer = null;
         if (typeof(createdTarget) === 'undefined') {
@@ -942,7 +943,7 @@
         let handler;
         if (createdTarget instanceof Array) {
             handler = {
-				__id : __id,
+				id : id,
                 _arrayObservers : null,
                 // getPrototypeOf: function () {},
                 // setPrototypeOf: function () {},
@@ -968,7 +969,7 @@
             //     _propertyObservers[property] = {};
             // }
             handler = {
-				__id : __id,
+				id : id,
                 // getPrototypeOf: function () {},
                 // setPrototypeOf: function () {},
                 // isExtensible: function () {},
@@ -994,19 +995,19 @@
 
         handler.target = createdTarget;
 		
-		// createdTarget.const.__id = __id; // TODO ??? 
+		// createdTarget.const.id = id; // TODO ??? 
 				
         let proxy = new Proxy(createdTarget, handler);
 		
         handler.const = {
 			initializer : initializer,
-			__causalityCoreIdentity : causalityCoreIdentity,
-            __id: __id,
-            __cacheId : cacheId,
-            __overlay : null,
-            __target: createdTarget,
-            __handler : handler,
-            __proxy : proxy,
+			causalityInstanceIdentity : causalityCoreIdentity,
+            id: id,
+            cacheId : cacheId,
+            forwardsTo : null,
+            target: createdTarget,
+            handler : handler,
+            object : proxy,
 			 
 			// __mirror_is_reflected : false,
 			// __mirror_reflects : false,
@@ -1040,7 +1041,7 @@
             if (cacheId !== null &&  typeof(context.cacheIdObjectMap[cacheId]) !== 'undefined') {
                 // Overlay previously created
                 let infusionTarget = context.cacheIdObjectMap[cacheId];
-                infusionTarget.const.__handler.const.__overlay = proxy;
+                infusionTarget.const.handler.const.forwardsTo = proxy;
                 context.newlyCreated.push(infusionTarget);
                 return infusionTarget;   // Borrow identity of infusion target.
             } else {
@@ -1050,7 +1051,7 @@
         }
 
         if (writeRestriction !== null) {
-            writeRestriction[proxy.const.__id] = true;
+            writeRestriction[proxy.const.id] = true;
         }
 		
 		emitCreationEvent(handler);
@@ -1059,7 +1060,7 @@
     }
 
 	function isObject(entity) {
-		return typeof(entity) === 'object' && entity !== null && typeof(entity.const) !== 'undefined' && entity.const.__causalityCoreIdentity === causalityCoreIdentity;
+		return typeof(entity) === 'object' && entity !== null && typeof(entity.const) !== 'undefined' && entity.const.causalityInstanceIdentity === causalityCoreIdentity;
 	}
 	
     /**********************************
@@ -1077,7 +1078,7 @@
 	}
 	 
 	// function purge(object) {
-		// object.__target.
+		// object.target.
 	// } 
 	 
 		
@@ -1097,7 +1098,7 @@
 		if (postPulseProcess) {
 			return false;
 		}
-		if (writeRestriction !== null && typeof(writeRestriction[object.const.__id]) === 'undefined') {
+		if (writeRestriction !== null && typeof(writeRestriction[object.const.id]) === 'undefined') {
 			return false;
 		}
 		if (customCanWrite !== null) {
@@ -1356,8 +1357,8 @@
 
     function emitEvent(handler, event) {
         // console.log(event);
-        // event.objectId = handler.const.__id;
-		event.object = handler.const.__proxy; 
+        // event.objectId = handler.const.id;
+		event.object = handler.const.object; 
 		if (recordPulseEvents) {
 			pulseEvents.push(event);
 		}
@@ -1375,7 +1376,7 @@
     }
 
     function genericObserveFunction(observerFunction) {
-        let handler = this.const.__handler;
+        let handler = this.const.handler;
         if (typeof(handler.observers) === 'undefined') {
             handler.observers = [];
         }
@@ -1406,7 +1407,7 @@
         // Recorder context
 		let context = {
             nextToNotify: null,
-            __id: nextId++,
+            id: nextId++,
             description: description,
             uponChangeAction: doAfterChange,
             remove : function() {
@@ -1565,11 +1566,11 @@
 
         // Activate!
         return refreshRepeater({
-            __id: nextId++,
+            id: nextId++,
             description: description,
             action: repeaterAction,
             remove: function() {
-                // console.log("removeRepeater: " + repeater.const.__id + "." + repeater.description);
+                // console.log("removeRepeater: " + repeater.const.id + "." + repeater.description);
                 removeChildContexts(this);
                 detatchRepeater(this);
                 this.micro.remove(); // Remove recorder!
@@ -1673,7 +1674,7 @@
     }
 
 	function getObjectAttatchedCache(object, cacheStoreName, functionName) {
-		// object = object.const.__handler;
+		// object = object.const.handler;
 		// let functionCaches = getMap(object, cacheStoreName, functionName);
         if (typeof(object[cacheStoreName]) === 'undefined') {
             object[cacheStoreName] = {};
@@ -1696,7 +1697,7 @@
                 }
 
                 if (isObject(argument)) { //typeof(argument) === 'object' &&
-                    hash += "{id=" + argument.const.__id + "}";
+                    hash += "{id=" + argument.const.id + "}";
                 } else if (typeof(argument) === 'number' || typeof(argument) === 'string') { // String or integer
                     hash += argument;
                 } else {
@@ -2042,7 +2043,7 @@
      ************************************************************************/
 
     // let overlayBypass = {  // maybe useful when direct const access?
-        // '__overlay' : true,
+        // 'forwardsTo' : true,
         // 'removeForwarding' : true,
         // 'mergeAndRemoveForwarding' : true
     // };
@@ -2050,7 +2051,7 @@
     function mergeInto(source, target) {
 		// console.log("merge into!!");
         if (source instanceof Array) {
-            let splices = differentialSplices(target.const.__target, source.const.__target);
+            let splices = differentialSplices(target.const.target, source.const.target);
             splices.forEach(function(splice) {
                 let spliceArguments = [];
                 spliceArguments.push(splice.index, splice.removed.length);
@@ -2071,8 +2072,8 @@
     }
 
     function mergeOverlayIntoObject(object) {
-        let overlay = object.nonForwardStatic.__overlay;
-        object.nonForwardStatic.__overlay = null;
+        let overlay = object.nonForwardStatic.forwardsTo;
+        object.nonForwardStatic.forwardsTo = null;
         mergeInto(overlay, object);
     }
 
@@ -2081,11 +2082,11 @@
     }
 
     function genericForwarder(otherObject) {
-        this.const.__overlay = otherObject;
+        this.const.forwardsTo = otherObject;
     }
 
     function genericRemoveForwarding() {
-        this.nonForwardStatic.__overlay = null;
+        this.nonForwardStatic.forwardsTo = null;
     }
 
     function genericMergeAndRemoveForwarding() {
@@ -2148,15 +2149,15 @@
                     // console.log("Assimilating:");
                     withoutRecording(function() { // Do not observe reads from the overlays
                         cacheRecord.newlyCreated.forEach(function(created) {
-                            if (created.nonForwardStatic.__overlay !== null) {
+                            if (created.nonForwardStatic.forwardsTo !== null) {
                                 // console.log("Has overlay, merge!!!!");
                                 mergeOverlayIntoObject(created);
                             } else {
                                 // console.log("Infusion id of newly created:");
-                                // console.log(created.const.__cacheId);
-                                if (created.const.__cacheId !== null) {
+                                // console.log(created.const.cacheId);
+                                if (created.const.cacheId !== null) {
 
-                                    cacheRecord.cacheIdObjectMap[created.const.__cacheId] = created;
+                                    cacheRecord.cacheIdObjectMap[created.const.cacheId] = created;
                                 }
                             }
                         });
@@ -2235,15 +2236,15 @@
 	let activityListLast = null; 
 
 	function getActivityListLast() {
-		return activityListLast.const.__proxy;
+		return activityListLast.const.object;
 	}
 
 	function getActivityListFirst() {
-		return activityListFirst.const.__proxy;
+		return activityListFirst.const.object;
 	}
 
 	function removeFromActivityList(proxy) {
-		removeFromActivityListHandler(proxy.const.__handler);
+		removeFromActivityListHandler(proxy.const.handler);
 	}
 	
 	function registerActivity(handler) {

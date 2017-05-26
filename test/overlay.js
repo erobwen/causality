@@ -17,13 +17,13 @@ describe("Overlays", function(){
         // console.log(" Create overlay ===========================")
         let xOverlay = create({ name: "overlay"});
 		xOverlay.const.tag = "xOverlay";
-        x.const.__overlay = xOverlay;
+        x.const.forwardsTo = xOverlay;
 
-        // console.log(x.const.__handler);
-        // console.log(x.const.__handler.const);
+        // console.log(x.const.handler);
+        // console.log(x.const.handler.const);
         // console.log(x);
-        // console.log(x.const.__overlay);
-        // console.log(x.const.__handler);
+        // console.log(x.const.forwardsTo);
+        // console.log(x.const.handler);
         // console.log(x.foo);
         assert.equal(typeof(x.foo), 'undefined');
 
@@ -36,7 +36,7 @@ describe("Overlays", function(){
         assert.equal(x.fie, 32);
 
         // Remove overlay
-        x.nonForwardStatic.__overlay = null;
+        x.nonForwardStatic.forwardsTo = null;
 		// console.log(x.const.tag);
 		// console.log("no more overlay");
         assert.equal(x.foo, 1);
