@@ -25,19 +25,19 @@ let mirror = require('../mirror');
 
 describe("Activity list", function(){
     it("Testing activity list starts with last touched objects", function(){
-		let x = create({id : "x"});
-		let y = create({id : "y"});
-		let z = create({id : "z"});
+		let x = create({name: "x"});
+		let y = create({name: "y"});
+		let z = create({name: "z"});
 
 		x.fooX = 3;
 		y.fooY = 31;
 		z.fumZ = 3;
-		assert.equal("z", causality.getActivityListFirst().id);
+		assert.equal("z", causality.getActivityListFirst().name);
 
 		x.f = 3;
-		assert.equal("x", causality.getActivityListFirst().id);
+		assert.equal("x", causality.getActivityListFirst().name);
 
 		let zome = y.fooY;
-		assert.equal("y", causality.getActivityListFirst().id);
+		assert.equal("y", causality.getActivityListFirst().name);
 	});
 });	
