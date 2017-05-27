@@ -119,7 +119,7 @@
 	 
 	function setProperty(object, property, value, createFunction) {
 		let previousValue = object[property];
-		removeMirrorStructure(object.id, previousValue);
+		removeMirrorStructure(object.const.id, previousValue);
 		setupMirrorReference(object, property, value, createFunction);
 		object[property] = referencedValue;
 	}
@@ -143,7 +143,7 @@
 	function addInArray(array, referencedObject) { // TODO: Push in array
 		// Find relation name
 		let referingObject = getReferingObject(array, "[]");
-		let referingObjectId = referingObject.id;
+		let referingObjectId = referingObject.const.id;
 		let relationName = gottenReferingObjectRelation;
 
 		// Find right place in the incoming structure.
@@ -172,7 +172,7 @@
 		
 		
 		array.forEach(function(observerSet) {
-			removeMirrorStructure(referingObject.id, observerSet);
+			removeMirrorStructure(referingObject.const.id, observerSet);
 		});
 		array.lenght = 0;  // From repeater itself.
 	}

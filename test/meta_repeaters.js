@@ -59,8 +59,11 @@ describe("Meta repeaters", function(){
         // console.log(a._repeaters.emitHelloEvent);
         //
         // Test no undead repeater, the
+		
+        // console.log("============= try to trigger undead ================");
         a.value = "Abraka Dabra";
         // console.log(events);
+        // console.log("============= end trigger undead ================");
         assert.equal(events.length, 5);
     });
 

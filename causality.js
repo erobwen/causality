@@ -18,6 +18,9 @@
         return vals;
     }
 	
+	let objectlog = require('./objectlog.js');
+	let log = objectlog.log;
+	
 	let causalityCoreIdentity = {};
 
     // Helper to quickly get a child object (this function was a great idea, but caused performance issues in stress-tests)
@@ -143,7 +146,7 @@
 			// console.log("heref");
             let referringRelation = "[]";
             while (typeof(referringObject._mirror_index_parent) !==  'undefined') {
-				console.log(looping);
+				// console.log(looping);
                 referringRelation = referringObject._mirror_index_parent_relation;
                 referringObject = referringObject._mirror_index_parent;
             }
@@ -629,7 +632,7 @@
         if (key === "const" || key === "nonForwardStatic") {
 			return this.const;
 		} else if (configuration.directStaticAccess && typeof(this.const[key]) !== 'undefined') { // TODO: implement directStaticAccess for other readers. 
-            console.log(key);
+            // console.log(key);
 			return this.const[key];
         } else {
             if (typeof(key) !== 'undefined') {
@@ -864,7 +867,6 @@
             registerAnyChangeObserver(getSpecifier(this, "_enumerateObservers"));
         }
         let keys = Object.keys(target);
-        keys.unshift('id');
         return keys;
     }
 
@@ -879,7 +881,7 @@
         if (inActiveRecording) {
             registerAnyChangeObserver(getSpecifier(this, "_enumerateObservers"));
         }
-        return (key in target) || key === "id";
+        return (key in target);
     }
 
     function definePropertyHandlerObject(target, key, descriptor) {
@@ -923,7 +925,14 @@
      *  Create
      *
      ***************************************************************/
-	let nextHandlerId = 1;
+	 
+	function createImmutable(initial) {
+		inPulse++;
+		initial.const = {id : nextId++};
+		emitImmutableCreationEvent(initial);
+		if (--inPulse === 0) postPulseCleanup();
+		return initial;
+	} 
 	 
     function create(createdTarget, cacheId) {
 		inPulse++;
@@ -943,7 +952,7 @@
         let handler;
         if (createdTarget instanceof Array) {
             handler = {
-				id : id,
+				id : id, // TODO: remove?
                 _arrayObservers : null,
                 // getPrototypeOf: function () {},
                 // setPrototypeOf: function () {},
@@ -969,7 +978,7 @@
             //     _propertyObservers[property] = {};
             // }
             handler = {
-				id : id,
+				id : id, // TODO: remove?
                 // getPrototypeOf: function () {},
                 // setPrototypeOf: function () {},
                 // isExtensible: function () {},
@@ -1297,7 +1306,6 @@
 
     function postPulseCleanup() {
 		postPulseProcess = true; // Blocks any model writing during post pulse cleanup
-        // console.log("post pulse cleanup");
         contextsScheduledForPossibleDestruction.forEach(function(context) {
             if (!context.directlyInvokedByApplication) {
                 if (emptyObserverSet(context.contextObservers)) {
@@ -1324,7 +1332,16 @@
      *
      *
      **********************************/
-
+	
+	function emitImmutableCreationEvent(object) {
+        if (recordPulseEvents) {
+			let event = { type: 'creation', object: object }
+			if (recordPulseEvents) {
+				pulseEvents.push(event);
+			}
+		}		
+	} 
+	
 	function emitCreationEvent(handler) {
         if (recordPulseEvents) {
 			emitEvent(handler, { type: 'creation' });
@@ -1385,6 +1402,22 @@
 
 
     /**********************************
+     *  Actions
+     *
+     **********************************/
+	 
+	/**
+	* Forms: 
+	* 
+	* createAction(function)
+	* createAction(functionName, arglist)
+	* createAction(object, methodName, arglist)
+	*/
+	function createAction() {
+		
+	}
+
+    /**********************************
      *  Dependency recording
      *
      *  Upon change do
@@ -1405,16 +1438,15 @@
         }
 
         // Recorder context
-		let context = {
+		let context = createImmutable({
             nextToNotify: null,
-            id: nextId++,
             description: description,
             uponChangeAction: doAfterChange,
             remove : function() {
                 // Clear out previous observations
 				mirror.clearArray(this.sources);
             }
-        }
+        });
 		// context.sources = [];
 		// context.sources._mirror_outgoing_parent = context;
 		mirror.createArrayIndex(context, "sources");
@@ -1565,8 +1597,7 @@
         }
 
         // Activate!
-        return refreshRepeater({
-            id: nextId++,
+        return refreshRepeater(createImmutable({
             description: description,
             action: repeaterAction,
             remove: function() {
@@ -1577,7 +1608,7 @@
             },
             nextDirty : null,
             previousDirty : null
-        });
+        }));
     }
 
     function refreshRepeater(repeater) {
@@ -1755,13 +1786,13 @@
             createNewRecord : function() {
                 if (uniqueHash) {
                     if (typeof(functionCaches[argumentsHash]) === 'undefined') {
-                        functionCaches[argumentsHash] = {};
+                        functionCaches[argumentsHash] = createImmutable({});
                     }
                     return functionCaches[argumentsHash];
                     // return getMap(functionCaches, argumentsHash)
                 } else {
                     let functionArgumentHashCaches = getArray(functionCaches, "_nonpersistent_cacheBuckets", argumentsHash);
-                    let record = {};
+                    let record = createImmutable({});
                     functionArgumentHashCaches.push(record);
                     return record;
                 }
