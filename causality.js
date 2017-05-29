@@ -1385,6 +1385,12 @@
             });
         }
     }
+	
+	function emitUnobservableEvent(event) {
+		if (recordPulseEvents) {
+			pulseEvents.push(event);
+		}
+	}
 
     function observeAll(array, callback) {
         array.forEach(function(element) {
@@ -1757,15 +1763,16 @@
 		// object = object.const.handler;
 		// let functionCaches = getMap(object, cacheStoreName, functionName);
         if (typeof(object[cacheStoreName]) === 'undefined') {
-            object[cacheStoreName] = {};
+            object[cacheStoreName] = createImmutable({}); // TODO: These are actually not immutable, more like unobservable. They can change, but changes needs to register manually.... 
         }
         if (typeof(object[cacheStoreName][functionName]) === 'undefined') {
-            object[cacheStoreName][functionName] = {};
+            object[cacheStoreName][functionName] = createImmutable({});
         }
 		return object[cacheStoreName][functionName];
 	}
 	
     // Get cache(s) for this argument hash
+	// function caches has to be a full object.
     function getFunctionCacher(functionCaches, argumentList) {
         let uniqueHash = true;
         function makeArgumentHash(argumentList) {
@@ -1806,13 +1813,15 @@
                 if (uniqueHash) {
                     let result = functionCaches[argumentsHash];
                     delete functionCaches[argumentsHash];
+					emitUnobservableEvent({object: functionCaches, type: 'delete', oldValue: result});
                     return result;
                 } else {
-                    let functionArgumentHashCaches = getArray(functionCaches, "_nonpersistent_cacheBuckets" , argumentsHash);
-                    for (let i = 0; i < functionArgumentHashCaches.length; i++) {
-                        if (compareArraysShallow(functionArgumentHashCaches[i].functionArguments, functionArguments)) {
-                            let result = functionArgumentHashCaches[i];
-                            functionArgumentHashCaches.splice(i, 1);
+					let cacheBucket = functionCaches[argumentsHash];					
+                    for (let i = 0; i < cacheBucket.length; i++) {
+                        if (compareArraysShallow(cacheBucket[i].functionArguments, functionArguments)) {
+                            let result = cacheBucket[i];
+                            cacheBucket.splice(i, 1);
+							emitUnobservableEvent({object: functionCaches, type: 'splice', index: 1, added: [], removed: [result]});
                             return result;
                         }
                     }
@@ -1823,27 +1832,40 @@
                 if (uniqueHash) {
                     return functionCaches[argumentsHash]
                 } else {
-                    let functionArgumentHashCaches = getArray(functionCaches, "_nonpersistent_cacheBuckets" , argumentsHash);
-                    for (let i = 0; i < functionArgumentHashCaches.length; i++) {
-                        if (compareArraysShallow(functionArgumentHashCaches[i].functionArguments, functionArguments)) {
-                            return functionArgumentHashCaches[i];
+                    let cacheBucket = functionCaches[argumentsHash]
+                    for (let i = 0; i < cacheBucket.length; i++) {
+                        if (compareArraysShallow(cacheBucket[i].functionArguments, functionArguments)) {
+                            return cacheBucket[i];
                         }
                     }
                 }
             },
+			
+								// Setup nonpersistent cache buckets.
+					// if (typeof(functionCaches["_nonpersistent_cacheBuckets"]) === 'undefined') {
+						// cacheBuckets = createImmutable({});
+						// functionCaches["_nonpersistent_cacheBuckets"] = cacheBuckets; // Note: this is meaningsless to persist 
+					// }
+					
+
 
             createNewRecord : function() {
                 if (uniqueHash) {
-                    if (typeof(functionCaches[argumentsHash]) === 'undefined') {
-                        functionCaches[argumentsHash] = createImmutable({});
-                    }
+					let newCacheRecord = createImmutable({});
+					functionCaches[argumentsHash] = newCacheRecord;
+					emitUnobservableEvent({object: functionCaches, type: 'set', property: argumentsHash, oldValueUndefined: true , value: newCacheRecord});
                     return functionCaches[argumentsHash];
-                    // return getMap(functionCaches, argumentsHash)
                 } else {
-                    let functionArgumentHashCaches = getArray(functionCaches, "_nonpersistent_cacheBuckets", argumentsHash);
-                    let record = createImmutable({});
-                    functionArgumentHashCaches.push(record);
-                    return record;
+                    if (typeof(functionCaches[argumentsHash]) === 'undefined') {
+						let cacheBucket = createImmutable([]);
+                        functionCaches[argumentsHash] = cacheBucket;
+						emitUnobservableEvent({object: functionCaches, type: 'set', property: argumentsHash , oldValueUndefined: true , value: cacheBucket});
+                    }
+                    let hashBucket = functionCaches[argumentsHash];
+                    let newCacheRecord = createImmutable({});
+                    hashBucket.push(newCacheRecord);
+					emitUnobservableEvent({object: hashBucket, type: 'splice', index: "foo", removed: null , added: [newCacheRecord]});
+                    return newCacheRecord;
                 }
             }
         };
@@ -1949,7 +1971,25 @@
             return this[functionName].apply(this, argumentsArray);
         }
     }
-
+	
+    // function genericCallAndCacheFunction() {
+        // Split arguments
+        // let argumentsList = argumentsToArray(arguments);
+        // let functionName = argumentsList.shift();
+		
+		// callAndCacheForUniqueArgumentLists(
+			// getObjectAttatchedCache(this, "_cachedCalls", functionName), 
+			// argumentsList,
+			// function() {
+                // returnValue = this[functionName].apply(this, argumentsList);
+            // }.bind(this)
+		// );
+    // }
+	
+	// function callAndCacheForUniqueArgumentLists(cache, argumentsList, repeatedFunction) {
+		
+	// }
+	
     function genericCallAndCacheFunction() {
         // Split arguments
         let argumentsList = argumentsToArray(arguments);
