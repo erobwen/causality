@@ -1763,7 +1763,9 @@
 		// object = object.const.handler;
 		// let functionCaches = getMap(object, cacheStoreName, functionName);
         if (typeof(object[cacheStoreName]) === 'undefined') {
-            object[cacheStoreName] = createImmutable({}); // TODO: These are actually not immutable, more like unobservable. They can change, but changes needs to register manually.... 
+			let cacheStore = createImmutable({});
+			cacheStore.const.exclusiveReferer = object; // Only refered to by object.
+            object[cacheStoreName] = cacheStore; // TODO: These are actually not immutable, more like unobservable. They can change, but changes needs to register manually.... 
         }
         if (typeof(object[cacheStoreName][functionName]) === 'undefined') {
             object[cacheStoreName][functionName] = createImmutable({});
@@ -2023,56 +2025,6 @@
         }
 	}
 	
-	/*
-    function genericCallAndCacheFunction() {
-        // Split arguments
-        let argumentsList = argumentsToArray(arguments);
-        let functionName = argumentsList.shift();
-		let cache = getObjectAttatchedCache(this, "_cachedCalls", functionName);
-        let functionCacher = getFunctionCacher(cache, argumentsList); // wierd, does not work with this inestead of handler...
-
-        if (!functionCacher.cacheRecordExists()) {
-            let cacheRecord = functionCacher.createNewRecord();
-            cacheRecord.independent = true; // Do not delete together with parent
-
-            // Is this call non-automatic
-            cacheRecord.remove = function() {
-                functionCacher.deleteExistingRecord();
-                cacheRecord.micro.remove(); // Remove recorder
-            };
-
-            cachedCalls++;
-            enterContext('cached_call', cacheRecord);
-            nextIsMicroContext = true;
-            // Never encountered these arguments before, make a new cache
-            let returnValue = uponChangeDo(
-                function () {
-                    let returnValue;
-                    // blockSideEffects(function() {
-                    returnValue = this[functionName].apply(this, argumentsList);
-                    // }.bind(this));
-                    return returnValue;
-                }.bind(this),
-                function () {
-                    // Delete function cache and notify
-                    let cacheRecord = functionCacher.deleteExistingRecord();
-                    notifyChangeObservers(cacheRecord.contextObservers);
-                }.bind(this));
-            leaveContext();
-            cacheRecord.returnValue = returnValue;
-            getSpecifier(cacheRecord, "contextObservers").noMoreObserversCallback = function() {
-                contextsScheduledForPossibleDestruction.push(cacheRecord);
-            };
-            registerAnyChangeObserver(cacheRecord.contextObservers);
-            return returnValue;
-        } else {
-            // Encountered these arguments before, reuse previous repeater
-            let cacheRecord = functionCacher.getExistingRecord();
-            registerAnyChangeObserver(cacheRecord.contextObservers);
-            return cacheRecord.returnValue;
-        }
-    }
-*/
 
     function genericUnCacheFunction() {
         // Split arguments
