@@ -1411,11 +1411,60 @@
 	* 
 	* createAction(function)
 	* createAction(functionName, arglist)
+	* createAction(functionPath, arglist)
 	* createAction(object, methodName, arglist)
 	*/
 	function createAction() {
-		
+		arguments = argumentsToArray(arguments);
+		let argumentsLength = arguments.length;
+        if (argumentsLength === 1) {
+            return arguments[0];
+        } else if (argumentsLength === 2){
+			if (arguments[0] instanceof Array) {
+				return createImmutable({
+					functionPath : createImmutable(arguments.unshift()),
+					arguments : createImmutable(arguments) 
+				});
+			} else {
+				return createImmutable({
+					functionName : arguments.unshift(),
+					arguments : createImmutable(arguments)
+				});
+			}
+        } else if (argumentsLength === 3) {
+			return createImmutable({
+				object : arguments.unshift(),
+				methodName : arguments.unshift(),
+				arguments : createImmutable(arguments)
+			});
+		}
 	}
+	
+	function performAction(action) {
+		if (typeof(action) === 'function') {
+			return action();
+		} else {
+			if (typeof(action.object) === 'undefined') {
+				if (typeof(action.functionPath) === 'undefined') {
+					// TODO: use window also...
+					return global[action.methodName].apply(null, action.arglist);
+				} else {
+					let tmpFunction = null;
+					action.functionPath.forEach(function(name) {
+						if (tmpFunction === null) {
+							tmpFunction = global[action.methodName];
+						} else {
+							tmpFunction = tmpFunction[name]; 
+						}
+					});
+					return tmpFunction.apply(null, action.arglist);
+				}
+			} else {
+				return action.object[action.methodName].apply(action.object, action.arglist);
+			}
+		}
+	}
+	
 
     /**********************************
      *  Dependency recording
@@ -1452,7 +1501,7 @@
 		mirror.createArrayIndex(context, "sources");
 		
         enterContext('recording', context);
-        let returnValue = doFirst();
+        let returnValue = performAction(doFirst);
         leaveContext();
 
         return returnValue;
@@ -1497,7 +1546,7 @@
                 let recorder = nextObserverToNotifyChange;
                 nextObserverToNotifyChange = nextObserverToNotifyChange.nextToNotify;
                 // blockSideEffects(function() {
-                recorder.uponChangeAction();
+                performAction(recorder.uponChangeAction);
                 // });
             }
             lastObserverToNotifyChange = null;
@@ -1548,7 +1597,7 @@
                 lastObserverToNotifyChange = observer;
             } else {
                 // blockSideEffects(function() {
-                observer.uponChangeAction();
+                performAction(observer.uponChangeAction);
                 // });
             }
         }
