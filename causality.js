@@ -1841,14 +1841,6 @@
                 }
             },
 			
-								// Setup nonpersistent cache buckets.
-					// if (typeof(functionCaches["_nonpersistent_cacheBuckets"]) === 'undefined') {
-						// cacheBuckets = createImmutable({});
-						// functionCaches["_nonpersistent_cacheBuckets"] = cacheBuckets; // Note: this is meaningsless to persist 
-					// }
-					
-
-
             createNewRecord : function() {
                 if (uniqueHash) {
 					let newCacheRecord = createImmutable({});
@@ -1887,24 +1879,24 @@
 			getObjectAttatchedCache(this, "_repeaters", functionName), 
 			argumentsList,
 			function() {
-                returnValue = this[functionName].apply(this, argumentsList);
+                return this[functionName].apply(this, argumentsList);
             }.bind(this)
 		);
     }
 
-	function repeatForUniqueCall(repeatedFunction, argumentLists) {
-		if (typeof(repeatedFunction.__call_repeat_cache) === 'undefined') {
-			repeatedFunction.__call_repeat_cache = {};
-		}
-		let cache = repeatedFunction.__call_repeat_cache;
-		repeatForUniqueArgumentLists(
-			cache, 
-			argumentList, 
-			function() {
-                returnValue = repeatedFunction.apply(null, argumentsList);
-            }
-		);
-	}
+	// function repeatForUniqueCall(repeatedFunction, argumentLists) {
+		// if (typeof(repeatedFunction.__call_repeat_cache) === 'undefined') {
+			// repeatedFunction.__call_repeat_cache = {};
+		// }
+		// let cache = repeatedFunction.__call_repeat_cache;
+		// repeatForUniqueArgumentLists(
+			// cache, 
+			// argumentList, 
+			// function() {
+                // return repeatedFunction.apply(null, argumentsList); // Will this work if this is already bound?
+            // }
+		// );
+	// }
 	
 	function repeatForUniqueArgumentLists(cache, argumentsList, repeatedFunction) {
 		let functionCacher = getFunctionCacher(cache, argumentsList);
@@ -1972,24 +1964,66 @@
         }
     }
 	
-    // function genericCallAndCacheFunction() {
-        // Split arguments
-        // let argumentsList = argumentsToArray(arguments);
-        // let functionName = argumentsList.shift();
+    function genericCallAndCacheFunction() {
+		// Split arguments
+        let argumentsList = argumentsToArray(arguments);
+        let functionName = argumentsList.shift();
 		
-		// callAndCacheForUniqueArgumentLists(
-			// getObjectAttatchedCache(this, "_cachedCalls", functionName), 
-			// argumentsList,
-			// function() {
-                // returnValue = this[functionName].apply(this, argumentsList);
-            // }.bind(this)
-		// );
-    // }
+		return callAndCacheForUniqueArgumentLists(
+			getObjectAttatchedCache(this, "_cachedCalls", functionName), 
+			argumentsList,
+			function() {
+                return this[functionName].apply(this, argumentsList);
+            }.bind(this)
+		);
+    }
 	
-	// function callAndCacheForUniqueArgumentLists(cache, argumentsList, repeatedFunction) {
-		
-	// }
+	function callAndCacheForUniqueArgumentLists(cache, argumentsList, callAction) {
+        let functionCacher = getFunctionCacher(cache, argumentsList);
+
+        if (!functionCacher.cacheRecordExists()) {
+            let cacheRecord = functionCacher.createNewRecord();
+            cacheRecord.independent = true; // Do not delete together with parent
+
+            // Is this call non-automatic
+            cacheRecord.remove = function() {
+                functionCacher.deleteExistingRecord();
+                cacheRecord.micro.remove(); // Remove recorder
+            };
+
+            cachedCalls++;
+            enterContext('cached_call', cacheRecord);
+            nextIsMicroContext = true;
+            // Never encountered these arguments before, make a new cache
+            let returnValue = uponChangeDo(
+                function () {
+                    let returnValue;
+                    // blockSideEffects(function() {
+                    returnValue = callAction();
+                    // }.bind(this));
+                    return returnValue;
+                }.bind(this),
+                function () {
+                    // Delete function cache and notify
+                    let cacheRecord = functionCacher.deleteExistingRecord();
+                    notifyChangeObservers(cacheRecord.contextObservers);
+                }.bind(this));
+            leaveContext();
+            cacheRecord.returnValue = returnValue;
+            getSpecifier(cacheRecord, "contextObservers").noMoreObserversCallback = function() {
+                contextsScheduledForPossibleDestruction.push(cacheRecord);
+            };
+            registerAnyChangeObserver(cacheRecord.contextObservers);
+            return returnValue;
+        } else {
+            // Encountered these arguments before, reuse previous repeater
+            let cacheRecord = functionCacher.getExistingRecord();
+            registerAnyChangeObserver(cacheRecord.contextObservers);
+            return cacheRecord.returnValue;
+        }
+	}
 	
+	/*
     function genericCallAndCacheFunction() {
         // Split arguments
         let argumentsList = argumentsToArray(arguments);
@@ -2038,6 +2072,7 @@
             return cacheRecord.returnValue;
         }
     }
+*/
 
     function genericUnCacheFunction() {
         // Split arguments
