@@ -1,5 +1,8 @@
 const assert = require('assert');
-require('../causality').install();
+const requireUncached = require('require-uncached');
+let causality = requireUncached('../causality');
+// let causality = require('../causality');
+causality.install();
 
 describe("Projections", function(){
     var listNodePrototype = {
@@ -117,6 +120,8 @@ describe("Projections", function(){
     };
 
     it("Testing just flattening", function(){
+		assert.equal(false, causality.getConfiguration().mirrorRelations);
+		
         var tree = createTreeNode(1, [
             createTreeNode(2, [
                 createTreeNode(3, []),

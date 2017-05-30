@@ -384,7 +384,7 @@
 	 
 	function createAndRemoveMirrorRelations(proxy, index, removed, added) {
 		// console.log("createAndRemoveMirrorRelations " + mirrorRelations);
-		if (false && mirrorRelations) {     
+		if (mirrorRelations) {     
 			// console.log("inside");
 			// Get refering object 
             let referringObject = proxy;
@@ -460,7 +460,9 @@
 			let removed = null;
 			let added = argumentsArray;
 			
+			
 			if (false && mirrorRelations) {
+				console.log("Mirror relations activate!!!!");
 				added = createAndRemoveMirrorRelations(this.const.object, index, removed, added); // TODO: implement for other array manipulators as well. 
 			}
 			
@@ -1179,6 +1181,7 @@
 	} 
 	 
     function create(createdTarget, cacheId) {
+		// console.log(mirrorRelations);
 		inPulse++;
 		let id = nextId++;
 		
@@ -2636,7 +2639,7 @@
 
 	let configuration;
 	
-	let mirrorRelations;
+	let mirrorRelations = false;
 	let exposeMirrorRelationIntermediary;
 	let mirrorStructuresAsCausalityObjects;
 	

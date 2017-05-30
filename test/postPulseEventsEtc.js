@@ -1,8 +1,11 @@
 const assert = require('assert');
-let causality = require('../causality');
-causality.install();
+const requireUncached = require('require-uncached');
+let causality = requireUncached('../causality');
+let create = causality.create;
+let isObject = causality.isObject;
+let transaction = causality.transaction;
 causality.setConfiguration({objectActivityList : true, mirrorRelations: true, recordPulseEvents : true});
-causality.addPostPulseAction(postPulse)
+causality.addPostPulseAction(postPulse);
 
 // let mirror = require('../mirror');
 let pulseEvents = null
