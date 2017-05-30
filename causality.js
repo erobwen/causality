@@ -461,7 +461,7 @@
 			let added = argumentsArray;
 			
 			
-			if (false && mirrorRelations) {
+			if (mirrorRelations) {
 				console.log("Mirror relations activate!!!!");
 				added = createAndRemoveMirrorRelations(this.const.object, index, removed, added); // TODO: implement for other array manipulators as well. 
 			}
@@ -898,7 +898,7 @@
                         registerAnyChangeObserver(getSpecifier(this, "_enumerateObservers"));
                     }
                 }
-				if (false && mirrorRelations && keyInTarget && !exposeMirrorRelationIntermediary) {
+				if (mirrorRelations && keyInTarget && !exposeMirrorRelationIntermediary) {
 					// console.log("causality.getHandlerObject:");
 					// console.log(key);
 					return getProperty(target, key);
@@ -920,7 +920,7 @@
         }
 		
 		// console.log("here too");
-		if (false && mirrorRelations) {
+		if (mirrorRelations) {
 			if (isObject(previousValue)) {
 				removeMirrorStructure(referringObject.const.id, previousValue);
 				notifyChangeObservers(previousValue._incoming[referringRelation]);
@@ -1012,7 +1012,7 @@
 		// Get previous value		// Get previous value
 		let previousValue;
 		let previousMirrorStructure;
-		if (false && mirrorRelations) {
+		if (mirrorRelations) {
 			// console.log("causality.getHandlerObject:");
 			// console.log(key);
 			previousMirrorStructure = target[key];
@@ -1040,7 +1040,7 @@
 		
 		// Perform assignment with regards to mirror structures.
 		let mirrorStructureValue;
-		if (false && mirrorRelations) {
+		if (mirrorRelations) {
 			mirrorStructureValue = setupMirrorRelation(this['const'].object, key, value, previousValue);
 			target[key] = mirrorStructureValue; 
 		} else {
