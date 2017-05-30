@@ -17,106 +17,24 @@
         }
         return vals;
     }
+
+	// Instance identity
+	let causalityCoreIdentity = {};
 	
+	// Debugging
 	let objectlog = require('./objectlog.js');
 	let log = objectlog.log;
 	
-	let causalityCoreIdentity = {};
-
-    // Helper to quickly get a child object (this function was a great idea, but caused performance issues in stress-tests)
-    function getMap() {
-        let argumentList = argumentsToArray(arguments);
-        let object = argumentList.shift();
-        while (argumentList.length > 0) {
-            let key = argumentList.shift();
-            if (typeof(object[key]) === 'undefined') {
-                object[key] = {};
-            }
-            object = object[key];
-        }
-        return object;
-    }
-
-    // Helper to quickly get a child array
-    function getArray() {
-        var argumentList = argumentsToArray(arguments);
-        var object = argumentList.shift();
-        while (argumentList.length > 0) {
-            var key = argumentList.shift();
-            if (typeof(object[key]) === 'undefined') {
-                if (argumentList.length === 0) {
-                    object[key] = [];
-                } else {
-                    object[key] = {};
-                }
-            }
-            object = object[key];
-        }
-        return object;
-    }
-    
-    function isDefined(object, property) {
-        return (typeof(object[property]) !== 'undefined');
-    }
-
-    function setIfNotDefined(object, property, value) {
-        if (typeof(object[property]) === 'undefined') {
-            object[property] = value;
-        }
-    }
-
-    let lastOfArray = function(array) {
-        return array[array.length - 1];
-    };
-
-    function removeFromArray(object, array) {
-        for (let i = 0; i < array.length; i++) {
-            if (array[i] === object) {
-                array.splice(i, 1);
-                break;
-            }
-        }
-    }
+	
+    /***************************************************************
+     *
+     *  Helpers
+     *
+     ***************************************************************/
 
     let argumentsToArray = function(arguments) {
         return Array.prototype.slice.call(arguments);
     };
-	
-	function indentString(level) {
-		let string = "";
-		while (level-- > 0) {
-			string = string + "  ";
-		}
-		return string;
-	};
- 
-	function logPattern(entity, pattern, indentLevel) {
-		if (typeof(entity) !== 'object') {
-			let entityString = "";
-			if (typeof(entity) === 'function') {
-				entityString = "function( ... ) { ... }";				
-			} else {
-				entityString = entity;				
-			}
-			process.stdout.write(entityString + "\n"); 
-		} else {
-			if (pattern === undefined) {
-				process.stdout.write("{...}\n"); 
-			} else {
-				if (typeof(indentLevel) === 'undefined') {
-					indentLevel = 0;
-				}
-				let indent = indentString(indentLevel);
-
-				console.log(indent + "{");
-				for (p in entity) {
-					process.stdout.write(indent + "   " + p + " : "); 
-					logPattern(entity[p], pattern[p], indentLevel + 1);
-				}
-				console.log(indent + "}");
-			}
-		}
-	}
 
 
     /***************************************************************
@@ -1764,7 +1682,7 @@
 		// let functionCaches = getMap(object, cacheStoreName, functionName);
         if (typeof(object[cacheStoreName]) === 'undefined') {
 			let cacheStore = createImmutable({});
-			cacheStore.const.exclusiveReferer = object; // Only refered to by object.
+			cacheStore.const.exclusiveReferer = object; // Only refered to by object. TODO: implement in more places...
             object[cacheStoreName] = cacheStore; // TODO: These are actually not immutable, more like unobservable. They can change, but changes needs to register manually.... 
         }
         if (typeof(object[cacheStoreName][functionName]) === 'undefined') {
@@ -1803,12 +1721,18 @@
                 // Figure out if we have a chache or not
                 let result = null;
                 if (uniqueHash) {
-                    result = typeof(functionCaches[argumentsHash]) !== 'undefined';
+                    return typeof(functionCaches[argumentsHash]) !== 'undefined';
                 } else {
-                    let functionArgumentHashCaches = getArray(functionCaches, "_nonpersistent_cacheBuckets" , argumentsHash);
-                    result = isCachedInBucket(functionArgumentHashCaches, functionArguments);
+					if (typeof(functionCaches[argumentsHash]) !== 'undefined') {
+						let cacheBucket = functionCaches[argumentsHash];
+						for (let i = 0; i < cacheBucket.length; i++) {
+							if (compareArraysShallow(cacheBucket[i].functionArguments, functionArguments)) {
+								return true;
+							}
+						}
+					}
+					return false;
                 }
-                return result;
             },
 
             deleteExistingRecord : function() {
@@ -2485,8 +2409,7 @@
 		observeAll : observeAll,
         cachedCallCount : cachedCallCount,
         clearRepeaterLists : clearRepeaterLists,
-        resetObjectIds : resetObjectIds,
-		logPattern : logPattern
+        resetObjectIds : resetObjectIds
 	}
 		
     /**
