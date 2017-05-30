@@ -462,7 +462,6 @@
 			
 			
 			if (mirrorRelations) {
-				console.log("Mirror relations activate!!!!");
 				added = createAndRemoveMirrorRelations(this.const.object, index, removed, added); // TODO: implement for other array manipulators as well. 
 			}
 			
