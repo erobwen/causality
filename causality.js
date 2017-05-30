@@ -384,7 +384,7 @@
 	 
 	function createAndRemoveMirrorRelations(proxy, index, removed, added) {
 		// console.log("createAndRemoveMirrorRelations " + mirrorRelations);
-		if (mirrorRelations) {     
+		if (false && mirrorRelations) {     
 			// console.log("inside");
 			// Get refering object 
             let referringObject = proxy;
@@ -396,12 +396,11 @@
                 referringObject = referringObject._mirror_index_parent;
             }
 			// console.log("??");
-			// console.log(referringObject.const._mirror_is_reflected);
-			if (typeof(referringObject.const._mirror_is_reflected) !== 'undefined') {
+			if (true) {
 				// Create mirror relations for added
 				let addedAdjusted = [];
 				added.forEach(function(addedElement) {
-					if (isObject(addedElement) && addedElement.const._mirror_reflects) {
+					if (isObject(addedElement)) { // Cannot remove mirror reflects???.... )
 						// console.log("and here");
 						let referencedValue;
 						if (configuration.mirrorStructuresAsCausalityObjects) {
@@ -421,7 +420,7 @@
 				// Remove mirror relations for removed
 				if (removed !== null) {
 					removed.forEach(function(removedElement) {
-						if (isObject(removedElement) && removedElement.const._mirror_reflects) {
+						if (isObject(removedElement)) {
 							removeMirrorStructure(proxy.const.id, removedElement);
 							notifyChangeObservers(removedElement._incoming[referringRelation]);
 						}					
@@ -461,7 +460,7 @@
 			let removed = null;
 			let added = argumentsArray;
 			
-			if (mirrorRelations) {
+			if (false && mirrorRelations) {
 				added = createAndRemoveMirrorRelations(this.const.object, index, removed, added); // TODO: implement for other array manipulators as well. 
 			}
 			
@@ -897,7 +896,7 @@
                         registerAnyChangeObserver(getSpecifier(this, "_enumerateObservers"));
                     }
                 }
-				if (keyInTarget && !exposeMirrorRelationIntermediary && typeof(this.const._mirror_is_reflected) !== 'undefined') {
+				if (false && mirrorRelations && keyInTarget && !exposeMirrorRelationIntermediary) {
 					// console.log("causality.getHandlerObject:");
 					// console.log(key);
 					return getProperty(target, key);
@@ -919,16 +918,16 @@
         }
 		
 		// console.log("here too");
-		if (typeof(referringObject.const._mirror_is_reflected) !== 'undefined') {
-			if (isObject(previousValue) && previousValue.const._mirror_reflects) {
+		if (false && mirrorRelations) {
+			if (isObject(previousValue)) {
 				removeMirrorStructure(referringObject.const.id, previousValue);
 				notifyChangeObservers(previousValue._incoming[referringRelation]);
 			}
 			// console.log("here");
-			if (isObject(value) && value.const._mirror_reflects) {
+			if (isObject(value)) {
 				// console.log("Setup mirror relation")
 				let referencedValue = setupMirrorReference(referringObject, referringObject.const.id, referringRelation, value);
-				if (typeof(referencedValue._incoming) !== 'undefined' && typeof(referencedValue._incoming[referringRelation]) !== 'undefined') {
+				if (typeof(referencedValue._incoming) !== 'undefined') {
 					notifyChangeObservers(referencedValue._incoming[referringRelation]);
 				}
 				value = referencedValue;
@@ -1011,7 +1010,7 @@
 		// Get previous value		// Get previous value
 		let previousValue;
 		let previousMirrorStructure;
-		if (mirrorRelations && typeof(this.const._mirror_is_reflected) !== 'undefined') {
+		if (false && mirrorRelations) {
 			// console.log("causality.getHandlerObject:");
 			// console.log(key);
 			previousMirrorStructure = target[key];
@@ -1039,7 +1038,7 @@
 		
 		// Perform assignment with regards to mirror structures.
 		let mirrorStructureValue;
-		if (mirrorRelations) {
+		if (false && mirrorRelations) {
 			mirrorStructureValue = setupMirrorRelation(this['const'].object, key, value, previousValue);
 			target[key] = mirrorStructureValue; 
 		} else {
@@ -1262,10 +1261,7 @@
             target: createdTarget,
             handler : handler,
             object : proxy,
-			 
-			// __mirror_is_reflected : false,
-			// __mirror_reflects : false,
-
+			
             // This inside these functions will be the Proxy. Change to handler?
             repeat : genericRepeatMethod.bind(proxy),
             tryStopRepeat : genericStopRepeatFunction.bind(proxy),
