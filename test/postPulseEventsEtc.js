@@ -4,7 +4,7 @@ causality.install();
 causality.setConfiguration({objectActivityList : true, mirrorRelations: true, recordPulseEvents : true});
 causality.addPostPulseAction(postPulse)
 
-let mirror = require('../mirror');
+// let mirror = require('../mirror');
 let pulseEvents = null
 function postPulse(events) {
 	pulseEvents = events;

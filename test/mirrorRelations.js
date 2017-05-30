@@ -3,7 +3,6 @@ const requireUncached = require('require-uncached');
 let causality = requireUncached('../causality');
 let create = causality.create;
 causality.setConfiguration({mirrorRelations : true, directStaticAccess: true});
-let mirror = require('../mirror');
 
 function createMirror(contents) {
 	if (typeof(contents) === 'undefined') contents = {};
@@ -37,7 +36,7 @@ describe("Mirror Relations", function(){
 		
 		// Analyze incoming structure
 		let yIncomingFoo = []
-		mirror.forAllIncoming(y, 'foo', function(referer) {
+		causality.forAllIncomingInner(y, 'foo', function(referer) {
 			yIncomingFoo.push(referer);
 		});
 		// logPattern(x, { foo : {}});
@@ -49,7 +48,7 @@ describe("Mirror Relations", function(){
 	it("Testing mirror relation exists for array", function(){
 		let x = createMirror([]);
 		let y = createMirror();
-		mirror.createArrayIndex(x, "foo", causality.create);
+		causality.createArrayIndex(x, "foo", causality.create);
 		
 		
 		x.push(y);
@@ -59,7 +58,7 @@ describe("Mirror Relations", function(){
 
 		// Analyze incoming structure
 		let yIncomingArray = []
-		mirror.forAllIncoming(y, '[]', function(referer) {
+		causality.forAllIncomingInner(y, '[]', function(referer) {
 			yIncomingArray.push(referer);
 		});
 		// logPattern(x, { foo : {}});
@@ -76,7 +75,7 @@ describe("Mirror Relations", function(){
 		y.incomingFoo = function() {
 			let incoming = [];
 			
-			mirror.forAllIncoming(this, 'foo', function(referer) {
+			causality.forAllIncomingInner(this, 'foo', function(referer) {
 				incoming.push(referer);
 			});
 			return incoming;
@@ -95,7 +94,7 @@ describe("Mirror Relations", function(){
 		function updateYIncomingFoo() {
 			// logPattern(y, { _mirror_incoming_relations : { foo : { contents : {}}}});
 			yIncomingFoo = [];
-			mirror.forAllIncoming(y, 'foo', function(referer) {
+			causality.forAllIncomingInner(y, 'foo', function(referer) {
 				yIncomingFoo.push(referer);
 			});			
 		}

@@ -4,7 +4,7 @@ let causality = requireUncached('../causality');
 causality.setConfiguration({objectActivityList : true, mirrorRelations: true});
 let create = causality.create;
 
-let mirror = require('../mirror');
+// let mirror = require('../mirror');
 
 // let x = create();
 // let y = create();
