@@ -4,13 +4,6 @@ let causality = requireUncached('../causality');
 let create = causality.create;
 causality.setConfiguration({mirrorRelations : true, directStaticAccess: true});
 
-function createMirror(contents) {
-	if (typeof(contents) === 'undefined') contents = {};
-	let m = create(contents);//{const: { _mirror_reflects: true, _mirror_is_reflected: true}});
-	m.const._mirror_reflects = true;
-	m.const._mirror_is_reflected = true;
-	return m;
-}
 
 describe("Mirror Relations", function(){
     it("Testing mirror relation exists", function(){
@@ -19,8 +12,8 @@ describe("Mirror Relations", function(){
 		// let x = create(mirror.create());
 		// let y = create(mirror.create());
 
-		let x = createMirror();
-		let y = createMirror();
+		let x = create();
+		let y = create();
 		
 		// Assign x.foo
 		x.foo = y;
@@ -46,9 +39,10 @@ describe("Mirror Relations", function(){
     });
 	
 	it("Testing mirror relation exists for array", function(){
-		let x = createMirror([]);
-		let y = createMirror();
+		let x = create([]);
 		causality.createArrayIndex(x, "foo", causality.create);
+		
+		let y = create();
 		
 		
 		x.push(y);
@@ -68,8 +62,8 @@ describe("Mirror Relations", function(){
     });
 	
     it("Testing getting incoming with method", function(){
-		let x = createMirror();
-		let y = createMirror();
+		let x = create();
+		let y = create();
 		
 		// let y = create({});
 		y.incomingFoo = function() {
@@ -87,8 +81,8 @@ describe("Mirror Relations", function(){
     });
 	
     it("Testing reaction to change in incoming relation", function(){
-		let x = createMirror();
-		let y = createMirror()
+		let x = create();
+		let y = create()
 		
 		let yIncomingFoo;		
 		function updateYIncomingFoo() {
