@@ -51,8 +51,8 @@
  	}
 	
 	function forAllIncomingInner(object, property, callback) {
-		if (typeof(object._mirror_incoming_relations) !== 'undefined') {
-			let relations = object._mirror_incoming_relations;
+		if (typeof(object.const.incoming) !== 'undefined') {
+			let relations = object.const.incoming;
 			if (typeof(relations[property]) !== 'undefined') {
 				let relation = relations[property];
 				let contents = relation.contents;
@@ -75,7 +75,7 @@
 	
 	
 	function setupMirrorReference(referingObject, referingObjectId, property, value, createFunction) {
-		if (!property.startsWith("_mirror_")) { // TODO: Move incoming relations to const. 
+		// if (!property.startsWith("_mirror_")) { // TODO: Move incoming relations to const. 
 			// let referingObject = getReferingObject(object, property);
 			let relationName = gottenReferingObjectRelation;
 			// console.log("setProperty:");
@@ -92,9 +92,9 @@
 				}
 			}
 			return referencedValue;
-		} else {
-			return value;
-		}
+		// } else {
+			// return value;
+		// }
 	} 
 	
 	
@@ -105,23 +105,6 @@
 		// object[property] = referencedValue;
 	// }
 	
-	function getProperty(object, property) { // TODO: remove
-		// if (typeof(property) === 'string') {
-			// console.log("getProperty:");
-			// property = "" + property;
-			// console.log(property);
-		if (property.startsWith("_mirror_")) {
-			return object[property];
-		} else {
-			// console.log("Here!");
-			let referedEntity = object[property];
-			// console.log(referedEntity);
-			return findReferredObject(referedEntity);
-		}			
-		// }
-	}
-	 
-
 	
     let sourcesObserverSetChunkSize = 500;
 	
@@ -212,24 +195,24 @@
 		if (referencedObject._mirror_incoming_relation === true)  {
 			// The referenced object is the incoming relation itself. 
 			return referencedObject;
-		} else if (typeof(referencedObject._mirror_incoming_relations) === 'undefined') {
+		} else if (typeof(referencedObject.const.incoming) === 'undefined') {
 			// The argument is the referenced object itself, dig down into the structure. 
 			let mirrorIncomingRelations = createFunction({ _mirror_incoming_relations : true, _mirror_referencedObject: referencedObject });
 			
-			referencedObject._mirror_incoming_relations = mirrorIncomingRelations; 
+			referencedObject.const.incoming = mirrorIncomingRelations; 
 			let mirrorIncomingRelation = createFunction({ _mirror_incoming_relation : true, _mirror_referencedObject: referencedObject });
 			
 			mirrorIncomingRelations[relationName] = mirrorIncomingRelation;
 			return mirrorIncomingRelation;
 		} else {
-			if (referencedObject._mirror_incoming_relations === true) {
+			if (referencedObject.const.incoming === true) {
 				// The argument is the incoming relation set, will never happen?
 				let mirrorIncomingRelation = createFunction({ _mirror_incoming_relation : true, _mirror_referencedObject: referencedObject });
 				referencedObject[relationName] = mirrorIncomingRelation;
 				return mirrorIncomingRelation;
 			} else {
 				// The argument is the referenced object itself, but has already incoming relations defined. 
-				let mirrorIncomingRelations = referencedObject._mirror_incoming_relations;
+				let mirrorIncomingRelations = referencedObject.const.incoming;
 				if (typeof(mirrorIncomingRelations[relationName]) === 'undefined') {
 					mirrorIncomingRelation = createFunction({ _mirror_incoming_relation : true, _mirror_referencedObject: referencedObject });
 					mirrorIncomingRelations[relationName] = mirrorIncomingRelation;
@@ -879,7 +862,7 @@
 				if (mirrorRelations && keyInTarget && !exposeMirrorRelationIntermediary) {
 					// console.log("causality.getHandlerObject:");
 					// console.log(key);
-					return getProperty(target, key);
+					return findReferredObject(target[key]);
 				} else {
 					return target[key];
 				}
@@ -994,7 +977,7 @@
 			// console.log("causality.getHandlerObject:");
 			// console.log(key);
 			previousMirrorStructure = target[key];
-			previousValue = getProperty(target, key);
+			previousValue = findReferredObject(target[key]);
 		} else {
 			previousValue = target[key]; 
 		}
