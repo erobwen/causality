@@ -40,7 +40,7 @@ describe("Mirror Relations", function(){
     });
 	*/
 	it("Testing mirror relation exists for array", function(){
-		console.log("======================");
+		// console.log("======================");
 		let x = create({name: "x"});
 		causality.createArrayIndex(x, "foo", causality.create);
 		
@@ -52,15 +52,18 @@ describe("Mirror Relations", function(){
 		// console.log(x.foo);
 		// console.log(x.foo.const.id);
 
+		// console.log(y._mirror_incoming_relations);
 		// Analyze incoming structure
 		let yIncomingArray = []
-		causality.forAllIncomingInner(y, '[]', function(referer) {
+		causality.forAllIncomingInner(y, 'foo', function(referer) {
+			// console.log("-----------------------Inside loop");
+			// console.log(referer);
 			yIncomingArray.push(referer);
 		});
 		// logPattern(x, { foo : {}});
 	
 		// console.log("========================");
-		// assert.equal(yIncomingArray[0], x);
+		assert.equal(yIncomingArray[0], x);
     });
 	/*
     it("Testing getting incoming with method", function(){

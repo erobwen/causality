@@ -75,7 +75,7 @@
 	
 	
 	function setupMirrorReference(referingObject, referingObjectId, property, value, createFunction) {
-		if (!property.startsWith("_mirror_")) {
+		if (!property.startsWith("_mirror_")) { // TODO: Move incoming relations to const. 
 			// let referingObject = getReferingObject(object, property);
 			let relationName = gottenReferingObjectRelation;
 			// console.log("setProperty:");
@@ -83,7 +83,8 @@
 			// console.log(referingObject.id);
 					
 			let referencedValue = value;
-			if (typeof(value) === 'object') { //TODO: limit backwards referenes to mirror objects only.
+			if (isObject(value)) { //TODO: limit backwards referenes to mirror objects only.
+				// console.log("setup for property:" + property);
 				let mirrorIncomingRelation = findIncomingRelationStructure(referencedValue, property, createFunction);
 				let incomingRelationChunk = intitializeAndConstructMirrorStructure(mirrorIncomingRelation, referingObject, referingObjectId, createFunction);
 				if (incomingRelationChunk !== null) {
@@ -362,18 +363,18 @@
 	function createAndRemoveArrayMirrorRelations(proxy, index, removed, added) {
 		// console.log("createAndRemoveArrayMirrorRelations " + mirrorRelations);
 		if (mirrorRelations) {     
-			console.log("createAndRemoveArrayMirrorRelations:");
+			// console.log("createAndRemoveArrayMirrorRelations:");
 			// Get refering object 
             let referringObject = proxy;
-			console.log("heref");
+			// console.log("heref");
             let referringRelation = "[]";
             while (typeof(referringObject._index_parent) !==  'undefined') {
-				console.log("looping");
+				// console.log("looping");
                 referringRelation = referringObject._index_parent_relation;
                 referringObject = referringObject._index_parent;
             }
-			console.log(referringRelation);
-			console.log(referringObject);
+			// console.log(referringRelation);
+			// console.log(referringObject);
 			
 			// Create mirror relations for added
 			let addedAdjusted = [];
