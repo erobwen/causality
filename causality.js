@@ -39,64 +39,10 @@
 
     /***************************************************************
      *
-     *  Mirror setup
+     *  Specifiers
      *
      ***************************************************************/
-
-	function forAllIncoming(object, property, callback) {
-		registerAnyChangeObserver(getSpecifier(getSpecifier(object.const, "_incoming"), property));
-		withoutRecording(function() { // This is needed for setups where incoming structures are made out of causality objects. 
-			forAllIncomingInner(object, property, callback);
-		});
- 	}
-	
-	function forAllIncomingInner(object, property, callback) {
-		if (typeof(object.const.incoming) !== 'undefined') {
-			let relations = object.const.incoming;
-			if (typeof(relations[property]) !== 'undefined') {
-				let relation = relations[property];
-				let contents = relation.contents;
-				for (id in contents) {
-					let referer = contents[id];
-					callback(referer);
-				}
-				let currentChunk = relation.first
-				while (currentChunk !== null) {
-					let contents = currentChunk.contents;
-					for (id in contents) {
-						let referer = contents[id];
-						callback(referer);
-					}
-					currentChunk = currentChunk.next;
-				}
-			}
-		}
-	} 	 
-	
-	
-	function setupMirrorReference(referingObject, referingObjectId, property, value, createFunction) {
-		let relationName = gottenReferingObjectRelation;
-		// console.log("setProperty:");
-		// console.log(referingObject);
-		// console.log(referingObject.id);
-				
-		let referencedValue = value;
-		if (isObject(value)) { //TODO: limit backwards referenes to mirror objects only.
-			// console.log("setup for property:" + property);
-			let mirrorIncomingRelation = findIncomingRelationStructure(referencedValue, property, createFunction);
-			let incomingRelationChunk = intitializeAndConstructMirrorStructure(mirrorIncomingRelation, referingObject, referingObjectId, createFunction);
-			if (incomingRelationChunk !== null) {
-				referencedValue = incomingRelationChunk;
-			}
-		}
-		return referencedValue;
-	} 
-	
-    let sourcesObserverSetChunkSize = 500;
-	
-	/**
-	* Creater helpers
-	*/	
+	 
 	function getSpecifier(object, specifierName, createFunction) {
 		if (typeof(object[specifierName]) === 'undefined' || object[specifierName] === null) {
 			let specifier = { 
@@ -113,14 +59,21 @@
 		return object[specifierName];
 	} 
 
+	 
+    /***************************************************************
+     *
+     *  Indicies
+     *
+     ***************************************************************/
+	 
 	function createArrayIndex(object, property, createFunction) {
 		if (typeof(createFunction) === 'undefined') {
 			createFunction = createImmutable;
 		}
 		let index = createFunction([]);
 
-		index._index_parent = object;
-		index._index_parent_relation = property;
+		index.const.indexParent = object;
+		index.const.indexParentRelation = property;
 
 		object[property] = index;
 		return index;
@@ -132,26 +85,79 @@
 		}
 		let index = createFunction({});
 
-		index._index_parent = object;
-		index._index_parent_relation = property;
+		index.const.indexParent = object;
+		index.const.indexParentRelation = property;
 
 		object[property] = index;
 		return index;
 	}
 
+	/**
+	 * Traverse the index structure. TODO: This should perahps be used for all assignments.... ?
+	 */
+	let gottenReferingObject;
+	let gottenReferingObjectRelation;
+	function getReferingObject(possibleIndex, relationFromPossibleIndex) {
+		gottenReferingObject = possibleIndex;
+		gottenReferingObjectRelation = relationFromPossibleIndex;
+		while (typeof(gottenReferingObject.const.indexParent) !== 'undefined') {
+			gottenReferingObjectRelation = gottenReferingObject.const.indexParentRelation;
+			gottenReferingObject = gottenReferingObject.const.indexParent;
+		}
+		
+		return gottenReferingObject;
+	}
+
+	
+    /***************************************************************
+     *
+     *  Incoming relations. 
+     *
+     ***************************************************************/
+
+    let incomingStructureChunkSize = 500;
+
+	function forAllIncoming(object, property, callback) {
+		registerAnyChangeObserver(getSpecifier(getSpecifier(object.const, "_incoming"), property));
+		withoutRecording(function() { // This is needed for setups where incoming structures are made out of causality objects. 
+			if (typeof(object.const.incoming) !== 'undefined') {
+				let relations = object.const.incoming;
+				if (typeof(relations[property]) !== 'undefined') {
+					let relation = relations[property];
+					let contents = relation.contents;
+					for (id in contents) {
+						let referer = contents[id];
+						callback(referer);
+					}
+					let currentChunk = relation.first
+					while (currentChunk !== null) {
+						let contents = currentChunk.contents;
+						for (id in contents) {
+							let referer = contents[id];
+							callback(referer);
+						}
+						currentChunk = currentChunk.next;
+					}
+				}
+			}
+		});
+ 	}
+	
+	
 	
 	/*-----------------------------------------------
 	 *            Relation structures
 	 *-----------------------------------------------*/
 	
 	
-	function setupMirrorRelation(objectProxy, key, value, previousValue) {
+	function createAndRemoveIncomingRelations(objectProxy, key, value, previousValue) {
 		// console.log("setup mirror relation");
+		
 		// Get refering object 
         let referringRelation = key;
-        while (typeof(objectProxy._index_parent) !==  'undefined') {
-            referringRelation = objectProxy._index_parent_relation;
-            objectProxy = objectProxy._index_parent;
+        while (typeof(objectProxy.const.indexParent) !==  'undefined') {
+            referringRelation = objectProxy.const.indexParentRelation;
+            objectProxy = objectProxy.const.indexParent;
         }
 		
 		// console.log("here too");
@@ -162,7 +168,7 @@
 			}
 			// console.log("here");
 			if (isObject(value)) {
-				let referencedValue = setupMirrorReference(objectProxy, objectProxy.const.id, referringRelation, value);
+				let referencedValue = createIncomingStructure(objectProxy, objectProxy.const.id, referringRelation, value);
 				if (typeof(value.const._incoming) !== 'undefined') {
 					notifyChangeObservers(value.const._incoming[referringRelation]);
 				}
@@ -173,19 +179,13 @@
 	}
 	
 	
-	function createAndRemoveArrayMirrorRelations(arrayProxy, index, removed, added) {
-		// console.log("createAndRemoveArrayMirrorRelations " + mirrorRelations);  
-		// console.log("createAndRemoveArrayMirrorRelations:");
+	function createAndRemoveArrayIncomingRelations(arrayProxy, index, removed, added) {
 		// Get refering object 
-		// console.log("heref");
 		let referringRelation = "[]";
-		while (typeof(arrayProxy._index_parent) !==  'undefined') {
-			// console.log("looping");
-			referringRelation = arrayProxy._index_parent_relation;
-			arrayProxy = arrayProxy._index_parent;
+		while (typeof(arrayProxy.const.indexParent) !==  'undefined') {
+			referringRelation = arrayProxy.const.indexParentRelation;
+			arrayProxy = arrayProxy.const.indexParent;
 		}
-		// console.log(referringRelation);
-		// console.log(arrayProxy);
 		
 		// Create mirror relations for added
 		let addedAdjusted = [];
@@ -194,9 +194,9 @@
 				// console.log("and here");
 				let referencedValue;
 				if (configuration.mirrorStructuresAsCausalityObjects) {
-					referencedValue = setupMirrorReference(arrayProxy, arrayProxy.const.id, referringRelation, addedElement, create);
+					referencedValue = createIncomingStructure(arrayProxy, arrayProxy.const.id, referringRelation, addedElement, create);
 				} else {
-					referencedValue = setupMirrorReference(arrayProxy, arrayProxy.const.id, referringRelation, addedElement);
+					referencedValue = createIncomingStructure(arrayProxy, arrayProxy.const.id, referringRelation, addedElement);
 				}
 				if (typeof(referencedValue.const._incoming) !== 'undefined' && typeof(referencedValue.const._incoming[referringRelation]) !== 'undefined') {
 					notifyChangeObservers(referencedValue.const._incoming[referringRelation]);
@@ -220,28 +220,11 @@
 	} 
 	
 	
-	/**
-	 * Traverse the index structure
-	 */
-	
-	let gottenReferingObject;
-	let gottenReferingObjectRelation;
-	function getReferingObject(possibleIndex, relationFromPossibleIndex) {
-		gottenReferingObject = possibleIndex;
-		gottenReferingObjectRelation = relationFromPossibleIndex;
-		while (typeof(gottenReferingObject._index_parent) !== 'undefined') {
-			gottenReferingObjectRelation = gottenReferingObject._index_parent_relation;
-			gottenReferingObject = gottenReferingObject._index_parent;
-		}
-		
-		return gottenReferingObject;
-	}
 	
 	
 	/**
 	 * Traverse the incoming relation structure
 	 */
-	
 	function findReferredObject(referredItem) {
 		if (typeof(referredItem) === 'object' && typeof(referredItem.referredObject) !== undefined) {
 			return referredItem.referredObject;
@@ -250,40 +233,35 @@
 		}
 	}
 	
-	function findIncomingRelationStructure(referencedObject, relationName, createFunction) {
+	function createIncomingStructure(referingObject, referingObjectId, property, object, createFunction) {
+		let mirrorIncomingRelation = getIncomingRelationStructure(object, property, createFunction);
+		let incomingRelationChunk = intitializeAndConstructMirrorStructure(mirrorIncomingRelation, referingObject, referingObjectId, createFunction);
+		if (incomingRelationChunk !== null) {
+			return incomingRelationChunk;
+		} else {
+			return object;
+		}
+	} 
+	
+	
+	function getIncomingRelationStructure(referencedObject, relationName, createFunction) {
 		if (typeof(createFunction) === 'undefined') {
 			createFunction = createImmutable;
 		}
-		if (referencedObject.isIncomingRelationStructure === true)  {
-			// The referenced object is the incoming relation itself. 
-			return referencedObject;
-		} else if (typeof(referencedObject.const.incoming) === 'undefined') {
-			// The argument is the referenced object itself, dig down into the structure. 
-			let mirrorIncomingRelations = createFunction({ isIncomingRelationStructures : true, referredObject: referencedObject });
-			
-			referencedObject.const.incoming = mirrorIncomingRelations; 
-			let mirrorIncomingRelation = createFunction({ isIncomingRelationStructure : true, referredObject: referencedObject });
-			
-			mirrorIncomingRelations[relationName] = mirrorIncomingRelation;
-			return mirrorIncomingRelation;
-		} else {
-			if (referencedObject.const.incoming === true) {
-				// The argument is the incoming relation set, will never happen?
-				let mirrorIncomingRelation = createFunction({ isIncomingRelationStructure : true, referredObject: referencedObject });
-				referencedObject[relationName] = mirrorIncomingRelation;
-				return mirrorIncomingRelation;
-			} else {
-				// The argument is the referenced object itself, but has already incoming relations defined. 
-				let mirrorIncomingRelations = referencedObject.const.incoming;
-				if (typeof(mirrorIncomingRelations[relationName]) === 'undefined') {
-					mirrorIncomingRelation = createFunction({ isIncomingRelationStructure : true, referredObject: referencedObject });
-					mirrorIncomingRelations[relationName] = mirrorIncomingRelation;
-					return mirrorIncomingRelation;
-				} else {
-					return mirrorIncomingRelations[relationName];
-				}
-			}
+		
+		// Create incoming structure
+		if (typeof(referencedObject.const.incoming) === 'undefined') {
+			referencedObject.const.incoming = createFunction({ isIncomingRelationStructures : true, referredObject: referencedObject });
 		}
+		let incomingRelations = referencedObject.const.incoming;
+		
+		// Create incoming for this particular property
+		if (typeof(incomingRelations[relationName]) === 'undefined') {
+			mirrorIncomingRelation = createFunction({ isIncomingRelationStructure : true, referredObject: referencedObject });
+			incomingRelations[relationName] = mirrorIncomingRelation;
+		}
+		
+		return incomingRelations[relationName];
 	}
 	
 	
@@ -360,7 +338,7 @@
 		}
 
 		// Move on to new chunk?
-		if (mirrorIncomingRelation.contentsCounter === sourcesObserverSetChunkSize) {
+		if (mirrorIncomingRelation.contentsCounter === incomingStructureChunkSize) {
 			let newChunk = createFunction({
 				isRoot : false,
 				contents: {},
@@ -436,7 +414,7 @@
 			
 			
 			if (mirrorRelations) {
- 				added = createAndRemoveArrayMirrorRelations(this.const.object, index, removed, added); // TODO: implement for other array manipulators as well. 
+ 				added = createAndRemoveArrayIncomingRelations(this.const.object, index, removed, added); // TODO: implement for other array manipulators as well. 
 				// TODO: What about removed adjusted?
 			}
 			
@@ -986,7 +964,7 @@
 		// Perform assignment with regards to mirror structures.
 		let mirrorStructureValue;
 		if (mirrorRelations) {
-			mirrorStructureValue = setupMirrorRelation(this['const'].object, key, value, previousValue);
+			mirrorStructureValue = createAndRemoveIncomingRelations(this['const'].object, key, value, previousValue);
 			target[key] = mirrorStructureValue; 
 		} else {
 			target[key] = value;
@@ -1739,14 +1717,8 @@
     }
 	
 	function registerChangeObserver(observerSet) {
-		// Find relation name
-		let referingObject = getReferingObject(activeRecording.sources, "[]");
-		let referingObjectId = referingObject.const.id;
-		let relationName = gottenReferingObjectRelation;
-
 		// Find right place in the incoming structure.
-		let mirrorIncomingRelation = findIncomingRelationStructure(observerSet, relationName);
-		let incomingRelationChunk = intitializeAndConstructMirrorStructure(mirrorIncomingRelation, referingObject, referingObjectId);
+		let incomingRelationChunk = intitializeAndConstructMirrorStructure(observerSet, activeRecording, activeRecording.const.id);
 		if (incomingRelationChunk !== null) {
 			activeRecording.sources.push(incomingRelationChunk);
 		}
@@ -2692,7 +2664,6 @@
 		
 		// Mirror images
 		forAllIncoming : forAllIncoming,
-		// forAllIncomingInner : forAllIncomingInner, // TODO: Remove this, for now it seems to be needed...
 		createArrayIndex : createArrayIndex
 	}
 	
