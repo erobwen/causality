@@ -1366,17 +1366,20 @@
     }
 
     let inActiveRecording = false;
+	let activeRecording = null;
 
     function updateInActiveRecording() {
         inActiveRecording = (microContext === null) ? false : ((microContext.type === "recording") && recordingPaused === 0);
+		activeRecording = inActiveRecording ? microContext : null;
     }
 
     function getActiveRecording() {
-        if ((microContext === null) ? false : ((microContext.type === "recording") && recordingPaused === 0)) {
-            return microContext;
-        } else {
-            return null;
-        }
+		return activeRecording;
+        // if ((microContext === null) ? false : ((microContext.type === "recording") && recordingPaused === 0)) {
+            // return microContext;
+        // } else {
+            // return null;
+        // }
     }
 
     function inActiveRepetition() {
@@ -1732,21 +1735,24 @@
     }
 
     function registerAnyChangeObserver(observerSet) { // instance can be a cached method if observing its return value, object
-		let activeRecorder = getActiveRecording();
-        if (activeRecorder !== null) {
-			// Find relation name
-			let referingObject = getReferingObject(activeRecorder.sources, "[]");
-			let referingObjectId = referingObject.const.id;
-			let relationName = gottenReferingObjectRelation;
-
-			// Find right place in the incoming structure.
-			let mirrorIncomingRelation = findIncomingRelationStructure(observerSet, relationName);
-			let incomingRelationChunk = intitializeAndConstructMirrorStructure(mirrorIncomingRelation, referingObject, referingObjectId);
-			if (incomingRelationChunk !== null) {
-				activeRecorder.sources.push(incomingRelationChunk);
-			}
+		if (inActiveRecording) {
+			registerChangeObserver(observerSet);
 		}
     }
+	
+	function registerChangeObserver(observerSet) {
+		// Find relation name
+		let referingObject = getReferingObject(activeRecording.sources, "[]");
+		let referingObjectId = referingObject.const.id;
+		let relationName = gottenReferingObjectRelation;
+
+		// Find right place in the incoming structure.
+		let mirrorIncomingRelation = findIncomingRelationStructure(observerSet, relationName);
+		let incomingRelationChunk = intitializeAndConstructMirrorStructure(mirrorIncomingRelation, referingObject, referingObjectId);
+		if (incomingRelationChunk !== null) {
+			activeRecording.sources.push(incomingRelationChunk);
+		}
+	}
 
 
     /** -------------
