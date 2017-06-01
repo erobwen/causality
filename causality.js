@@ -585,7 +585,7 @@
             return this.const[key];
         } else {
             if (inActiveRecording) {
-                registerAnyChangeObserver(getSpecifier(this, "_arrayObservers"));//object
+                registerChangeObserver(getSpecifier(this, "_arrayObservers"));//object
             }
             return target[key];
         }
@@ -609,7 +609,7 @@
             return this.const[key];
         } else {
             if (inActiveRecording) {
-                registerAnyChangeObserver(getSpecifier(this, "_arrayObservers"));//object
+                registerChangeObserver(getSpecifier(this, "_arrayObservers"));//object
             }
             return target[key];
         }
@@ -713,7 +713,7 @@
 		ensureInitialized(this, target);
 		
         if (inActiveRecording) {
-            registerAnyChangeObserver(getSpecifier(this, "_arrayObservers"));
+            registerChangeObserver(getSpecifier(this, "_arrayObservers"));
         }
         let result   = Object.keys(target);
         result.push('length');
@@ -729,7 +729,7 @@
 		ensureInitialized(this, target);
 		
         if (inActiveRecording) {
-            registerAnyChangeObserver(getSpecifier(this, "_arrayObservers"));
+            registerChangeObserver(getSpecifier(this, "_arrayObservers"));
         }
         return key in target;
     }
@@ -761,7 +761,7 @@
 		ensureInitialized(this, target);
 		
         if (inActiveRecording) {
-            registerAnyChangeObserver(getSpecifier(this, "_arrayObservers"));
+            registerChangeObserver(getSpecifier(this, "_arrayObservers"));
         }
         return Object.getOwnPropertyDescriptor(target, key);
     }
@@ -797,9 +797,9 @@
 				let keyInTarget = key in target;
 				if (inActiveRecording) {
                     if (keyInTarget) {
-                        registerAnyChangeObserver(getSpecifier(getSpecifier(this, "_propertyObservers"), key));
+                        registerChangeObserver(getSpecifier(getSpecifier(this, "_propertyObservers"), key));
                     } else {
-                        registerAnyChangeObserver(getSpecifier(this, "_enumerateObservers"));
+                        registerChangeObserver(getSpecifier(this, "_enumerateObservers"));
                     }
                 }
 				return target[key];
@@ -840,9 +840,9 @@
 				let keyInTarget = key in target;
 				if (inActiveRecording) {
                     if (keyInTarget) {
-                        registerAnyChangeObserver(getSpecifier(getSpecifier(this, "_propertyObservers"), key));
+                        registerChangeObserver(getSpecifier(getSpecifier(this, "_propertyObservers"), key));
                     } else {
-                        registerAnyChangeObserver(getSpecifier(this, "_enumerateObservers"));
+                        registerChangeObserver(getSpecifier(this, "_enumerateObservers"));
                     }
                 }
 				if (mirrorRelations && keyInTarget && !exposeMirrorRelationIntermediary) {
@@ -1057,7 +1057,7 @@
 		ensureInitialized(this, target);
 		
         if (inActiveRecording) {
-            registerAnyChangeObserver(getSpecifier(this, "_enumerateObservers"));
+            registerChangeObserver(getSpecifier(this, "_enumerateObservers"));
         }
         let keys = Object.keys(target);
         return keys;
@@ -1072,7 +1072,7 @@
 		ensureInitialized(this, target);
 		
         if (inActiveRecording) {
-            registerAnyChangeObserver(getSpecifier(this, "_enumerateObservers"));
+            registerChangeObserver(getSpecifier(this, "_enumerateObservers"));
         }
         return (key in target);
     }
@@ -1107,7 +1107,7 @@
 		ensureInitialized(this, target);
 		
         if (inActiveRecording) {
-            registerAnyChangeObserver(getSpecifier(this, '_enumerateObservers'));
+            registerChangeObserver(getSpecifier(this, '_enumerateObservers'));
         }
         return Object.getOwnPropertyDescriptor(target, key);
     }
