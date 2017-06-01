@@ -6,6 +6,7 @@ causality.setConfiguration({mirrorRelations : true, directStaticAccess: true});
 
 
 describe("Mirror Relations", function(){
+	/*
     it("Testing mirror relation exists", function(){
 		// let x = create({_mirror_is_reflected : true, _mirror_reflects : true});
 		// let y = create({_mirror_reflects : true, _mirror_is_reflected : true, });
@@ -37,15 +38,16 @@ describe("Mirror Relations", function(){
 		// console.log("========================");
 		assert.equal(yIncomingFoo[0], x);
     });
-	
+	*/
 	it("Testing mirror relation exists for array", function(){
-		let x = create([]);
+		console.log("======================");
+		let x = create({name: "x"});
 		causality.createArrayIndex(x, "foo", causality.create);
 		
-		let y = create();
+		let y = create({name: "y"});
 		
 		
-		x.push(y);
+		x.foo.push(y);
 		// console.log(x);
 		// console.log(x.foo);
 		// console.log(x.foo.const.id);
@@ -58,9 +60,9 @@ describe("Mirror Relations", function(){
 		// logPattern(x, { foo : {}});
 	
 		// console.log("========================");
-		assert.equal(yIncomingArray[0], x);
+		// assert.equal(yIncomingArray[0], x);
     });
-	
+	/*
     it("Testing getting incoming with method", function(){
 		let x = create();
 		let y = create();
@@ -104,5 +106,5 @@ describe("Mirror Relations", function(){
 		assert.equal(yIncomingFoo.length, 1);
 		assert.equal(yIncomingFoo[0], x);
     });
-
+*/
 });

@@ -84,7 +84,7 @@
 					
 			let referencedValue = value;
 			if (typeof(value) === 'object') { //TODO: limit backwards referenes to mirror objects only.
-				let mirrorIncomingRelation = findIncomingRelation(referencedValue, property, createFunction);
+				let mirrorIncomingRelation = findIncomingRelationStructure(referencedValue, property, createFunction);
 				let incomingRelationChunk = intitializeAndConstructMirrorStructure(mirrorIncomingRelation, referingObject, referingObjectId, createFunction);
 				if (incomingRelationChunk !== null) {
 					referencedValue = incomingRelationChunk;
@@ -97,14 +97,14 @@
 	} 
 	
 	
-	function setProperty(object, property, value, createFunction) {
-		let previousValue = object[property];
-		removeMirrorStructure(object.const.id, previousValue);
-		setupMirrorReference(object, property, value, createFunction);
-		object[property] = referencedValue;
-	}
+	// function setProperty(object, property, value, createFunction) {
+		// let previousValue = object[property];
+		// removeMirrorStructure(object.const.id, previousValue);
+		// setupMirrorReference(object, property, value, createFunction);
+		// object[property] = referencedValue;
+	// }
 	
-	function getProperty(object, property) {
+	function getProperty(object, property) { // TODO: remove
 		// if (typeof(property) === 'string') {
 			// console.log("getProperty:");
 			// property = "" + property;
@@ -120,44 +120,6 @@
 		// }
 	}
 	 
-	 
-	function addInArray(array, referencedObject) { // TODO: Push in array
-		// Find relation name
-		let referingObject = getReferingObject(array, "[]");
-		let referingObjectId = referingObject.const.id;
-		let relationName = gottenReferingObjectRelation;
-
-		// Find right place in the incoming structure.
-		let mirrorIncomingRelation = findIncomingRelation(referencedObject, relationName);
-		let incomingRelationChunk = intitializeAndConstructMirrorStructure(mirrorIncomingRelation, referingObject, referingObjectId);
-		if (incomingRelationChunk !== null) {
-			array.push(incomingRelationChunk);
-		}
-	}
-
-			
-	function clearArray(array) {
-		// let refererId = null;
-		// let referer = array;
-		// if (typeof(array._index_parent) !== 'undefined') {
-			// TODO: loop recursivley
-			// refererId = array._index_parent.id;
-			// referer = array._index_parent
-		// } else {
-			// refererId = array.id;
-			// referer = array;
-		// }
-		// Find relation name
-		let referingObject = getReferingObject(array, "[]");
-		// let relationName = gottenReferingObjectRelation;
-		
-		
-		array.forEach(function(observerSet) {
-			removeMirrorStructure(referingObject.const.id, observerSet);
-		});
-		array.lenght = 0;  // From repeater itself.
-	}
-	
 
 	
     let sourcesObserverSetChunkSize = 500;
@@ -242,7 +204,7 @@
 		}
 	}
 	
-	function findIncomingRelation(referencedObject, relationName, createFunction) {
+	function findIncomingRelationStructure(referencedObject, relationName, createFunction) {
 		if (typeof(createFunction) === 'undefined') {
 			createFunction = createImmutable;
 		}
@@ -400,16 +362,18 @@
 	function createAndRemoveArrayMirrorRelations(proxy, index, removed, added) {
 		// console.log("createAndRemoveArrayMirrorRelations " + mirrorRelations);
 		if (mirrorRelations) {     
-			// console.log("inside");
+			console.log("createAndRemoveArrayMirrorRelations:");
 			// Get refering object 
             let referringObject = proxy;
-			// console.log("heref");
+			console.log("heref");
             let referringRelation = "[]";
             while (typeof(referringObject._index_parent) !==  'undefined') {
-				// console.log(looping);
+				console.log("looping");
                 referringRelation = referringObject._index_parent_relation;
                 referringObject = referringObject._index_parent;
             }
+			console.log(referringRelation);
+			console.log(referringObject);
 			
 			// Create mirror relations for added
 			let addedAdjusted = [];
@@ -476,6 +440,7 @@
 			
 			if (mirrorRelations) {
  				added = createAndRemoveArrayMirrorRelations(this.const.object, index, removed, added); // TODO: implement for other array manipulators as well. 
+				// TODO: What about removed adjusted?
 			}
 			
             observerNotificationNullified++;
@@ -1767,11 +1732,12 @@
             description: description,
             uponChangeAction: doAfterChange,
             remove : function() {
-                // Clear out previous observations
-				clearArray(this.sources);
+				this.sources.forEach(function(observerSet) {
+					removeMirrorStructure(context.const.id, observerSet);
+				});
+				this.sources.lenght = 0;  // From repeater itself.
             }
         });
-		// context.sources = [];
 		createArrayIndex(context, "sources");
 		
         enterContext('recording', context);
@@ -1798,8 +1764,18 @@
     function registerAnyChangeObserver(observerSet) { // instance can be a cached method if observing its return value, object
 		let activeRecorder = getActiveRecording();
         if (activeRecorder !== null) {
-			addInArray(activeRecorder.sources, observerSet);
-        }
+			// Find relation name
+			let referingObject = getReferingObject(activeRecorder.sources, "[]");
+			let referingObjectId = referingObject.const.id;
+			let relationName = gottenReferingObjectRelation;
+
+			// Find right place in the incoming structure.
+			let mirrorIncomingRelation = findIncomingRelationStructure(observerSet, relationName);
+			let incomingRelationChunk = intitializeAndConstructMirrorStructure(mirrorIncomingRelation, referingObject, referingObjectId);
+			if (incomingRelationChunk !== null) {
+				activeRecorder.sources.push(incomingRelationChunk);
+			}
+		}
     }
 
 
