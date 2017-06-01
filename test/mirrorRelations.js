@@ -6,7 +6,7 @@ causality.setConfiguration({mirrorRelations : true, directStaticAccess: true});
 
 
 describe("Mirror Relations", function(){
-/*
+
     it("Testing mirror relation exists", function(){
 		// let x = create({_mirror_is_reflected : true, _mirror_reflects : true});
 		// let y = create({_mirror_reflects : true, _mirror_is_reflected : true, });
@@ -84,7 +84,7 @@ describe("Mirror Relations", function(){
 		x.foo = y;
 		assert.equal(y.incomingFoo()[0], x);
     });
-	*/
+
     it("Testing reaction to change in incoming relation", function(){
 		let x = create();
 		let y = create()

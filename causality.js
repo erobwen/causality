@@ -144,6 +144,82 @@
 	 *            Relation structures
 	 *-----------------------------------------------*/
 	
+	
+	function setupMirrorRelation(objectProxy, key, value, previousValue) {
+		// console.log("setup mirror relation");
+		// Get refering object 
+        let referringRelation = key;
+        while (typeof(objectProxy._index_parent) !==  'undefined') {
+            referringRelation = objectProxy._index_parent_relation;
+            objectProxy = objectProxy._index_parent;
+        }
+		
+		// console.log("here too");
+		if (mirrorRelations) {
+			if (isObject(previousValue)) {
+				removeMirrorStructure(objectProxy.const.id, previousValue);
+				notifyChangeObservers(previousValue.const._incoming[referringRelation]);
+			}
+			// console.log("here");
+			if (isObject(value)) {
+				let referencedValue = setupMirrorReference(objectProxy, objectProxy.const.id, referringRelation, value);
+				if (typeof(value.const._incoming) !== 'undefined') {
+					notifyChangeObservers(value.const._incoming[referringRelation]);
+				}
+				value = referencedValue;
+			}
+		}
+		return value;
+	}
+	
+	
+	function createAndRemoveArrayMirrorRelations(arrayProxy, index, removed, added) {
+		// console.log("createAndRemoveArrayMirrorRelations " + mirrorRelations);  
+		// console.log("createAndRemoveArrayMirrorRelations:");
+		// Get refering object 
+		// console.log("heref");
+		let referringRelation = "[]";
+		while (typeof(arrayProxy._index_parent) !==  'undefined') {
+			// console.log("looping");
+			referringRelation = arrayProxy._index_parent_relation;
+			arrayProxy = arrayProxy._index_parent;
+		}
+		// console.log(referringRelation);
+		// console.log(arrayProxy);
+		
+		// Create mirror relations for added
+		let addedAdjusted = [];
+		added.forEach(function(addedElement) {
+			if (isObject(addedElement)) {
+				// console.log("and here");
+				let referencedValue;
+				if (configuration.mirrorStructuresAsCausalityObjects) {
+					referencedValue = setupMirrorReference(arrayProxy, arrayProxy.const.id, referringRelation, addedElement, create);
+				} else {
+					referencedValue = setupMirrorReference(arrayProxy, arrayProxy.const.id, referringRelation, addedElement);
+				}
+				if (typeof(referencedValue.const._incoming) !== 'undefined' && typeof(referencedValue.const._incoming[referringRelation]) !== 'undefined') {
+					notifyChangeObservers(referencedValue.const._incoming[referringRelation]);
+				}
+				addedAdjusted.push(referencedValue);
+			} else {
+				addedAdjusted.push(addedElement);
+			}						
+		});
+		
+		// Remove mirror relations for removed
+		if (removed !== null) {
+			removed.forEach(function(removedElement) {
+				if (isObject(removedElement)) {
+					removeMirrorStructure(proxy.const.id, removedElement);
+					notifyChangeObservers(removedElement.const._incoming[referringRelation]);
+				}					
+			});					
+		}
+		return addedAdjusted;
+	} 
+	
+	
 	/**
 	 * Traverse the index structure
 	 */
@@ -329,55 +405,6 @@
      ***************************************************************/
 
 	 
-	function createAndRemoveArrayMirrorRelations(proxy, index, removed, added) {
-		// console.log("createAndRemoveArrayMirrorRelations " + mirrorRelations);
-		if (mirrorRelations) {     
-			// console.log("createAndRemoveArrayMirrorRelations:");
-			// Get refering object 
-            let referringObject = proxy;
-			// console.log("heref");
-            let referringRelation = "[]";
-            while (typeof(referringObject._index_parent) !==  'undefined') {
-				// console.log("looping");
-                referringRelation = referringObject._index_parent_relation;
-                referringObject = referringObject._index_parent;
-            }
-			// console.log(referringRelation);
-			// console.log(referringObject);
-			
-			// Create mirror relations for added
-			let addedAdjusted = [];
-			added.forEach(function(addedElement) {
-				if (isObject(addedElement)) {
-					// console.log("and here");
-					let referencedValue;
-					if (configuration.mirrorStructuresAsCausalityObjects) {
-						referencedValue = setupMirrorReference(referringObject, referringObject.const.id, referringRelation, addedElement, create);
-					} else {
-						referencedValue = setupMirrorReference(referringObject, referringObject.const.id, referringRelation, addedElement);
-					}
-					if (typeof(referencedValue.const._incoming) !== 'undefined' && typeof(referencedValue.const._incoming[referringRelation]) !== 'undefined') {
-						notifyChangeObservers(referencedValue.const._incoming[referringRelation]);
-					}
-					addedAdjusted.push(referencedValue);
-				} else {
-					addedAdjusted.push(addedElement);
-				}						
-			});
-			
-			// Remove mirror relations for removed
-			if (removed !== null) {
-				removed.forEach(function(removedElement) {
-					if (isObject(removedElement)) {
-						removeMirrorStructure(proxy.const.id, removedElement);
-						notifyChangeObservers(removedElement.const._incoming[referringRelation]);
-					}					
-				});					
-			}
-			return addedAdjusted;
-		}
-		return added;
-	} 
 
 	
     let constArrayOverrides = {
@@ -855,34 +882,6 @@
             }
         }
     }
-	
-	function setupMirrorRelation(proxy, key, value, previousValue) {
-		// console.log("setup mirror relation");
-		// Get refering object 
-        let referringObject = proxy;
-        let referringRelation = key;
-        while (typeof(referringObject._index_parent) !==  'undefined') {
-            referringRelation = referringObject._index_parent_relation;
-            referringObject = referringObject._index_parent;
-        }
-		
-		// console.log("here too");
-		if (mirrorRelations) {
-			if (isObject(previousValue)) {
-				removeMirrorStructure(referringObject.const.id, previousValue);
-				notifyChangeObservers(previousValue.const._incoming[referringRelation]);
-			}
-			// console.log("here");
-			if (isObject(value)) {
-				let referencedValue = setupMirrorReference(referringObject, referringObject.const.id, referringRelation, value);
-				if (typeof(value.const._incoming) !== 'undefined') {
-					notifyChangeObservers(value.const._incoming[referringRelation]);
-				}
-				value = referencedValue;
-			}
-		}
-		return value;
-	}
 	
 	/*
     function setHandlerObjectOptimized(target, key, value) {		
