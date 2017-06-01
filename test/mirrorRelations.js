@@ -6,7 +6,7 @@ causality.setConfiguration({mirrorRelations : true, directStaticAccess: true});
 
 
 describe("Mirror Relations", function(){
-	/*
+/*
     it("Testing mirror relation exists", function(){
 		// let x = create({_mirror_is_reflected : true, _mirror_reflects : true});
 		// let y = create({_mirror_reflects : true, _mirror_is_reflected : true, });
@@ -30,7 +30,7 @@ describe("Mirror Relations", function(){
 		
 		// Analyze incoming structure
 		let yIncomingFoo = []
-		causality.forAllIncomingInner(y, 'foo', function(referer) {
+		causality.forAllIncoming(y, 'foo', function(referer) {
 			yIncomingFoo.push(referer);
 		});
 		// logPattern(x, { foo : {}});
@@ -38,7 +38,7 @@ describe("Mirror Relations", function(){
 		// console.log("========================");
 		assert.equal(yIncomingFoo[0], x);
     });
-	*/
+
 	it("Testing mirror relation exists for array", function(){
 		// console.log("======================");
 		let x = create({name: "x"});
@@ -55,7 +55,7 @@ describe("Mirror Relations", function(){
 		// console.log(y._mirror_incoming_relations);
 		// Analyze incoming structure
 		let yIncomingArray = []
-		causality.forAllIncomingInner(y, 'foo', function(referer) {
+		causality.forAllIncoming(y, 'foo', function(referer) {
 			// console.log("-----------------------Inside loop");
 			// console.log(referer);
 			yIncomingArray.push(referer);
@@ -65,7 +65,7 @@ describe("Mirror Relations", function(){
 		// console.log("========================");
 		assert.equal(yIncomingArray[0], x);
     });
-	/*
+
     it("Testing getting incoming with method", function(){
 		let x = create();
 		let y = create();
@@ -74,7 +74,7 @@ describe("Mirror Relations", function(){
 		y.incomingFoo = function() {
 			let incoming = [];
 			
-			causality.forAllIncomingInner(this, 'foo', function(referer) {
+			causality.forAllIncoming(this, 'foo', function(referer) {
 				incoming.push(referer);
 			});
 			return incoming;
@@ -84,7 +84,7 @@ describe("Mirror Relations", function(){
 		x.foo = y;
 		assert.equal(y.incomingFoo()[0], x);
     });
-	
+	*/
     it("Testing reaction to change in incoming relation", function(){
 		let x = create();
 		let y = create()
@@ -93,7 +93,7 @@ describe("Mirror Relations", function(){
 		function updateYIncomingFoo() {
 			// logPattern(y, { _mirror_incoming_relations : { foo : { contents : {}}}});
 			yIncomingFoo = [];
-			causality.forAllIncomingInner(y, 'foo', function(referer) {
+			causality.forAllIncoming(y, 'foo', function(referer) {
 				yIncomingFoo.push(referer);
 			});			
 		}
@@ -109,5 +109,5 @@ describe("Mirror Relations", function(){
 		assert.equal(yIncomingFoo.length, 1);
 		assert.equal(yIncomingFoo[0], x);
     });
-*/
+
 });

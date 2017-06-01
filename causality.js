@@ -44,7 +44,7 @@
      ***************************************************************/
 
 	function forAllIncoming(object, property, callback) {
-		registerAnyChangeObserver(getSpecifier(getSpecifier(object, "_incoming"), property));
+		registerAnyChangeObserver(getSpecifier(getSpecifier(object.const, "_incoming"), property));
 		withoutRecording(function() { // This is needed for setups where incoming structures are made out of causality objects. 
 			forAllIncomingInner(object, property, callback);
 		});
@@ -356,8 +356,8 @@
 					} else {
 						referencedValue = setupMirrorReference(referringObject, referringObject.const.id, referringRelation, addedElement);
 					}
-					if (typeof(referencedValue._incoming) !== 'undefined' && typeof(referencedValue._incoming[referringRelation]) !== 'undefined') {
-						notifyChangeObservers(referencedValue._incoming[referringRelation]);
+					if (typeof(referencedValue.const._incoming) !== 'undefined' && typeof(referencedValue.const._incoming[referringRelation]) !== 'undefined') {
+						notifyChangeObservers(referencedValue.const._incoming[referringRelation]);
 					}
 					addedAdjusted.push(referencedValue);
 				} else {
@@ -370,7 +370,7 @@
 				removed.forEach(function(removedElement) {
 					if (isObject(removedElement)) {
 						removeMirrorStructure(proxy.const.id, removedElement);
-						notifyChangeObservers(removedElement._incoming[referringRelation]);
+						notifyChangeObservers(removedElement.const._incoming[referringRelation]);
 					}					
 				});					
 			}
@@ -870,14 +870,13 @@
 		if (mirrorRelations) {
 			if (isObject(previousValue)) {
 				removeMirrorStructure(referringObject.const.id, previousValue);
-				notifyChangeObservers(previousValue._incoming[referringRelation]);
+				notifyChangeObservers(previousValue.const._incoming[referringRelation]);
 			}
 			// console.log("here");
 			if (isObject(value)) {
-				// console.log("Setup mirror relation")
 				let referencedValue = setupMirrorReference(referringObject, referringObject.const.id, referringRelation, value);
-				if (typeof(referencedValue._incoming) !== 'undefined') {
-					notifyChangeObservers(referencedValue._incoming[referringRelation]);
+				if (typeof(value.const._incoming) !== 'undefined') {
+					notifyChangeObservers(value.const._incoming[referringRelation]);
 				}
 				value = referencedValue;
 			}
@@ -2694,7 +2693,7 @@
 		
 		// Mirror images
 		forAllIncoming : forAllIncoming,
-		forAllIncomingInner : forAllIncomingInner, // TODO: Remove this, for now it seems to be needed...
+		// forAllIncomingInner : forAllIncomingInner, // TODO: Remove this, for now it seems to be needed...
 		createArrayIndex : createArrayIndex
 	}
 	
