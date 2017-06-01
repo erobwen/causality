@@ -100,9 +100,9 @@
 	function getSpecifier(object, specifierName, createFunction) {
 		if (typeof(object[specifierName]) === 'undefined' || object[specifierName] === null) {
 			let specifier = { 
-				_mirror_specifier_parent : object, 
-				_mirror_specifier_property : specifierName, 
-				_mirror_incoming_relation : true   // This is a reuse of this object as incoming node as well.
+				specifierParent : object, 
+				specifierProperty : specifierName, 
+				isIncomingRelationStructure : true   // This is a reuse of this object as incoming node as well.
 			}
 			if (typeof(createFunction) !== 'undefined') {
 				object[specifierName] = createFunction(specifier);
@@ -167,8 +167,8 @@
 	 */
 	
 	function findReferredObject(referredItem) {
-		if (typeof(referredItem) === 'object' && typeof(referredItem._mirror_referencedObject) !== undefined) {
-			return referredItem._mirror_referencedObject;
+		if (typeof(referredItem) === 'object' && typeof(referredItem.referredObject) !== undefined) {
+			return referredItem.referredObject;
 		} else {
 			return referredItem;
 		}
@@ -178,29 +178,29 @@
 		if (typeof(createFunction) === 'undefined') {
 			createFunction = createImmutable;
 		}
-		if (referencedObject._mirror_incoming_relation === true)  {
+		if (referencedObject.isIncomingRelationStructure === true)  {
 			// The referenced object is the incoming relation itself. 
 			return referencedObject;
 		} else if (typeof(referencedObject.const.incoming) === 'undefined') {
 			// The argument is the referenced object itself, dig down into the structure. 
-			let mirrorIncomingRelations = createFunction({ _mirror_incoming_relations : true, _mirror_referencedObject: referencedObject });
+			let mirrorIncomingRelations = createFunction({ isIncomingRelationStructures : true, referredObject: referencedObject });
 			
 			referencedObject.const.incoming = mirrorIncomingRelations; 
-			let mirrorIncomingRelation = createFunction({ _mirror_incoming_relation : true, _mirror_referencedObject: referencedObject });
+			let mirrorIncomingRelation = createFunction({ isIncomingRelationStructure : true, referredObject: referencedObject });
 			
 			mirrorIncomingRelations[relationName] = mirrorIncomingRelation;
 			return mirrorIncomingRelation;
 		} else {
 			if (referencedObject.const.incoming === true) {
 				// The argument is the incoming relation set, will never happen?
-				let mirrorIncomingRelation = createFunction({ _mirror_incoming_relation : true, _mirror_referencedObject: referencedObject });
+				let mirrorIncomingRelation = createFunction({ isIncomingRelationStructure : true, referredObject: referencedObject });
 				referencedObject[relationName] = mirrorIncomingRelation;
 				return mirrorIncomingRelation;
 			} else {
 				// The argument is the referenced object itself, but has already incoming relations defined. 
 				let mirrorIncomingRelations = referencedObject.const.incoming;
 				if (typeof(mirrorIncomingRelations[relationName]) === 'undefined') {
-					mirrorIncomingRelation = createFunction({ _mirror_incoming_relation : true, _mirror_referencedObject: referencedObject });
+					mirrorIncomingRelation = createFunction({ isIncomingRelationStructure : true, referredObject: referencedObject });
 					mirrorIncomingRelations[relationName] = mirrorIncomingRelation;
 					return mirrorIncomingRelation;
 				} else {
@@ -215,7 +215,7 @@
 	* Structure helpers
 	*/				
 	function removeMirrorStructure(refererId, referedEntity) {
-		if (typeof(referedEntity._mirror_incoming_relation) !== 'undefined') {
+		if (typeof(referedEntity.isIncomingRelationStructure) !== 'undefined') {
 			let incomingRelation = referedEntity;
 			let incomingRelationContents = incomingRelation['contents'];
 			delete incomingRelationContents[refererId];
