@@ -75,36 +75,22 @@
 	
 	
 	function setupMirrorReference(referingObject, referingObjectId, property, value, createFunction) {
-		// if (!property.startsWith("_mirror_")) { // TODO: Move incoming relations to const. 
-			// let referingObject = getReferingObject(object, property);
-			let relationName = gottenReferingObjectRelation;
-			// console.log("setProperty:");
-			// console.log(referingObject);
-			// console.log(referingObject.id);
-					
-			let referencedValue = value;
-			if (isObject(value)) { //TODO: limit backwards referenes to mirror objects only.
-				// console.log("setup for property:" + property);
-				let mirrorIncomingRelation = findIncomingRelationStructure(referencedValue, property, createFunction);
-				let incomingRelationChunk = intitializeAndConstructMirrorStructure(mirrorIncomingRelation, referingObject, referingObjectId, createFunction);
-				if (incomingRelationChunk !== null) {
-					referencedValue = incomingRelationChunk;
-				}
+		let relationName = gottenReferingObjectRelation;
+		// console.log("setProperty:");
+		// console.log(referingObject);
+		// console.log(referingObject.id);
+				
+		let referencedValue = value;
+		if (isObject(value)) { //TODO: limit backwards referenes to mirror objects only.
+			// console.log("setup for property:" + property);
+			let mirrorIncomingRelation = findIncomingRelationStructure(referencedValue, property, createFunction);
+			let incomingRelationChunk = intitializeAndConstructMirrorStructure(mirrorIncomingRelation, referingObject, referingObjectId, createFunction);
+			if (incomingRelationChunk !== null) {
+				referencedValue = incomingRelationChunk;
 			}
-			return referencedValue;
-		// } else {
-			// return value;
-		// }
+		}
+		return referencedValue;
 	} 
-	
-	
-	// function setProperty(object, property, value, createFunction) {
-		// let previousValue = object[property];
-		// removeMirrorStructure(object.const.id, previousValue);
-		// setupMirrorReference(object, property, value, createFunction);
-		// object[property] = referencedValue;
-	// }
-	
 	
     let sourcesObserverSetChunkSize = 500;
 	
