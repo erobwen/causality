@@ -1,7 +1,13 @@
 'use strict';
 const assert = require('assert');
-let causality = require('../causality');
-causality.install();
+const requireUncached = require('require-uncached');
+let causality = requireUncached('../causality');
+causality.setConfiguration({cumulativeAssignment : true});
+
+let create = causality.create;
+let transaction = causality.transaction;
+let repeatOnChange = causality.repeatOnChange;
+
 
 describe("Test cumulative assignment", function(){
     var r = create({U: NaN, I: NaN, R: NaN});

@@ -228,8 +228,6 @@
 	} 
 	
 	
-	
-	
 	/**
 	 * Traverse the incoming relation structure
 	 */

@@ -1,7 +1,5 @@
 const assert = require('assert');
-const requireUncached = require('require-uncached');
-let causality = requireUncached('../causality');
-// let causality = require('../causality');
+let causality = require('./causalityBasic');
 causality.install();
 
 describe("Projections", function(){

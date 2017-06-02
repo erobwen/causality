@@ -1,5 +1,5 @@
 const assert = require('assert');
-require('../causality').install();
+require('./causalityBasic').install();
 
 describe("uponChangeDo:", function () {
 

@@ -1,6 +1,6 @@
 'use strict';
 const assert = require('assert');
-let causality = require('../causality');
+let causality = require('./causalityBasic');
 causality.install();
 const log = console.log.bind(console);
 

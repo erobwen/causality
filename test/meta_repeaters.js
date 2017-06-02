@@ -1,5 +1,6 @@
 const assert = require('assert');
-require('../causality').install();
+require('./causalityBasic').install();
+
 describe("Meta repeaters", function(){
 
     it("Test working", function(){
