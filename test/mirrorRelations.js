@@ -42,7 +42,7 @@ describe("Mirror Relations", function(){
 	it("Testing mirror relation exists for array", function(){
 		// console.log("======================");
 		let x = create({name: "x"});
-		causality.createArrayIndex(x, "foo", causality.create);
+		causality.createArrayIndex(x, "foo");
 		
 		let y = create({name: "y"});
 		
