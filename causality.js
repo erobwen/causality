@@ -171,7 +171,7 @@
 		
 		// Tear down structure to old value
 		if (isObject(previousValue)) {
-			removeMirrorStructure(objectProxy.const.id, previousValue);
+			removeMirrorStructure(objectProxy.const.id, previousValue); // TODO: Fix BUG. This really works?
 			if (typeof(previousValue.const.incomingObservers) !== 'undefined') {
 				notifyChangeObservers(previousValue.const.incomingObservers[referringRelation]);
 			}
@@ -265,7 +265,7 @@
 		
 		// Create incoming for this particular property
 		if (typeof(incomingRelations[relationName]) === 'undefined') {
-			let mirrorIncomingRelation = { isIncomingRelationStructure : true, referredObject: referencedObject };
+			let mirrorIncomingRelation = { isIncomingRelationStructure : true, , relationName: relationName, referredObject: referencedObject };
 			if (mirrorStructuresAsCausalityObjects) {
 				mirrorIncomingRelation = create(mirrorIncomingRelation);
 			}
