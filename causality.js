@@ -162,21 +162,21 @@
             objectProxy = objectProxy.const.indexParent;
         }
 		
-		// console.log("here too");
-		if (mirrorRelations) {
-			if (isObject(previousValue)) {
-				removeMirrorStructure(objectProxy.const.id, previousValue);
-				notifyChangeObservers(previousValue.const._incoming[referringRelation]);
-			}
-			// console.log("here");
-			if (isObject(value)) {
-				let referencedValue = createIncomingStructure(objectProxy, objectProxy.const.id, referringRelation, value);
-				if (typeof(value.const._incoming) !== 'undefined') {
-					notifyChangeObservers(value.const._incoming[referringRelation]);
-				}
-				value = referencedValue;
-			}
+		// Tear down structure to old value
+		if (isObject(previousValue)) {
+			removeMirrorStructure(objectProxy.const.id, previousValue);
+			notifyChangeObservers(previousValue.const._incoming[referringRelation]);
 		}
+
+		// Setup structure to new value
+		if (isObject(value)) {
+			let referencedValue = createIncomingStructure(objectProxy, objectProxy.const.id, referringRelation, value);
+			if (typeof(value.const._incoming) !== 'undefined') {
+				notifyChangeObservers(value.const._incoming[referringRelation]);
+			}
+			value = referencedValue;
+		}
+
 		return value;
 	}
 	
@@ -414,10 +414,11 @@
 			let removed = null;
 			let added = argumentsArray;
 			
-			
-			if (mirrorRelations) {
+			if (mirrorRelations && updatingMirrorRelations === 0) {
+				updatingMirrorRelations++
  				added = createAndRemoveArrayIncomingRelations(this.const.object, index, removed, added); // TODO: implement for other array manipulators as well. 
 				// TODO: What about removed adjusted?
+				updatingMirrorRelations--
 			}
 			
             observerNotificationNullified++;
@@ -852,7 +853,7 @@
                         registerChangeObserver(getSpecifier(this.const, "_enumerateObservers"));
                     }
                 }
-				if (mirrorRelations && keyInTarget && !exposeMirrorRelationIntermediary) {
+				if (mirrorRelations && updatingMirrorRelations === 0 && keyInTarget && !exposeMirrorRelationIntermediary) {
 					// console.log("causality.getHandlerObject:");
 					// console.log(key);
 					return findReferredObject(target[key]);
@@ -937,7 +938,7 @@
 		// Get previous value		// Get previous value
 		let previousValue;
 		let previousMirrorStructure;
-		if (mirrorRelations) {
+		if (mirrorRelations && updatingMirrorRelations === 0) {
 			// console.log("causality.getHandlerObject:");
 			// console.log(key);
 			previousMirrorStructure = target[key];
@@ -965,9 +966,11 @@
 		
 		// Perform assignment with regards to mirror structures.
 		let mirrorStructureValue;
-		if (mirrorRelations) {
+		if (mirrorRelations && updatingMirrorRelations === 0) {
+			updatingMirrorRelations++;
 			mirrorStructureValue = createAndRemoveIncomingRelations(this['const'].object, key, value, previousValue);
 			target[key] = mirrorStructureValue; 
+			updatingMirrorRelations--;
 		} else {
 			target[key] = value;
 		}
@@ -1106,7 +1109,6 @@
 	} 
 	 
     function create(createdTarget, cacheId) {
-		// console.log(mirrorRelations);
 		inPulse++;
 		let id = nextId++;
 		
@@ -1125,7 +1127,7 @@
         if (createdTarget instanceof Array) {
             handler = {
 				id : id, // TODO: remove?
-                _arrayObservers : null,
+                // _arrayObservers : null,
                 // getPrototypeOf: function () {},
                 // setPrototypeOf: function () {},
                 // isExtensible: function () {},
@@ -2588,6 +2590,9 @@
 	let configuration;
 	
 	let mirrorRelations = false;
+	
+	let updatingMirrorRelations = 0;
+	
 	let exposeMirrorRelationIntermediary;
 	let mirrorStructuresAsCausalityObjects;
 	
