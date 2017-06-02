@@ -40,23 +40,25 @@
     /***************************************************************
      *
      *  Specifiers
+	 * 
+	 * Specifiers has no id since they are never streamed independently of references. 
      *
      ***************************************************************/
 	 
-	function getSpecifier(object, specifierName, createFunction) {
-		if (typeof(object[specifierName]) === 'undefined' || object[specifierName] === null) {
+	function getSpecifier(javascriptObject, specifierName, createFunction) {
+		if (typeof(javascriptObject[specifierName]) === 'undefined' || javascriptObject[specifierName] === null) {
 			let specifier = { 
-				specifierParent : object, 
+				specifierParent : javascriptObject, 
 				specifierProperty : specifierName, 
 				isIncomingRelationStructure : true   // This is a reuse of this object as incoming node as well.
 			}
 			if (typeof(createFunction) !== 'undefined') {
-				object[specifierName] = createFunction(specifier);
+				javascriptObject[specifierName] = createFunction(specifier);
 			} else {
-				object[specifierName] = specifier;
+				javascriptObject[specifierName] = specifier;
 			}
 		}
-		return object[specifierName];
+		return javascriptObject[specifierName];
 	} 
 
 	 
@@ -394,8 +396,8 @@
             observerNotificationNullified++;
             let result = this.target.pop();
             observerNotificationNullified--;
-            if (this._arrayObservers !== null) {
-                notifyChangeObservers(this._arrayObservers);
+            if (typeof(this.const._arrayObservers) !== 'undefined') {
+                notifyChangeObservers(this.const._arrayObservers);
             }
             emitSpliceEvent(this, index, [result], null);
             if (--inPulse === 0) postPulseCleanup();
@@ -421,8 +423,8 @@
             observerNotificationNullified++;
             this.target.push.apply(this.target, argumentsArray);
             observerNotificationNullified--;
-            if (this._arrayObservers !== null) {
-                notifyChangeObservers(this._arrayObservers);
+            if (typeof(this.const._arrayObservers) !== 'undefined') {
+                notifyChangeObservers(this.const._arrayObservers);
             }
             emitSpliceEvent(this, index, removed, added);
             if (--inPulse === 0) postPulseCleanup();
@@ -436,8 +438,8 @@
             observerNotificationNullified++;
             let result = this.target.shift();
             observerNotificationNullified--;
-            if (this._arrayObservers !== null) {
-                notifyChangeObservers(this._arrayObservers);
+            if (typeof(this.const._arrayObservers) !== 'undefined') {
+                notifyChangeObservers(this.const._arrayObservers);
             }
             emitSpliceEvent(this, 0, [result], null);
             if (--inPulse === 0) postPulseCleanup();
@@ -454,8 +456,8 @@
             observerNotificationNullified++;
             this.target.unshift.apply(this.target, argumentsArray);
             observerNotificationNullified--;
-            if (this._arrayObservers !== null) {
-                notifyChangeObservers(this._arrayObservers);
+            if (typeof(this.const._arrayObservers) !== 'undefined') {
+                notifyChangeObservers(this.const._arrayObservers);
             }
             emitSpliceEvent(this, 0, null, argumentsArray);
             if (--inPulse === 0) postPulseCleanup();
@@ -476,8 +478,8 @@
             observerNotificationNullified++;
             let result = this.target.splice.apply(this.target, argumentsArray);
             observerNotificationNullified--;
-            if (this._arrayObservers !== null) {
-                notifyChangeObservers(this._arrayObservers);
+            if (typeof(this.const._arrayObservers) !== 'undefined') {
+                notifyChangeObservers(this.const._arrayObservers);
             }
             emitSpliceEvent(this, index, removed, added);
             if (--inPulse === 0) postPulseCleanup();
@@ -502,8 +504,8 @@
             observerNotificationNullified++;
             let result = this.target.copyWithin(target, start, end);
             observerNotificationNullified--;
-            if (this._arrayObservers !== null) {
-                notifyChangeObservers(this._arrayObservers);
+            if (typeof(this.const._arrayObservers) !== 'undefined') {
+                notifyChangeObservers(this.const._arrayObservers);
             }
 
             emitSpliceEvent(this, target, added, removed);
@@ -523,8 +525,8 @@
             observerNotificationNullified++;
             let result = this.target[functionName].apply(this.target, argumentsArray);
             observerNotificationNullified--;
-            if (this._arrayObservers !== null) {
-                notifyChangeObservers(this._arrayObservers);
+            if (typeof(this.const._arrayObservers) !== 'undefined') {
+                notifyChangeObservers(this.const._arrayObservers);
             }
             emitSpliceEvent(this, 0, removed, this.target.slice(0));
             if (--inPulse === 0) postPulseCleanup();
@@ -546,8 +548,8 @@
 			observerNotificationNullified++;
 			this.target.push.apply(this.target, argumentsArray);
 			observerNotificationNullified--;
-			if (this._arrayObservers !== null) {
-				notifyChangeObservers(this._arrayObservers);
+			if (typeof(this.const._arrayObservers) !== 'undefined') {
+				notifyChangeObservers(this.const._arrayObservers);
 			}
 			emitSpliceEvent(this, index, null, argumentsArray);
 			if (--inPulse === 0) postPulseCleanup();
@@ -590,7 +592,7 @@
             return this.const[key];
         } else {
             if (inActiveRecording) {
-                registerChangeObserver(getSpecifier(this, "_arrayObservers"));//object
+                registerChangeObserver(getSpecifier(this.const.object, "_arrayObservers"));//object
             }
             return target[key];
         }
@@ -614,7 +616,7 @@
             return this.const[key];
         } else {
             if (inActiveRecording) {
-                registerChangeObserver(getSpecifier(this, "_arrayObservers"));//object
+                registerChangeObserver(getSpecifier(this.const, "_arrayObservers"));//object
             }
             return target[key];
         }
@@ -659,8 +661,8 @@
             target[key] = value;
             if( target[key] === value || (Number.isNaN(target[key]) && Number.isNaN(value)) ) { // Write protected?
                 emitSpliceReplaceEvent(this, key, value, previousValue);
-                if (this._arrayObservers !== null) {
-                    notifyChangeObservers(this._arrayObservers);
+                if (typeof(this.const._arrayObservers) !== 'undefined') {
+                    notifyChangeObservers(this.const._arrayObservers);
                 }
             }
         } else {
@@ -668,8 +670,8 @@
             target[key] = value;
             if( target[key] === value || (Number.isNaN(target[key]) && Number.isNaN(value)) ) { // Write protected?
                 emitSetEvent(this, key, value, previousValue);
-                if (this._arrayObservers !== null) {
-                    notifyChangeObservers(this._arrayObservers);
+                if (typeof(this.const._arrayObservers) !== 'undefined') {
+                    notifyChangeObservers(this.const._arrayObservers);
                 }
             }
         }
@@ -700,8 +702,8 @@
         delete target[key];
         if(!( key in target )) { // Write protected?
             emitDeleteEvent(this, key, previousValue);
-            if (this._arrayObservers !== null) {
-                notifyChangeObservers(this._arrayObservers);
+            if (typeof(this.const._arrayObservers) !== 'undefined') {
+                notifyChangeObservers(this.const._arrayObservers);
             }
         }
         if (--inPulse === 0) postPulseCleanup();
@@ -718,7 +720,7 @@
 		ensureInitialized(this, target);
 		
         if (inActiveRecording) {
-            registerChangeObserver(getSpecifier(this, "_arrayObservers"));
+            registerChangeObserver(getSpecifier(this.const, "_arrayObservers"));
         }
         let result   = Object.keys(target);
         result.push('length');
@@ -734,7 +736,7 @@
 		ensureInitialized(this, target);
 		
         if (inActiveRecording) {
-            registerChangeObserver(getSpecifier(this, "_arrayObservers"));
+            registerChangeObserver(getSpecifier(this.const, "_arrayObservers"));
         }
         return key in target;
     }
@@ -750,8 +752,8 @@
 		
         inPulse++;
 		// TODO: Elaborate here?
-        if (this._arrayObservers !== null) {
-            notifyChangeObservers(this._arrayObservers);
+        if (typeof(this.const._arrayObservers) !== 'undefined') {
+            notifyChangeObservers(this.const._arrayObservers);
         }
         if (--inPulse === 0) postPulseCleanup();
         return target;
@@ -766,7 +768,7 @@
 		ensureInitialized(this, target);
 		
         if (inActiveRecording) {
-            registerChangeObserver(getSpecifier(this, "_arrayObservers"));
+            registerChangeObserver(getSpecifier(this.const, "_arrayObservers"));
         }
         return Object.getOwnPropertyDescriptor(target, key);
     }
@@ -802,9 +804,9 @@
 				let keyInTarget = key in target;
 				if (inActiveRecording) {
                     if (keyInTarget) {
-                        registerChangeObserver(getSpecifier(getSpecifier(this, "_propertyObservers"), key));
+                        registerChangeObserver(getSpecifier(getSpecifier(this.const, "_propertyObservers"), key));
                     } else {
-                        registerChangeObserver(getSpecifier(this, "_enumerateObservers"));
+                        registerChangeObserver(getSpecifier(this.const, "_enumerateObservers"));
                     }
                 }
 				return target[key];
@@ -845,9 +847,9 @@
 				let keyInTarget = key in target;
 				if (inActiveRecording) {
                     if (keyInTarget) {
-                        registerChangeObserver(getSpecifier(getSpecifier(this, "_propertyObservers"), key));
+                        registerChangeObserver(getSpecifier(getSpecifier(this.const, "_propertyObservers"), key));
                     } else {
-                        registerChangeObserver(getSpecifier(this, "_enumerateObservers"));
+                        registerChangeObserver(getSpecifier(this.const, "_enumerateObservers"));
                     }
                 }
 				if (mirrorRelations && keyInTarget && !exposeMirrorRelationIntermediary) {
@@ -897,12 +899,12 @@
 		
 		// If assignment was successful, notify change
 		if (undefinedKey) {
-			if (typeof(this._enumerateObservers) !== 'undefined') {
-				notifyChangeObservers(this._enumerateObservers);
+			if (typeof(this.const._enumerateObservers) !== 'undefined') {
+				notifyChangeObservers(this.const._enumerateObservers);
 			}
 		} else {
-			if (typeof(this._propertyObservers) !== 'undefined' && typeof(this._propertyObservers[key]) !== 'undefined') {
-				notifyChangeObservers(this._propertyObservers[key]);
+			if (typeof(this.const._propertyObservers) !== 'undefined' && typeof(this.const._propertyObservers[key]) !== 'undefined') {
+				notifyChangeObservers(this.const._propertyObservers[key]);
 			}
 		}
 
@@ -972,12 +974,12 @@
 		
 		// If assignment was successful, notify change
 		if (undefinedKey) {
-			if (typeof(this._enumerateObservers) !== 'undefined') {
-				notifyChangeObservers(this._enumerateObservers);
+			if (typeof(this.const._enumerateObservers) !== 'undefined') {
+				notifyChangeObservers(this.const._enumerateObservers);
 			}
 		} else {
-			if (typeof(this._propertyObservers) !== 'undefined' && typeof(this._propertyObservers[key]) !== 'undefined') {
-				notifyChangeObservers(this._propertyObservers[key]);
+			if (typeof(this.const._propertyObservers) !== 'undefined' && typeof(this.const._propertyObservers[key]) !== 'undefined') {
+				notifyChangeObservers(this.const._propertyObservers[key]);
 			}
 		}
 
@@ -1014,8 +1016,8 @@
             delete target[key];
             if(!( key in target )) { // Write protected?
                 emitDeleteEvent(this, key, previousValue);
-                if (typeof(this._enumerateObservers) !== 'undefined') {
-                    notifyChangeObservers(this._enumerateObservers);
+                if (typeof(this.const._enumerateObservers) !== 'undefined') {
+                    notifyChangeObservers(this.const._enumerateObservers);
                 }
             }
             if (--inPulse === 0) postPulseCleanup();
@@ -1033,7 +1035,7 @@
 		ensureInitialized(this, target);
 		
         if (inActiveRecording) {
-            registerChangeObserver(getSpecifier(this, "_enumerateObservers"));
+            registerChangeObserver(getSpecifier(this.const, "_enumerateObservers"));
         }
         let keys = Object.keys(target);
         return keys;
@@ -1048,7 +1050,7 @@
 		ensureInitialized(this, target);
 		
         if (inActiveRecording) {
-            registerChangeObserver(getSpecifier(this, "_enumerateObservers"));
+            registerChangeObserver(getSpecifier(this.const, "_enumerateObservers"));
         }
         return (key in target);
     }
@@ -1067,8 +1069,8 @@
 		let returnValue = Reflect.defineProperty(target, key, descriptor);
 		// TODO: emitEvent here?
 
-        if (typeof(this._enumerateObservers) !== 'undefined') {
-            notifyChangeObservers(this._enumerateObservers);
+        if (typeof(this.const._enumerateObservers) !== 'undefined') {
+            notifyChangeObservers(this.const._enumerateObservers);
         }
         if (--inPulse === 0) postPulseCleanup();
         return returnValue;
@@ -1083,7 +1085,7 @@
 		ensureInitialized(this, target);
 		
         if (inActiveRecording) {
-            registerChangeObserver(getSpecifier(this, '_enumerateObservers'));
+            registerChangeObserver(getSpecifier(this.const, '_enumerateObservers'));
         }
         return Object.getOwnPropertyDescriptor(target, key);
     }
