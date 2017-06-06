@@ -265,7 +265,7 @@
 		
 		// Create incoming for this particular property
 		if (typeof(incomingRelations[relationName]) === 'undefined') {
-			let mirrorIncomingRelation = { isIncomingRelationStructure : true, , relationName: relationName, referredObject: referencedObject };
+			let mirrorIncomingRelation = { isIncomingRelationStructure : true, referredObject: referencedObject };
 			if (mirrorStructuresAsCausalityObjects) {
 				mirrorIncomingRelation = create(mirrorIncomingRelation);
 			}
