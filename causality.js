@@ -8,16 +8,6 @@
         root.causality = factory(); // Support browser global
     }
 }(this, function () {	
-    function values(obj) {
-        var vals = [];
-        for( var key in obj ) {
-            if ( obj.hasOwnProperty(key) ) {
-                vals.push(obj[key]);
-            }
-        }
-        return vals;
-    }
-
 	// Instance identity
 	let causalityInstanceIdentity = {};
 	
@@ -1110,7 +1100,12 @@
 	 
 	function createImmutable(initial) {
 		inPulse++;
-		initial.const = {id : nextId++};
+		if (typeof(initial.const) === 'undefined') {			
+			initial.const = {id : nextId++};
+		} else {
+			initial.const.id = nextId++;
+		}
+		
 		emitImmutableCreationEvent(initial);
 		if (--inPulse === 0) postPulseCleanup();
 		return initial;
@@ -1222,6 +1217,11 @@
             removeForwarding : genericRemoveForwarding.bind(proxy),
             mergeAndRemoveForwarding: genericMergeAndRemoveForwarding.bind(proxy)
         };
+		if (typeof(createdTarget.const) !== 'undefined') {
+			for (property in createdTarget.const) {
+				handler.const[property] = createdTarget.const[property]; 
+			}
+		}
 		handler.const.const = handler.const;
 		handler.const.nonForwardStatic = handler.const;
 
