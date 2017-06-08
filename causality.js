@@ -1528,6 +1528,14 @@
      *
      **********************************/
 	
+    let emitEventPaused = 0;
+
+    function withoutEmittingEvents(action) {
+        emitEventPaused++;
+        action();
+        emitEventPaused--;
+	}
+
 	function emitImmutableCreationEvent(object) {
         if (recordPulseEvents) {
 			let event = { type: 'creation', object: object }
@@ -1568,17 +1576,19 @@
     }
 
     function emitEvent(handler, event) {
-        // console.log(event);
-        // event.objectId = handler.const.id;
-		event.object = handler.const.object; 
-		if (recordPulseEvents) {
-			pulseEvents.push(event);
+		if (emitEventPaused === 0) {
+			// console.log(event);
+			// event.objectId = handler.const.id;
+			event.object = handler.const.object; 
+			if (recordPulseEvents) {
+				pulseEvents.push(event);
+			}
+			if (typeof(handler.observers) !== 'undefined') {
+				handler.observers.forEach(function(observerFunction) {
+					observerFunction(event);
+				});
+			}
 		}
-        if (typeof(handler.observers) !== 'undefined') {
-            handler.observers.forEach(function(observerFunction) {
-                observerFunction(event);
-            });
-        }
     }
 	
 	function emitUnobservableEvent(event) {
@@ -2672,6 +2682,7 @@
         withoutSideEffects : withoutSideEffects,
         withoutRecording : withoutRecording,
         withoutNotifyChange : nullifyObserverNotification,
+		withoutEmittingEvents : withoutEmittingEvents,
 		
 		// Pulses and transactions
         pulse : pulse, // A sequence of transactions, end with cleanup.
