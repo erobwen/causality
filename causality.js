@@ -142,6 +142,14 @@
 		});
  	}
 	
+
+    let incomingRelationsDisabled = 0;
+
+    function disableIncomingRelations(action) {
+        incomingRelationsDisabled++;
+        action();
+        incomingRelationsDisabled--;
+    }
 	
 	
 	/*-----------------------------------------------
@@ -412,11 +420,11 @@
 			let removed = null;
 			let added = argumentsArray;
 			
-			if (mirrorRelations && updatingMirrorRelations === 0) {
-				updatingMirrorRelations++
+			if (mirrorRelations && incomingRelationsDisabled === 0) {
+				incomingRelationsDisabled++
  				added = createAndRemoveArrayIncomingRelations(this.const.object, index, removed, added); // TODO: implement for other array manipulators as well. 
 				// TODO: What about removed adjusted?
-				updatingMirrorRelations--
+				incomingRelationsDisabled--
 			}
 			
             observerNotificationNullified++;
@@ -851,7 +859,7 @@
                         registerChangeObserver(getSpecifier(this.const, "_enumerateObservers"));
                     }
                 }
-				if (mirrorRelations && updatingMirrorRelations === 0 && keyInTarget && !exposeMirrorRelationIntermediary) {
+				if (mirrorRelations && incomingRelationsDisabled === 0 && keyInTarget) {
 					// console.log("causality.getHandlerObject:");
 					// console.log(key);
 					return findReferredObject(target[key]);
@@ -936,7 +944,7 @@
 		// Get previous value		// Get previous value
 		let previousValue;
 		let previousMirrorStructure;
-		if (mirrorRelations && updatingMirrorRelations === 0) {
+		if (mirrorRelations && incomingRelationsDisabled === 0) {
 			// console.log("causality.getHandlerObject:");
 			// console.log(key);
 			previousMirrorStructure = target[key];
@@ -964,11 +972,11 @@
 		
 		// Perform assignment with regards to mirror structures.
 		let mirrorStructureValue;
-		if (mirrorRelations && updatingMirrorRelations === 0) {
-			updatingMirrorRelations++;
+		if (mirrorRelations && incomingRelationsDisabled === 0) {
+			incomingRelationsDisabled++;
 			mirrorStructureValue = createAndRemoveIncomingRelations(this['const'].object, key, value, previousValue);
 			target[key] = mirrorStructureValue; 
-			updatingMirrorRelations--;
+			incomingRelationsDisabled--;
 		} else {
 			target[key] = value;
 		}
@@ -985,9 +993,11 @@
 		}
 
 		// Emit event
-		if (exposeMirrorRelationIntermediary) {
-			previousValue = previousMirrorStructure;
-			value = mirrorStructureValue;
+		if (mirrorRelations && incomingRelationsDisabled === 0) {
+			// Emit extra event 
+			incomingRelationsDisabled++
+			emitSetEvent(this, key, mirrorStructureValue, previousMirrorStructure);
+			incomingRelationsDisabled--
 		}
 		emitSetEvent(this, key, value, previousValue);
 		
@@ -1577,6 +1587,9 @@
 
     function emitEvent(handler, event) {
 		if (emitEventPaused === 0) {
+			if (mirrorRelations) {
+				event.mirrorStructureEvent = incomingRelationsDisabled !== 0
+			}
 			// console.log(event);
 			// event.objectId = handler.const.id;
 			event.object = handler.const.object; 
@@ -2608,8 +2621,6 @@
 	let configuration;
 	
 	let mirrorRelations = false;
-	
-	let updatingMirrorRelations = 0;
 	
 	let exposeMirrorRelationIntermediary;
 	let mirrorStructuresAsCausalityObjects;
