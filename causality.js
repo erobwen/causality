@@ -1273,8 +1273,8 @@
 	function ensureInitialized(handler, target) {
 		if (handler.const.initializer !== null) {
 			let initializer = handler.const.initializer;
-			initializer(target);
 			handler.const.initializer = null;
+			initializer(handler.const.object);
 		}
 	}
 	 
@@ -2727,5 +2727,6 @@
 		removeFromActivityList : removeFromActivityList
 	}
 	Object.assign(module, languageExtensions);
+	Object.assign(module, debuggingAndTesting);
     return module;
 }));
