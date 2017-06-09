@@ -2,7 +2,7 @@ const assert = require('assert');
 const requireUncached = require('require-uncached');
 let causality = requireUncached('../causality');
 let create = causality.create;
-causality.setConfiguration({mirrorRelations : true, directStaticAccess: true});
+causality.setConfiguration({mirrorRelations : true, directStaticAccess: false});
 
 
 describe("Mirror Relations", function(){
@@ -33,6 +33,11 @@ describe("Mirror Relations", function(){
 		causality.forAllIncoming(y, 'foo', function(referer) {
 			yIncomingFoo.push(referer);
 		});
+		// console.log("======================= asdf =======================");
+		// console.log(y);
+		// console.log(y.incoming);
+		// console.log("======================= asdf =======================");
+		// console.log(x.incoming);
 		// logPattern(x, { foo : {}});
 	
 		// console.log("========================");
@@ -109,5 +114,4 @@ describe("Mirror Relations", function(){
 		assert.equal(yIncomingFoo.length, 1);
 		assert.equal(yIncomingFoo[0], x);
     });
-
 });

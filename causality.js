@@ -119,8 +119,8 @@
 	function forAllIncoming(object, property, callback) {
 		registerAnyChangeObserver(getSpecifier(getSpecifier(object.const, "incomingObservers"), property));
 		withoutRecording(function() { // This is needed for setups where incoming structures are made out of causality objects. 
-			if (typeof(object.const.incoming) !== 'undefined') {
-				let relations = object.const.incoming;
+			if (typeof(object.incoming) !== 'undefined') {
+				let relations = object.incoming;
 				if (typeof(relations[property]) !== 'undefined') {
 					let relation = relations[property];
 					let contents = relation.contents;
@@ -251,14 +251,14 @@
 	function getIncomingRelationStructure(referencedObject, relationName) {
 		// Create incoming structure
 		let incomingRelations;
-		if (typeof(referencedObject.const.incoming) === 'undefined') {
+		if (typeof(referencedObject.incoming) === 'undefined') {
 			incomingRelations = { isIncomingRelationStructures : true, referredObject: referencedObject };
 			if (mirrorStructuresAsCausalityObjects) {
 				incomingRelations = create(incomingRelations);
 			}
-			referencedObject.const.incoming = incomingRelations;
+			referencedObject.incoming = incomingRelations;
 		} else {
-			incomingRelations = referencedObject.const.incoming;
+			incomingRelations = referencedObject.incoming;
 		}
 		
 		// Create incoming for this particular property
@@ -825,7 +825,8 @@
     function getHandlerObject(target, key) {
 		if (configuration.objectActivityList) registerActivity(this);
         key = key.toString();
-		// if (key instanceof 'Symbol') {
+		// console.log("getHandlerObject: " + key);
+		// if (key instanceof 'Symbol') { incoming
 			// throw "foobar";
 		// }
         if (this.const.forwardsTo !== null && key !== "nonForwardStatic") {
@@ -839,7 +840,7 @@
         if (key === "const" || key === "nonForwardStatic") {
 			return this.const;
 		} else if (configuration.directStaticAccess && typeof(this.const[key]) !== 'undefined') { // TODO: implement directStaticAccess for other readers. 
-            // console.log(key);
+            // console.log("direct const access: " + key);
 			return this.const[key];
         } else {
             if (typeof(key) !== 'undefined') {
@@ -859,8 +860,8 @@
                         registerChangeObserver(getSpecifier(this.const, "_enumerateObservers"));
                     }
                 }
-				if (mirrorRelations && incomingRelationsDisabled === 0 && keyInTarget) {
-					// console.log("causality.getHandlerObject:");
+				if (mirrorRelations && incomingRelationsDisabled === 0 && keyInTarget && key !== 'incoming') {
+					// console.log("find referred object");
 					// console.log(key);
 					return findReferredObject(target[key]);
 				} else {
