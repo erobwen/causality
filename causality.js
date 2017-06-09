@@ -1588,7 +1588,7 @@
     function emitEvent(handler, event) {
 		if (emitEventPaused === 0) {
 			if (mirrorRelations) {
-				event.mirrorStructureEvent = incomingRelationsDisabled !== 0
+				event.incomingStructureEvent = incomingRelationsDisabled !== 0
 			}
 			// console.log(event);
 			// event.objectId = handler.const.id;
@@ -2694,6 +2694,7 @@
         withoutRecording : withoutRecording,
         withoutNotifyChange : nullifyObserverNotification,
 		withoutEmittingEvents : withoutEmittingEvents,
+		disableIncomingRelations : disableIncomingRelations,
 		
 		// Pulses and transactions
         pulse : pulse, // A sequence of transactions, end with cleanup.
