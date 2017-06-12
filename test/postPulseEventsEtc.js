@@ -1,5 +1,9 @@
 const assert = require('assert');
-let causality = require('../causality')({objectActivityList : true, mirrorRelations: true, recordPulseEvents : true});
+let causality = require('../causality')({
+	objectActivityList : true, 
+	mirrorRelations: true, 
+	recordPulseEvents : true
+});
 causality.addPostPulseAction(postPulse);
 
 
