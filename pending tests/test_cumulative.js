@@ -1,6 +1,10 @@
 'use strict';
 const assert = require('assert');
+console.log("=--------------------------------------------------------");
+console.log("=--------------------------------------------------------");
 let causality = require('../causality')({cumulativeAssignment : true});
+console.log("=--------------------------------------------------------");
+console.log("=--------------------------------------------------------");
 
 let create = causality.create;
 let transaction = causality.transaction;

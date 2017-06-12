@@ -1,6 +1,6 @@
 'use strict';
 const assert = require('assert');
-require('./causalityBasic').install();
+require('../causality')().install();
 
 
 describe("Test cached functions", function(){

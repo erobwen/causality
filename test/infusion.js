@@ -1,5 +1,5 @@
 const assert = require('assert');
-require('./causalityBasic').install();
+require('../causality')().install();
 
 // describe("Infusion", function(){
 //

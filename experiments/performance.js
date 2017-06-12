@@ -1,4 +1,4 @@
-require('../causality').install();
+require('../causality')().install();
 var mobx = require('mobx');
 const log = console.log.bind(console);
 

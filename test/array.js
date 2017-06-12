@@ -1,5 +1,5 @@
 const assert = require('assert');
-require('../causality').install();
+require('../causality')().install();
 const log = console.log.bind(console);
 
 // Tests based on mobx test/array.js

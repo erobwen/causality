@@ -1,7 +1,7 @@
 const assert = require('assert');
-const requireUncached = require('require-uncached');
-let causality = requireUncached('../causality');
-causality.setConfiguration({objectActivityList : true, mirrorRelations: true});
+// const requireUncached = require('require-uncached');
+
+let causality = require('../causality')({objectActivityList : true, mirrorRelations: true});
 let create = causality.create;
 
 // let mirror = require('../mirror');

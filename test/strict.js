@@ -1,6 +1,6 @@
 'use strict';
 const assert = require('assert');
-let causality = require('./causalityBasic');
+let causality = require('../causality')();
 causality.install();
 const log = console.log.bind(console);
 
@@ -55,12 +55,6 @@ describe("Array object traps", function () {
 
     it('delete nonexisting', function(){
         delete stack[99];
-    });
-
-    it('setCumulativeAssignment',  function () {
-        causality.setCumulativeAssignment(1);
-        stack[1] = undefined;
-        causality.setCumulativeAssignment(0);
     });
 });
 

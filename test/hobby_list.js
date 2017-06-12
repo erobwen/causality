@@ -1,5 +1,5 @@
 const assert = require('assert');
-let causality = require('./causalityBasic');
+let causality = require('../causality')();
 let create = causality.create;
 
 
