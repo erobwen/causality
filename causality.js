@@ -227,14 +227,21 @@
 	
 	
 	/**
-	 * Traverse the incoming relation structure
+	 * Traverse the incoming relation structure foobar
 	 */
 	function findReferredObject(referredItem) {
-		if (typeof(referredItem) === 'object' && typeof(referredItem.referredObject) !== undefined) {
-			return referredItem.referredObject;
-		} else {
-			return referredItem;
+		// Note, referred item can sometimes be a function???
+		// if (typeof(referredItem) === 'function') {
+			// referredItem.foo.bar;
+		// }
+		if (isObject(referredItem)) {
+			if (typeof(referredItem.referredObject) !== 'undefined') {
+				return referredItem.referredObject;
+			} else {
+				return referredItem;
+			}
 		}
+		return referredItem;
 	}
 	
 	function createIncomingStructure(referingObject, referingObjectId, property, object) {
@@ -1282,13 +1289,20 @@
      **********************************/
 	 
 	function ensureInitialized(handler, target) {
-		if (handler.const.initializer !== null) {
+		if (handler.const.initializer !== null && blockingInitialize === 0) {
 			let initializer = handler.const.initializer;
 			handler.const.initializer = null;
 			initializer(handler.const.object);
 		}
 	}
-	 
+
+	let blockingInitialize = 0;
+	
+	function blockInitialize(action) {
+		blockingInitialize++;
+		action();
+		blockingInitialize--;
+	}
 	// function purge(object) {
 		// object.target.
 	// } 
@@ -2696,6 +2710,7 @@
         withoutNotifyChange : nullifyObserverNotification,
 		withoutEmittingEvents : withoutEmittingEvents,
 		disableIncomingRelations : disableIncomingRelations,
+		blockInitialize : blockInitialize,
 		
 		// Pulses and transactions
         pulse : pulse, // A sequence of transactions, end with cleanup.
@@ -2706,12 +2721,24 @@
 		createArrayIndex : createArrayIndex
 	}
 	
+	let trace = false;
+
+	function startTrace() {
+		trace = true;
+	}
+
+	function endTrace() {
+		trace = false;
+	}
+	
 	// Debugging and testing
 	let debuggingAndTesting = {
 		observeAll : observeAll,
         cachedCallCount : cachedCallCount,
         clearRepeaterLists : clearRepeaterLists,
-        resetObjectIds : resetObjectIds
+        resetObjectIds : resetObjectIds,
+		startTrace : startTrace,
+		endTrace : endTrace
 	}
 		
     /**
