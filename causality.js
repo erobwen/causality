@@ -230,10 +230,12 @@
 	 * Traverse the incoming relation structure foobar
 	 */
 	function findReferredObject(referredItem) {
+		// console.log("findReferredObject:");
+		// console.log(referredItem);
 		// Note, referred item can sometimes be a function???
-		// if (typeof(referredItem) === 'function') {
-			// referredItem.foo.bar;
-		// }
+		if (referredItem instanceof Function || typeof(referredItem) === 'function') {
+			referredItem.foo.bar;
+		}
 		if (isObject(referredItem)) {
 			if (typeof(referredItem.referredObject) !== 'undefined') {
 				return referredItem.referredObject;
@@ -934,6 +936,14 @@
     }
 	*/
 
+	function isIndexParentOf(potentialParent, potentialIndex) {
+		if (!isObject(potentialParent) || !isObject(potentialIndex)) {
+			return false;
+		} else {
+			return (typeof(potentialIndex.const.indexParent) !== 'undefined') && potentialIndex.const.indexParent === potentialParent;
+		}
+	}
+	
     function setHandlerObject(target, key, value) {
 		if (configuration.objectActivityList) registerActivity(this);
 				
@@ -952,7 +962,7 @@
 		// Get previous value		// Get previous value
 		let previousValue;
 		let previousMirrorStructure;
-		if (mirrorRelations && incomingRelationsDisabled === 0) {
+		if (mirrorRelations && incomingRelationsDisabled === 0 && !isIndexParentOf(this.const.object, value)) {
 			// console.log("causality.getHandlerObject:");
 			// console.log(key);
 			previousMirrorStructure = target[key];
@@ -980,7 +990,7 @@
 		
 		// Perform assignment with regards to mirror structures.
 		let mirrorStructureValue;
-		if (mirrorRelations && incomingRelationsDisabled === 0) {
+		if (mirrorRelations && incomingRelationsDisabled === 0 && !isIndexParentOf(this.const.object, value)) {
 			incomingRelationsDisabled++;
 			mirrorStructureValue = createAndRemoveIncomingRelations(this['const'].object, key, value, previousValue);
 			target[key] = mirrorStructureValue; 
@@ -1001,7 +1011,7 @@
 		}
 
 		// Emit event
-		if (mirrorRelations && incomingRelationsDisabled === 0) {
+		if (mirrorRelations && incomingRelationsDisabled === 0 && !isIndexParentOf(this.const.object, value)) {
 			// Emit extra event 
 			incomingRelationsDisabled++
 			emitSetEvent(this, key, mirrorStructureValue, previousMirrorStructure);

@@ -2,47 +2,47 @@ const assert = require('assert');
 const requireUncached = require('require-uncached');
 let causality = requireUncached('../causality');
 let create = causality.create;
-causality.setConfiguration({mirrorRelations : true, directStaticAccess: false});
+causality.setConfiguration({mirrorRelations : true});
 
 
 describe("Mirror Relations", function(){
 
-    it("Testing mirror relation exists", function(){
-		// let x = create({_mirror_is_reflected : true, _mirror_reflects : true});
-		// let y = create({_mirror_reflects : true, _mirror_is_reflected : true, });
-		// let x = create(mirror.create());
-		// let y = create(mirror.create());
+    // it("Testing mirror relation exists", function(){
+		// // let x = create({_mirror_is_reflected : true, _mirror_reflects : true});
+		// // let y = create({_mirror_reflects : true, _mirror_is_reflected : true, });
+		// // let x = create(mirror.create());
+		// // let y = create(mirror.create());
 
-		let x = create();
-		let y = create();
+		// let x = create();
+		// let y = create();
 		
-		// Assign x.foo
-		x.foo = y;
+		// // Assign x.foo
+		// x.foo = y;
 
-		// console.log("+checking");
-		// console.log(x.const._mirror_reflects);
-		// console.log(x.const._mirror_is_reflected);
-		// console.log(y.const._mirror_reflects);
-		// console.log(y.const._mirror_is_reflected);
-		// console.log(x.foo);
-		// console.log(x.foo.const);
-		// console.log("-checking");
+		// // console.log("+checking");
+		// // console.log(x.const._mirror_reflects);
+		// // console.log(x.const._mirror_is_reflected);
+		// // console.log(y.const._mirror_reflects);
+		// // console.log(y.const._mirror_is_reflected);
+		// // console.log(x.foo);
+		// // console.log(x.foo.const);
+		// // console.log("-checking");
 		
-		// Analyze incoming structure
-		let yIncomingFoo = []
-		causality.forAllIncoming(y, 'foo', function(referer) {
-			yIncomingFoo.push(referer);
-		});
-		// console.log("======================= asdf =======================");
-		// console.log(y);
-		// console.log(y.incoming);
-		// console.log("======================= asdf =======================");
-		// console.log(x.incoming);
-		// logPattern(x, { foo : {}});
+		// // Analyze incoming structure
+		// let yIncomingFoo = []
+		// causality.forAllIncoming(y, 'foo', function(referer) {
+			// yIncomingFoo.push(referer);
+		// });
+		// // console.log("======================= asdf =======================");
+		// // console.log(y);
+		// // console.log(y.incoming);
+		// // console.log("======================= asdf =======================");
+		// // console.log(x.incoming);
+		// // logPattern(x, { foo : {}});
 	
-		// console.log("========================");
-		assert.equal(yIncomingFoo[0], x);
-    });
+		// // console.log("========================");
+		// assert.equal(yIncomingFoo[0], x);
+    // });
 
 	it("Testing mirror relation exists for array", function(){
 		// console.log("======================");
@@ -50,8 +50,9 @@ describe("Mirror Relations", function(){
 		causality.createArrayIndex(x, "foo");
 		
 		let y = create({name: "y"});
-		
-		
+		// console.log("===========");
+		// console.log(x.foo);
+		// console.log("===========");
 		x.foo.push(y);
 		// console.log(x);
 		// console.log(x.foo);
@@ -71,47 +72,47 @@ describe("Mirror Relations", function(){
 		assert.equal(yIncomingArray[0], x);
     });
 
-    it("Testing getting incoming with method", function(){
-		let x = create();
-		let y = create();
+    // it("Testing getting incoming with method", function(){
+		// let x = create();
+		// let y = create();
 		
-		// let y = create({});
-		y.incomingFoo = function() {
-			let incoming = [];
+		// // let y = create({});
+		// y.incomingFoo = function() {
+			// let incoming = [];
 			
-			causality.forAllIncoming(this, 'foo', function(referer) {
-				incoming.push(referer);
-			});
-			return incoming;
-		}
+			// causality.forAllIncoming(this, 'foo', function(referer) {
+				// incoming.push(referer);
+			// });
+			// return incoming;
+		// }
 		
-		// Assign x.foo
-		x.foo = y;
-		assert.equal(y.incomingFoo()[0], x);
-    });
+		// // Assign x.foo
+		// x.foo = y;
+		// assert.equal(y.incomingFoo()[0], x);
+    // });
 
-    it("Testing reaction to change in incoming relation", function(){
-		let x = create();
-		let y = create()
+    // it("Testing reaction to change in incoming relation", function(){
+		// let x = create();
+		// let y = create()
 		
-		let yIncomingFoo;		
-		function updateYIncomingFoo() {
-			// logPattern(y, { _mirror_incoming_relations : { foo : { contents : {}}}});
-			yIncomingFoo = [];
-			causality.forAllIncoming(y, 'foo', function(referer) {
-				yIncomingFoo.push(referer);
-			});			
-		}
+		// let yIncomingFoo;		
+		// function updateYIncomingFoo() {
+			// // logPattern(y, { _mirror_incoming_relations : { foo : { contents : {}}}});
+			// yIncomingFoo = [];
+			// causality.forAllIncoming(y, 'foo', function(referer) {
+				// yIncomingFoo.push(referer);
+			// });			
+		// }
 		
-		causality.repeatOnChange(function() {
-			updateYIncomingFoo();
-		});
-		assert.equal(yIncomingFoo.length, 0);
+		// causality.repeatOnChange(function() {
+			// updateYIncomingFoo();
+		// });
+		// assert.equal(yIncomingFoo.length, 0);
 		
-		// Assign x.foo
-		x.foo = y;
+		// // Assign x.foo
+		// x.foo = y;
 
-		assert.equal(yIncomingFoo.length, 1);
-		assert.equal(yIncomingFoo[0], x);
-    });
+		// assert.equal(yIncomingFoo.length, 1);
+		// assert.equal(yIncomingFoo[0], x);
+    // });
 });
