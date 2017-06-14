@@ -7,15 +7,25 @@
 	} else {
 		root.causality = factory(); // Support browser global
 	}
-}(this, function () {
+}(this, function () {	
+	// Debugging
+	let objectlog = require('./objectlog.js');
+	let log = objectlog.log;
+	let logGroup = objectlog.enter;
+	let logUngroup = objectlog.exit;
+
 	function createCausalityInstance(configuration) {
+		let inPulse = 0;
 		
-		// Instance identity
-		let causalityInstanceIdentity = {};
+		let postPulseProcess = 0;
+	 
+		let pulseEvents = [];
 		
-		// Debugging
-		let objectlog = require('./objectlog.js');
-		let log = objectlog.log;
+		let recordPulseEvents = false;
+		
+
+		// Causality instance
+		let causalityInstance;
 		
 		
 		/***************************************************************
@@ -583,9 +593,9 @@
 			collecting.pop();
 		}
 
-		let nextId = 1;
+		let nextId = 0;
 		function resetObjectIds() {
-			nextId = 1;
+			nextId = 0;
 		}
 
 
@@ -976,12 +986,14 @@
 			// If same value as already set, do nothing.
 			if (key in target) {
 				if (previousValue === value || (Number.isNaN(previousValue) && Number.isNaN(value)) ) {
+					// if (configuration.name === 'objectCausality')  log("ALREAD SET");
 					return true;
 				}
 			}
 			
 			// If cumulative assignment, inside recorder and value is undefined, no assignment.
 			if (configuration.cumulativeAssignment && inActiveRecording && (isNaN(value) || typeof(value) === 'undefined')) {
+				// if (configuration.name === 'objectCausality')  log("CUMULATIVE");
 				return true;
 			}
 			
@@ -1217,7 +1229,7 @@
 			
 			handler.const = {
 				initializer : initializer,
-				causalityInstanceIdentity : causalityInstanceIdentity,
+				causalityInstance : causalityInstance,
 				id: id,
 				cacheId : cacheId,
 				forwardsTo : null,
@@ -1291,7 +1303,7 @@
 			// }
 			// TODO: Fix the causality identity somehow. 
 			// return typeof(entity) === 'object' && entity !== null && typeof(entity.const) !== 'undefined' && entity.const.causalityInstanceIdentity === causalityInstanceIdentity;
-			return typeof(entity) === 'object' && entity !== null && typeof(entity.const) !== 'undefined' && typeof(entity.const.id) !== 'undefined';
+			return typeof(entity) === 'object' && entity !== null && typeof(entity.const) !== 'undefined' && entity.const.causalityInstance === causalityInstance;
 		}
 		
 		/**********************************
@@ -1333,7 +1345,8 @@
 		}
 		 
 		function canWrite(object) {
-			if (postPulseProcess) {
+			if (postPulseProcess > 0) {  // TODO: this annoys eternity somehow... why???
+				log("CANNOT WRITE IN POST PULSE");
 				return false;
 			}
 			if (writeRestriction !== null && typeof(writeRestriction[object.const.id]) === 'undefined') {
@@ -1509,14 +1522,6 @@
 		 *  Upon change do
 		 **********************************/
 
-		let inPulse = 0;
-		
-		let postPulseProcess = false;
-	 
-		let pulseEvents = [];
-		
-		let recordPulseEvents = false;
-		
 		function pulse(action) {
 			inPulse++;
 			action();
@@ -1537,7 +1542,7 @@
 		let contextsScheduledForPossibleDestruction = [];
 
 		function postPulseCleanup() {
-			postPulseProcess = true; // Blocks any model writing during post pulse cleanup
+			postPulseProcess++; // Blocks any model writing during post pulse cleanup
 			contextsScheduledForPossibleDestruction.forEach(function(context) {
 				if (!context.directlyInvokedByApplication) {
 					if (emptyObserverSet(context.contextObservers)) {
@@ -1550,7 +1555,7 @@
 				callback(pulseEvents);
 			});
 			pulseEvents = [];
-			postPulseProcess = false;
+			postPulseProcess--;
 		}
 
 		let postPulseHooks = [];
@@ -1568,9 +1573,17 @@
 		let emitEventPaused = 0;
 
 		function withoutEmittingEvents(action) {
+			inPulse++;
 			emitEventPaused++;
+			// log(configuration.name + "pause emitting events");
+			// logGroup();
+			// log(configuration.name + " inPulse: " + inPulse);
 			action();
+			// log("inPulse: " + inPulse);
+			// log(configuration.name + " inPulse: " + inPulse);
+			// logUngroup();
 			emitEventPaused--;
+			if (--inPulse === 0) postPulseCleanup();
 		}
 
 		function emitImmutableCreationEvent(object) {
@@ -1614,6 +1627,7 @@
 
 		function emitEvent(handler, event) {
 			if (emitEventPaused === 0) {
+				// log("EMIT EVENT " + configuration.name + " " + event.type + " " + event.property + "=...");
 				if (mirrorRelations) {
 					event.incomingStructureEvent = incomingRelationsDisabled !== 0
 				}
@@ -2723,7 +2737,8 @@
 			clearRepeaterLists : clearRepeaterLists,
 			resetObjectIds : resetObjectIds,
 			startTrace : startTrace,
-			endTrace : endTrace
+			endTrace : endTrace,
+			getInPulse : getInPulse
 		}
 			
 		/**
@@ -2744,7 +2759,11 @@
 			return target;
 		}
 
-		let module = {
+		
+		function getInPulse() {
+			return inPulse;
+		}
+		causalityInstance = {
 			install : install,
 			
 			// Framework setup (usually not used by application code)
@@ -2762,9 +2781,9 @@
 			getActivityListFirst : getActivityListFirst,
 			removeFromActivityList : removeFromActivityList
 		}
-		Object.assign(module, languageExtensions);
-		Object.assign(module, debuggingAndTesting);
-		return module;
+		Object.assign(causalityInstance, languageExtensions);
+		Object.assign(causalityInstance, debuggingAndTesting);
+		return causalityInstance;
 	}
 	
 	

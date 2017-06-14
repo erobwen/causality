@@ -10,6 +10,8 @@
 }(this, function () {
 	
 	let bufferWidth = 100;
+	
+	let indentLevel = 0;
 
 	function indentString(level) {
 		let string = "";
@@ -21,8 +23,9 @@
 
 	function createContext() {
 		return {
+			rootLevel : true,
 			horizontal : false,
-			indentLevel : 0,
+			indentLevel : indentLevel,
 			unfinishedLine : false,
 			// log : function(string) {
 				// if (this.unfinishedLine) {
@@ -67,7 +70,7 @@
 			};	
 		}
 
-		if (typeof(entity) !== 'object') {
+		if (typeof(entity) !== 'object') { 
 			if (typeof(entity) === 'function') {
 				return context.count("function( ... ) { ... }");				
 			} else {
@@ -121,8 +124,12 @@
 		if (typeof(entity) !== 'object') {
 			if (typeof(entity) === 'function') {
 				context.log("function( ... ) { ... }");				
-			} if (typeof(entity) === 'string') {
-				context.log('"' + entity + '"');								
+			} else if (typeof(entity) === 'string') {
+				if (context.rootLevel) {
+					context.log(entity);
+				} else {
+					context.log('"' + entity + '"');								
+				}
 			} else {
 				context.log(entity + "");				
 			}
@@ -163,6 +170,7 @@
 					}
 					
 					if(!isArray) context.indentLevel++;
+					context.rootLevel = false;
 					logPattern(entity[p], nextPattern, context);
 					if(!isArray) context.indentLevel--;
 					first = false;
@@ -180,6 +188,12 @@
 	
 	return {
 		log : logPattern,
+		enter : function() {
+			indentLevel++;
+		},
+		exit : function() {
+			indentLevel--;
+		} 
 	};
 }));
 
