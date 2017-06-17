@@ -352,6 +352,9 @@
 			if (typeof(mirrorIncomingRelation.initialized) === 'undefined') {
 				mirrorIncomingRelation.isRoot = true;
 				mirrorIncomingRelation.contents = {};
+				if (mirrorStructuresAsCausalityObjects) {
+					mirrorIncomingRelation.contents = create(mirrorIncomingRelation.contents);
+				}
 				mirrorIncomingRelation.contentsCounter = 0;
 				mirrorIncomingRelation.initialized = true;
 				mirrorIncomingRelation.first = null;
@@ -374,6 +377,7 @@
 					parent: null
 				};
 				if (mirrorStructuresAsCausalityObjects) {
+					newChunk.contents = create(newChunk.contents);
 					newChunk = create(newChunk);
 				}
 
@@ -1264,6 +1268,7 @@
 					handler.const[property] = createdTarget.const[property]; 
 				}
 			}
+			// TODO: consider what we should do when we have reverse references. Should we loop through createdTarget and form proper reverse structures?
 			handler.const.const = handler.const;
 			handler.const.nonForwardStatic = handler.const;
 
