@@ -43,8 +43,15 @@
 			return idExpressionPrefix + id + idExpressionSuffix;
 		}
 
+		function transformPossibleIdExpression(string, idMapper) {
+			if (isIdExpression(string)) {
+				return transformIdExpression(string, idMapper);
+			}
+			return string;
+		}
+		
 		function isIdExpression(string) {
-			return id.startsWith(idExpressionPrefix);
+			return string.startsWith(idExpressionPrefix);
 		}
 
 
@@ -2839,7 +2846,7 @@
 			// Id expressions
 			isIdExpression : isIdExpression, 
 			extractIdFromExpression : extractIdFromExpression,
-			transformIdExpression : transformIdExpression,
+			transformPossibleIdExpression : transformPossibleIdExpression,
 			
 			// Framework interface
 			getActivityListLast : getActivityListLast,
