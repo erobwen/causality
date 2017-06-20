@@ -225,6 +225,17 @@
 			incomingRelationsDisabled--;
 		}
 		
+		let removedLastIncomingRelationCallback = null;
+		function removedLastIncomingRelation(object) {
+			if (removedLastIncomingRelationCallback !== null) {
+				removedLastIncomingRelationCallback(object);
+			}
+		}
+		
+		function addRemovedLastIncomingRelationCallback(callback) {
+			removedLastIncomingRelationCallback = callback;
+		}
+		
 		
 		/*-----------------------------------------------
 		 *            Relation structures
@@ -243,6 +254,7 @@
 			
 			// Tear down structure to old value
 			if (isObject(previousValue)) {
+				if (--(previousValue.const.incomingReferences)) removedLastIncomingRelation(previousValue);
 				removeMirrorStructure(objectProxy.const.id, previousValue); // TODO: Fix BUG. This really works?
 				if (typeof(previousValue.const.incomingObservers) !== 'undefined') {
 					notifyChangeObservers(previousValue.const.incomingObservers[referringRelation]);
@@ -251,6 +263,7 @@
 
 			// Setup structure to new value
 			if (isObject(value)) {
+				value.const.incomingReferences++;
 				let referencedValue = createIncomingStructure(objectProxy, objectProxy.const.id, referringRelation, value);
 				if (typeof(value.const.incomingObservers) !== 'undefined') {
 					notifyChangeObservers(value.const.incomingObservers[referringRelation]);
@@ -274,6 +287,7 @@
 			let addedAdjusted = [];
 			added.forEach(function(addedElement) {
 				if (isObject(addedElement)) {
+					addedElement.const.incomingReferences++;
 					// console.log("and here");
 					let referencedValue = createIncomingStructure(arrayProxy, arrayProxy.const.id, referringRelation, addedElement);
 					if (typeof(addedElement.const.incomingObservers) !== 'undefined') {
@@ -289,6 +303,7 @@
 			if (removed !== null) {
 				removed.forEach(function(removedElement) {
 					if (isObject(removedElement)) {
+						if (--(removedElement.const.incomingReferences)) removedLastIncomingRelation(removedElement);
 						removeMirrorStructure(proxy.const.id, removedElement);
 						if (typeof(removedElement.const.incomingObservers) !== 'undefined') {
 							notifyChangeObservers(removedElement.const.incomingObservers[referringRelation]);
@@ -1294,6 +1309,7 @@
 			let proxy = new Proxy(createdTarget, handler);
 			
 			handler.const = {
+				incomingReferences : 0, 
 				initializer : initializer,
 				causalityInstance : causalityInstance,
 				id: id,
@@ -2847,6 +2863,8 @@
 			isIdExpression : isIdExpression, 
 			extractIdFromExpression : extractIdFromExpression,
 			transformPossibleIdExpression : transformPossibleIdExpression,
+			
+			addRemovedLastIncomingRelationCallback : addRemovedLastIncomingRelationCallback,
 			
 			// Framework interface
 			getActivityListLast : getActivityListLast,
