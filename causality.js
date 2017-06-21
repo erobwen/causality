@@ -2714,6 +2714,9 @@
 			return object.const.handler.activityListNext;
 		}
 		
+		function pokeObject(object) {
+			registerActivity(object.const.handler);
+		}
 
 		function removeFromActivityList(proxy) {
 			removeFromActivityListHandler(proxy.const.handler);
@@ -2897,6 +2900,7 @@
 			getActivityListFirst : getActivityListFirst,
 			getActivityListNext : getActivityListNext,
 			getActivityListPrevious : getActivityListPrevious,
+			pokeObject : pokeObject,
 			removeFromActivityList : removeFromActivityList
 		}
 		Object.assign(causalityInstance, languageExtensions);
