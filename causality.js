@@ -2869,6 +2869,7 @@
 			
 			// Id expressions
 			isIdExpression : isIdExpression, 
+			idExpression : idExpression, 
 			extractIdFromExpression : extractIdFromExpression,
 			transformPossibleIdExpression : transformPossibleIdExpression,
 			
