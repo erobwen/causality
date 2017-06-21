@@ -741,7 +741,7 @@
 		function setHandlerArray(target, key, value) {
 			if (this.const.forwardsTo !== null) {
 				if (key === "forwardsTo") {
-					this.const.forwardsTo = value;
+					this.const.forwardsTo = value; // Access const directly?
 					return true;
 				} else {
 					let overlayHandler = this.const.forwardsTo.const.handler;
@@ -2692,38 +2692,54 @@
 		 
 		let activityListFirst = null; 
 		let activityListLast = null; 
-
-		function getActivityListLast() {
-			return activityListLast.const.object;
+		let activityListFilter = null;
+		
+		function setActivityListFilter(filter) {
+			let activityListFilter = filter;
 		}
-
+		
 		function getActivityListFirst() {
-			return activityListFirst.const.object;
+			return (activityListFirst !== null) ? activityListFirst.const.object : null;
 		}
+		
+		function getActivityListLast() {
+			return (activityListLast !== null) ? activityListLast.const.object : null;
+		}
+
+		function getActivityListPrevious(object) {
+			return object.const.handler.activityListPrevious;
+		}
+
+		function getActivityListNext(object) {
+			return object.const.handler.activityListNext;
+		}
+		
 
 		function removeFromActivityList(proxy) {
 			removeFromActivityListHandler(proxy.const.handler);
 		}
 		
 		function registerActivity(handler) {
-			// Init if not initialized
-			if (typeof(handler.activityListNext) === 'undefined') {
-				handler.activityListNext = null;
-				handler.activityListPrevious = null;
-			}
-			
-			// Remove from wherever it is in the structure
-			removeFromActivityListHandler(handler);
+			if (activityListFilter === null || activityListFilter(handler.const.object)) {
+				// Init if not initialized
+				if (typeof(handler.activityListNext) === 'undefined') {
+					handler.activityListNext = null;
+					handler.activityListPrevious = null;
+				}
+				
+				// Remove from wherever it is in the structure
+				removeFromActivityListHandler(handler);
 
-			// Add first
-			handler.activityListPrevious = null;
-			if (activityListFirst !== null) {
-				activityListFirst.activityListPrevious = handler;
-				handler.activityListNext = activityListFirst;
-			} else {
-				activityListLast = handler;
+				// Add first
+				handler.activityListPrevious = null;
+				if (activityListFirst !== null) {
+					activityListFirst.activityListPrevious = handler;
+					handler.activityListNext = activityListFirst;
+				} else {
+					activityListLast = handler;
+				}
+				activityListFirst = handler;				
 			}
-			activityListFirst = handler;
 		}
 		
 		function removeFromActivityListHandler(handler) {
@@ -2876,8 +2892,11 @@
 			addRemovedLastIncomingRelationCallback : addRemovedLastIncomingRelationCallback,
 			
 			// Framework interface
+			setActivityListFilter : setActivityListFilter,
 			getActivityListLast : getActivityListLast,
 			getActivityListFirst : getActivityListFirst,
+			getActivityListNext : getActivityListNext,
+			getActivityListPrevious : getActivityListPrevious,
 			removeFromActivityList : removeFromActivityList
 		}
 		Object.assign(causalityInstance, languageExtensions);
