@@ -253,8 +253,9 @@
 			}
 			
 			// Tear down structure to old value
+			
 			if (isObject(previousValue)) {
-				if (--(previousValue.const.incomingReferences)) removedLastIncomingRelation(previousValue);
+				if ((previousValue.const.incomingReferences -= 1) === 0) removedLastIncomingRelation(previousValue);
 				removeMirrorStructure(objectProxy.const.id, previousValue); // TODO: Fix BUG. This really works?
 				if (typeof(previousValue.const.incomingObservers) !== 'undefined') {
 					notifyChangeObservers(previousValue.const.incomingObservers[referringRelation]);
@@ -303,7 +304,7 @@
 			if (removed !== null) {
 				removed.forEach(function(removedElement) {
 					if (isObject(removedElement)) {
-						if (--(removedElement.const.incomingReferences)) removedLastIncomingRelation(removedElement);
+						if ((previousValue.const.incomingReferences -= 1) === 0)  removedLastIncomingRelation(removedElement);
 						removeMirrorStructure(proxy.const.id, removedElement);
 						if (typeof(removedElement.const.incomingObservers) !== 'undefined') {
 							notifyChangeObservers(removedElement.const.incomingObservers[referringRelation]);
@@ -325,13 +326,19 @@
 			// if (referredItem instanceof Function || typeof(referredItem) === 'function') {
 				// referredItem.foo.bar;
 			// }
-			if (isObject(referredItem)) {
+			// log("findReferredObject");
+			// logGroup();
+			if (typeof(referredItem) === 'object') {
+				// log("is object");
 				if (typeof(referredItem.referredObject) !== 'undefined') {
+					// logUngroup();		
 					return referredItem.referredObject;
 				} else {
+					// logUngroup();
 					return referredItem;
 				}
 			}
+			// logUngroup();
 			return referredItem;
 		}
 		
@@ -1038,6 +1045,7 @@
 		}
 		
 		function setHandlerObject(target, key, value) {
+			// logGroup();
 			if (configuration.objectActivityList) registerActivity(this);
 					
 			// Overlays
@@ -1087,7 +1095,7 @@
 			let mirrorStructureValue;
 			if (mirrorRelations && incomingRelationsDisabled === 0 && !isIndexParentOf(this.const.object, value)) {
 				incomingRelationsDisabled++;
-				mirrorStructureValue = createAndRemoveIncomingRelations(this['const'].object, key, value, previousValue);
+				mirrorStructureValue = createAndRemoveIncomingRelations(this.const.object, key, value, previousValue);
 				target[key] = mirrorStructureValue; 
 				incomingRelationsDisabled--;
 			} else {

@@ -40,4 +40,33 @@ describe("Activity list", function(){
 		let zome = y.fooY;
 		assert.equal("y", causality.getActivityListFirst().name);
 	});
-});	
+	
+	
+	it("should count incoming references", function(){
+		causality.addRemovedLastIncomingRelationCallback(function(object) {
+			// console.log("KILLING in the name of!... ");
+			object.killed = true;
+		});
+		
+		let x = create({name: "x"});
+		let y = create({name: "y"});
+		let z = create({name: "z"});
+		// let z2 = create({name: "z2"});
+
+		x.z = z;
+		y.z = z;
+		assert.equal(z.const.incomingReferences, 2);
+		
+		// delete x.z;
+		// delete y.z; //TODO: make it work!
+		
+		x.z = null;
+		y.z = null;
+		
+		// x.z = z2;
+		// y.z = z2;
+
+		assert.equal(z.const.incomingReferences, 0);
+		assert.equal(z.killed, true);
+	});
+});
