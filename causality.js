@@ -132,6 +132,23 @@
 		 *
 		 ***************************************************************/
 		 
+		function setIndex(object, property, index) {
+			incomingRelationsDisabled++;
+			
+			let previousValue = object[property];
+			if (typeof(previousValue) === 'object') {
+				delete previousValue.indexParent;
+				delete previousValue.indexParentRelation;				
+			}
+			
+			index.indexParent = object;
+			index.indexParentRelation = property;
+			object[property] = index;
+			
+			incomingRelationsDisabled--;
+			return index;
+		}
+		 
 		 function createImmutableArrayIndex(object, property) {
 			let index = createImmutable([]);
 
@@ -2867,7 +2884,8 @@
 			
 			// Mirror images
 			forAllIncoming : forAllIncoming,
-			createArrayIndex : createArrayIndex
+			createArrayIndex : createArrayIndex,
+			setIndex : setIndex
 		}
 		
 		let trace = false;

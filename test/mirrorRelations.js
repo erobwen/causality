@@ -46,7 +46,26 @@ describe("Mirror Relations", function(){
 	});
 
 
-	it("Testing mirror relation exists for array", function(){
+	it("Testing mirror relation exists for array index", function(){
+		let x = create({name: "x"});
+		causality.setIndex(x, "foo", create([]));
+		
+		let y = create({name: "y"});
+		x.foo.push(y);
+
+		// Analyze incoming structure
+		let yIncomingArray = []
+		causality.forAllIncoming(y, 'foo', function(referer) {
+			// log(referer);
+			yIncomingArray.push(referer);
+		});
+		// log(x, 3);
+		// log(y, 3);
+		// log(yIncomingArray.length);
+		assert.equal(yIncomingArray[0], x);
+    });
+	
+	it("Testing mirror relation exists for array index 2", function(){
 		let x = create({name: "x"});
 		causality.createArrayIndex(x, "foo");
 		
