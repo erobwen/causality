@@ -56,8 +56,12 @@ describe("Mirror Relations", function(){
 		// Analyze incoming structure
 		let yIncomingArray = []
 		causality.forAllIncoming(y, 'foo', function(referer) {
+			// log(referer);
 			yIncomingArray.push(referer);
 		});
+		// log(x, 3);
+		// log(y, 3);
+		// log(yIncomingArray.length);
 		assert.equal(yIncomingArray[0], x);
     });
 

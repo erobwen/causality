@@ -87,7 +87,7 @@
 				let isArray = (entity instanceof Array);
 				context.count(isArray ? "[" : "{");
 				for (p in entity) {
-					if (!isArray) context.count(p + " : ");
+					if (!isArray || isNaN(p)) context.count(p + " : ");
 					
 					let nextPattern = null;
 					if (typeof(pattern) === 'object') {
@@ -160,7 +160,7 @@
 						context.log(", ");
 						context.finishOpenLine();
 					}
-					if (!isArray) context.log(p + " : ");
+					if (!isArray || isNaN(p)) context.log(p + " : ");
 					
 					let nextPattern = null;
 					if (typeof(pattern) === 'object') {

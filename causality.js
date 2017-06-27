@@ -135,8 +135,8 @@
 		 function createImmutableArrayIndex(object, property) {
 			let index = createImmutable([]);
 
-			index.const.indexParent = object;
-			index.const.indexParentRelation = property;
+			index.indexParent = object;
+			index.indexParentRelation = property;
 
 			object[property] = index;
 			return index;
@@ -144,23 +144,27 @@
 		
 		
 		function createArrayIndex(object, property) {
+			incomingRelationsDisabled++;
+			
 			let index = create([]);
-
-			index.const.indexParent = object;
-			index.const.indexParentRelation = property;
-
+			index.indexParent = object;
+			index.indexParentRelation = property;
 			object[property] = index;
+			
+			incomingRelationsDisabled--;
 			return index;
 		}
 		
 
 		function createObjectIndex(object, property) {
+			incomingRelationsDisabled++;
+			
 			let index = create({});
-
-			index.const.indexParent = object;
-			index.const.indexParentRelation = property;
-
+			index.indexParent = object;
+			index.indexParentRelation = property;
 			object[property] = index;
+
+			incomingRelationsDisabled--;
 			return index;
 		}
 
@@ -173,9 +177,9 @@
 		function getReferingObject(possibleIndex, relationFromPossibleIndex) {
 			gottenReferingObject = possibleIndex;
 			gottenReferingObjectRelation = relationFromPossibleIndex;
-			while (typeof(gottenReferingObject.const.indexParent) !== 'undefined') {
-				gottenReferingObjectRelation = gottenReferingObject.const.indexParentRelation;
-				gottenReferingObject = gottenReferingObject.const.indexParent;
+			while (typeof(gottenReferingObject.indexParent) !== 'undefined') {
+				gottenReferingObjectRelation = gottenReferingObject.indexParentRelation;
+				gottenReferingObject = gottenReferingObject.indexParent;
 			}
 			
 			return gottenReferingObject;
@@ -217,6 +221,31 @@
 		}
 		
 
+		// function hasIncomingRelationArray(array, index) { // Maybe not needed???
+			// incomingRelationsDisabled++;
+			// let result = array[index];
+			// if (typeof(result.isIncomingRelationStructure)) {
+				// return true;
+			// } else {
+				// // Check if there is an internal incoming relation.
+			// }
+			// return false;
+			// incomingRelationsDisabled--;			
+		// }
+
+		
+		function hasIncomingRelation(object, property) {
+			incomingRelationsDisabled++;
+			let result = object[property];
+			if (typeof(result.isIncomingRelationStructure)) {
+				return true;
+			} else {
+				// Check if there is an internal incoming relation.
+			}
+			return false;
+			incomingRelationsDisabled--;			
+		}
+
 		let incomingRelationsDisabled = 0;
 
 		function disableIncomingRelations(action) {
@@ -247,9 +276,9 @@
 			
 			// Get refering object 
 			let referringRelation = key;
-			while (typeof(objectProxy.const.indexParent) !==  'undefined') {
-				referringRelation = objectProxy.const.indexParentRelation;
-				objectProxy = objectProxy.const.indexParent;
+			while (typeof(objectProxy.indexParent) !==  'undefined') {
+				referringRelation = objectProxy.indexParentRelation;
+				objectProxy = objectProxy.indexParent;
 			}
 			
 			// Tear down structure to old value
@@ -278,10 +307,12 @@
 		
 		function createAndRemoveArrayIncomingRelations(arrayProxy, index, removed, added) {
 			// Get refering object 
+			// log("createAndRemoveArrayIncomingRelations");
+			// logGroup();
 			let referringRelation = "[]";
-			while (typeof(arrayProxy.const.indexParent) !==  'undefined') {
-				referringRelation = arrayProxy.const.indexParentRelation;
-				arrayProxy = arrayProxy.const.indexParent;
+			while (typeof(arrayProxy.indexParent) !==  'undefined') {
+				referringRelation = arrayProxy.indexParentRelation;
+				arrayProxy = arrayProxy.indexParent;
 			}
 			
 			// Create mirror relations for added
@@ -289,7 +320,7 @@
 			added.forEach(function(addedElement) {
 				if (isObject(addedElement)) {
 					addedElement.const.incomingReferences++;
-					// console.log("and here");
+					// log("added element is object");
 					let referencedValue = createIncomingStructure(arrayProxy, arrayProxy.const.id, referringRelation, addedElement);
 					if (typeof(addedElement.const.incomingObservers) !== 'undefined') {
 						notifyChangeObservers(addedElement.const.incomingObservers[referringRelation]);
@@ -312,6 +343,7 @@
 					}					
 				});					
 			}
+			// logUngroup();
 			return addedAdjusted;
 		} 
 		
@@ -343,6 +375,7 @@
 		}
 		
 		function createIncomingStructure(referingObject, referingObjectId, property, object) {
+			// log("createIncomingStructure");
 			let mirrorIncomingRelation = getIncomingRelationStructure(object, property);
 			let incomingRelationChunk = intitializeAndConstructMirrorStructure(mirrorIncomingRelation, referingObject, referingObjectId);
 			if (incomingRelationChunk !== null) {
@@ -453,6 +486,7 @@
 			// Move on to new chunk?
 			if (mirrorIncomingRelation.contentsCounter === incomingStructureChunkSize) {
 				let newChunk = {
+					referredObject : mirrorIncomingRelation.referredObject,
 					isRoot : false,
 					contents: {},
 					contentsCounter: 0,
@@ -520,6 +554,10 @@
 			},
 
 			push : function() {
+				// log("push");
+				// logGroup();
+				// log(mirrorRelations);
+				// log(incomingRelationsDisabled);
 				if (!canWrite(this.const.object)) return;
 				inPulse++;
 
@@ -544,6 +582,7 @@
 				}
 				emitSpliceEvent(this, index, removed, added);
 				if (--inPulse === 0) postPulseCleanup();
+				// logUngroup();
 				return this.target.length;
 			},
 
@@ -1037,10 +1076,11 @@
 		*/
 
 		function isIndexParentOf(potentialParent, potentialIndex) {
-			if (!isObject(potentialParent) || !isObject(potentialIndex)) {
+			if (!isObject(potentialParent) || !isObject(potentialIndex)) {  // what is actually an object, what 
+			// if (typeof(potentialParent) !== 'object' || typeof(potentialIndex) !== 'object') {
 				return false;
 			} else {
-				return (typeof(potentialIndex.const.indexParent) !== 'undefined') && potentialIndex.const.indexParent === potentialParent;
+				return (typeof(potentialIndex.indexParent) !== 'undefined') && potentialIndex.indexParent === potentialParent;
 			}
 		}
 		
@@ -1063,7 +1103,7 @@
 			// Get previous value		// Get previous value
 			let previousValue;
 			let previousMirrorStructure;
-			if (mirrorRelations && incomingRelationsDisabled === 0 && !isIndexParentOf(this.const.object, value)) {
+			if (mirrorRelations && incomingRelationsDisabled === 0) {  // && !isIndexParentOf(this.const.object, value) (not needed... )
 				// console.log("causality.getHandlerObject:");
 				// console.log(key);
 				previousMirrorStructure = target[key];
