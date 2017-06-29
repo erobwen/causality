@@ -118,7 +118,7 @@ describe("Projections", function(){
     };
 
     it("Testing just flattening", function(){
-		assert.equal(false, causality.getConfiguration().mirrorRelations);
+		assert.equal(false, causality.getConfiguration().incomingRelations);
 		
         var tree = createTreeNode(1, [
             createTreeNode(2, [

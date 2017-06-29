@@ -1,13 +1,13 @@
 const assert = require('assert');
-let causality = require('../causality')({mirrorRelations : true});
+let causality = require('../causality')({incomingRelations : true});
 let create = causality.create;
 let forAllIncoming = causality.forAllIncoming;
 let log = require("../objectlog.js").log;
 
 
-describe("Mirror Relations", function(){
+describe("Incoming Relations", function(){
 
-    it("Testing mirror relation exists", function(){
+    it("Testing incoming relation exists", function(){
 		let x = create();
 		let y = create();
 		x.foo = y;
@@ -21,7 +21,7 @@ describe("Mirror Relations", function(){
 		assert.equal(yIncomingFoo[0], x);
     });
 	
-	it("Testing mirror relation recursivley", function(){
+	it("Testing incoming relation recursivley", function(){
 		let x = create({name: 'x'});
 		let y = create({name: 'y'});
 		let z = create({name: 'z'});
@@ -46,7 +46,7 @@ describe("Mirror Relations", function(){
 	});
 
 
-	it("Testing mirror relation exists for array index", function(){
+	it("Testing incoming relation exists for array index", function(){
 		let x = create({name: "x"});
 		causality.setIndex(x, "foo", create([]));
 		
@@ -65,7 +65,7 @@ describe("Mirror Relations", function(){
 		assert.equal(yIncomingArray[0], x);
     });
 	
-	it("Testing mirror relation exists for array index 2", function(){
+	it("Testing incoming relation exists for array index 2", function(){
 		let x = create({name: "x"});
 		causality.createArrayIndex(x, "foo");
 		
@@ -110,7 +110,7 @@ describe("Mirror Relations", function(){
 		// Setup a repeater that extracts all incoming
 		let yIncomingFoo;		
 		function updateYIncomingFoo() {
-			// logPattern(y, { _mirror_incoming_relations : { foo : { contents : {}}}});
+			// logPattern(y, { _incoming_incoming_relations : { foo : { contents : {}}}});
 			yIncomingFoo = [];
 			causality.forAllIncoming(y, 'foo', function(referer) {
 				yIncomingFoo.push(referer);

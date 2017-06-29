@@ -1,7 +1,7 @@
 const assert = require('assert');
 let causality = require('../causality')({
 	objectActivityList : true, 
-	mirrorRelations: true, 
+	incomingRelations: true, 
 	recordPulseEvents : true
 });
 causality.addPostPulseAction(postPulse);
@@ -12,7 +12,7 @@ let isObject = causality.isObject;
 let transaction = causality.transaction;
 
 
-// let mirror = require('../mirror');
+// let incoming = require('../incoming');
 let pulseEvents = null
 function postPulse(events) {
 	pulseEvents = events;
