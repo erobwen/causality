@@ -114,7 +114,7 @@
 				let specifier = { 
 					specifierParent : javascriptObject, 
 					specifierProperty : specifierName, 
-					isIncomingRelationStructure : true   // This is a reuse of this object as incoming node as well.
+					isIncomingStructure : true   // This is a reuse of this object as incoming node as well.
 				}
 				if (mirrorStructuresAsCausalityObjects) {
 					javascriptObject[specifierName] = createImmutable(specifier);
@@ -133,7 +133,7 @@
 		 ***************************************************************/
 		 
 		function setIndex(object, property, index) {
-			incomingRelationsDisabled++;
+			incomingStructuresDisabled++;
 			
 			let previousValue = object[property];
 			if (typeof(previousValue) === 'object') {
@@ -145,7 +145,7 @@
 			index.indexParentRelation = property;
 			object[property] = index;
 			
-			incomingRelationsDisabled--;
+			incomingStructuresDisabled--;
 			return index;
 		}
 		 
@@ -161,27 +161,27 @@
 		
 		
 		function createArrayIndex(object, property) {
-			incomingRelationsDisabled++;
+			incomingStructuresDisabled++;
 			
 			let index = create([]);
 			index.indexParent = object;
 			index.indexParentRelation = property;
 			object[property] = index;
 			
-			incomingRelationsDisabled--;
+			incomingStructuresDisabled--;
 			return index;
 		}
 		
 
 		function createObjectIndex(object, property) {
-			incomingRelationsDisabled++;
+			incomingStructuresDisabled++;
 			
 			let index = create({});
 			index.indexParent = object;
 			index.indexParentRelation = property;
 			object[property] = index;
 
-			incomingRelationsDisabled--;
+			incomingStructuresDisabled--;
 			return index;
 		}
 
@@ -239,36 +239,36 @@
 		
 
 		// function hasIncomingRelationArray(array, index) { // Maybe not needed???
-			// incomingRelationsDisabled++;
+			// incomingStructuresDisabled++;
 			// let result = array[index];
-			// if (typeof(result.isIncomingRelationStructure)) {
+			// if (typeof(result.isIncomingStructure)) {
 				// return true;
 			// } else {
 				// // Check if there is an internal incoming relation.
 			// }
 			// return false;
-			// incomingRelationsDisabled--;			
+			// incomingStructuresDisabled--;			
 		// }
 
 		
 		function hasIncomingRelation(object, property) {
-			incomingRelationsDisabled++;
+			incomingStructuresDisabled++;
 			let result = object[property];
-			if (typeof(result.isIncomingRelationStructure)) {
+			if (typeof(result.isIncomingStructure)) {
 				return true;
 			} else {
 				// Check if there is an internal incoming relation.
 			}
 			return false;
-			incomingRelationsDisabled--;			
+			incomingStructuresDisabled--;			
 		}
 
-		let incomingRelationsDisabled = 0;
+		let incomingStructuresDisabled = 0;
 
 		function disableIncomingRelations(action) {
-			incomingRelationsDisabled++;
+			incomingStructuresDisabled++;
 			action();
-			incomingRelationsDisabled--;
+			incomingStructuresDisabled--;
 		}
 		
 		let removedLastIncomingRelationCallback = null;
@@ -405,33 +405,33 @@
 		
 		function getIncomingRelationStructure(referencedObject, relationName) {
 			// Sanity test TODO: remove 
-			if (incomingRelationsDisabled === 0) {
+			if (incomingStructuresDisabled === 0) {
 				referencedObject.foo.bar;
 			}
 			
 			// Create incoming structure
-			let incomingRelations;
+			let incomingStructures;
 			if (typeof(referencedObject.incoming) === 'undefined') {
-				incomingRelations = { isIncomingRelationStructures : true, referredObject: referencedObject };
+				incomingStructures = { isIncomingStructures : true, referredObject: referencedObject };
 				if (mirrorStructuresAsCausalityObjects) {
-					incomingRelations = create(incomingRelations);
+					incomingStructures = create(incomingStructures);
 				}
-				referencedObject.incoming = incomingRelations;
+				referencedObject.incoming = incomingStructures;
 			} else {
-				incomingRelations = referencedObject.incoming;
+				incomingStructures = referencedObject.incoming;
 			}
 			
 			// Create incoming for this particular property
-			if (typeof(incomingRelations[relationName]) === 'undefined') {
-				let mirrorIncomingRelation = { isIncomingRelationStructure : true, referredObject: referencedObject, incomingRelationStructures : incomingRelations };
+			if (typeof(incomingStructures[relationName]) === 'undefined') {
+				let mirrorIncomingRelation = { isIncomingStructure : true, referredObject: referencedObject, incomingStructures : incomingStructures };
 				if (mirrorStructuresAsCausalityObjects) {
 					// Disable incoming relations here? otherwise we might end up with incoming structures between 
 					mirrorIncomingRelation = create(mirrorIncomingRelation);
 				}
-				incomingRelations[relationName] = mirrorIncomingRelation;
+				incomingStructures[relationName] = mirrorIncomingRelation;
 			}
 			
-			return incomingRelations[relationName];
+			return incomingStructures[relationName];
 		}
 		
 		
@@ -439,7 +439,7 @@
 		* Structure helpers
 		*/				
 		function removeMirrorStructure(refererId, referedEntity) {
-			if (typeof(referedEntity.isIncomingRelationStructure) !== 'undefined') {
+			if (typeof(referedEntity.isIncomingStructure) !== 'undefined') {
 				let incomingRelation = referedEntity;
 				let incomingRelationContents = incomingRelation['contents'];
 				delete incomingRelationContents[idExpression(refererId)];
@@ -580,7 +580,7 @@
 				// log("push");
 				// logGroup();
 				// log(mirrorRelations);
-				// log(incomingRelationsDisabled);
+				// log(incomingStructuresDisabled);
 				if (!canWrite(this.const.object)) return;
 				inPulse++;
 
@@ -590,11 +590,11 @@
 				let removed = null;
 				let added = argumentsArray;
 				
-				if (mirrorRelations && incomingRelationsDisabled === 0) {
-					incomingRelationsDisabled++
+				if (mirrorRelations && incomingStructuresDisabled === 0) {
+					incomingStructuresDisabled++
 					added = createAndRemoveArrayIncomingRelations(this.const.object, index, removed, added); // TODO: implement for other array manipulators as well. 
 					// TODO: What about removed adjusted?
-					incomingRelationsDisabled--
+					incomingStructuresDisabled--
 				}
 				
 				observerNotificationNullified++;
@@ -1031,7 +1031,7 @@
 							registerChangeObserver(getSpecifier(this.const, "_enumerateObservers"));
 						}
 					}
-					if (mirrorRelations && incomingRelationsDisabled === 0 && keyInTarget && key !== 'incoming') {
+					if (mirrorRelations && incomingStructuresDisabled === 0 && keyInTarget && key !== 'incoming') {
 						// console.log("find referred object");
 						// console.log(key);
 						return findReferredObject(target[key]);
@@ -1126,7 +1126,7 @@
 			// Get previous value		// Get previous value
 			let previousValue;
 			let previousMirrorStructure;
-			if (mirrorRelations && incomingRelationsDisabled === 0) {  // && !isIndexParentOf(this.const.object, value) (not needed... )
+			if (mirrorRelations && incomingStructuresDisabled === 0) {  // && !isIndexParentOf(this.const.object, value) (not needed... )
 				// console.log("causality.getHandlerObject:");
 				// console.log(key);
 				previousMirrorStructure = target[key];
@@ -1156,11 +1156,11 @@
 			
 			// Perform assignment with regards to mirror structures.
 			let mirrorStructureValue;
-			if (mirrorRelations && incomingRelationsDisabled === 0 && !isIndexParentOf(this.const.object, value)) {
-				incomingRelationsDisabled++;
+			if (mirrorRelations && incomingStructuresDisabled === 0 && !isIndexParentOf(this.const.object, value)) {
+				incomingStructuresDisabled++;
 				mirrorStructureValue = createAndRemoveIncomingRelations(this.const.object, key, value, previousValue);
 				target[key] = mirrorStructureValue; 
-				incomingRelationsDisabled--;
+				incomingStructuresDisabled--;
 			} else {
 				target[key] = value;
 			}
@@ -1177,11 +1177,11 @@
 			}
 
 			// Emit event
-			if (mirrorRelations && incomingRelationsDisabled === 0 && !isIndexParentOf(this.const.object, value)) {
+			if (mirrorRelations && incomingStructuresDisabled === 0 && !isIndexParentOf(this.const.object, value)) {
 				// Emit extra event 
-				incomingRelationsDisabled++
+				incomingStructuresDisabled++
 				emitSetEvent(this, key, mirrorStructureValue, previousMirrorStructure);
-				incomingRelationsDisabled--
+				incomingStructuresDisabled--
 			}
 			emitSetEvent(this, key, value, previousValue);
 			
@@ -1796,7 +1796,7 @@
 			if (emitEventPaused === 0) {
 				// log("EMIT EVENT " + configuration.name + " " + event.type + " " + event.property + "=...");
 				if (mirrorRelations) {
-					event.incomingStructureEvent = incomingRelationsDisabled !== 0
+					event.incomingStructureEvent = incomingStructuresDisabled !== 0
 				}
 				// console.log(event);
 				// event.objectId = handler.const.id;
