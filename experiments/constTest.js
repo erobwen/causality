@@ -50,7 +50,7 @@
 
 
 	console.time("testContainer");
-	testContainer({A: false});
+	testContainer({A: false, b: 1, c: 2, d: 3, e : 3, f: 1, g: 2, h: 3, i: 23, j: 12});
 	console.timeEnd("testContainer");
 	
 	console.time("testConst");
@@ -66,14 +66,14 @@
 	console.timeEnd("testParam");
 	
 	console.time("testContainer");
-	testContainer({A: false});
+	testContainer({A: false, b: 1, c: 2, d: 3, e : 3, f: 1, g: 2, h: 3, i: 23, j: 12});
 	console.timeEnd("testContainer");
 
 	//--
 
 
 	console.time("testContainer");
-	testContainer({A: false});
+	testContainer({A: false, b: 1, c: 2, d: 3, e : 3, f: 1, g: 2, h: 3, i: 23, j: 12});
 	console.timeEnd("testContainer");
 	
 	console.time("testLet");
@@ -89,5 +89,5 @@
 	console.timeEnd("testParam");
 
 	console.time("testContainer");
-	testContainer({A: false});
+	testContainer({A: false, b: 1, c: 2, d: 3, e : 3, f: 1, g: 2, h: 3, i: 23, j: 12});
 	console.timeEnd("testContainer");
