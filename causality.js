@@ -15,18 +15,7 @@
 	let logUngroup = objectlog.exit;
 
 	function createCausalityInstance(configuration) {
-		let inPulse = 0;
-		
-		let postPulseProcess = 0;
-	 
-		let pulseEvents = [];
-		
-		let recordPulseEvents = false;
-		
 
-		// Causality instance
-		let causalityInstance;
-		
 		
 		/***************************************************************
 		 *
@@ -1718,6 +1707,12 @@
 		 *  Upon change do
 		 **********************************/
 
+		let inPulse = 0;
+		
+		let postPulseProcess = 0; // Remove??
+	 
+		let pulseEvents = [];
+		
 		function pulse(action) {
 			inPulse++;
 			action();
@@ -2869,7 +2864,18 @@
 			handler.activityListNext = null;
 			handler.activityListPrevious = null;
 		}
+		
+		
+		/************************************************************************
+		 *
+		 *  Debugging
+		 *
+		 ************************************************************************/
 		 
+		function getInPulse() {
+			return inPulse;
+		}
+		
 		/************************************************************************
 		 *
 		 *  Module installation and configuration
@@ -2877,36 +2883,11 @@
 		 ************************************************************************/
 
 		
-		let useIncomingStructures = false;
-		
-		let exposeIncomingRelationIntermediary;
-		let incomingStructuresAsCausalityObjects;
-		
-		function getConfiguration() {
-			return configuration;
-		}
-
-		// Set activate special features
-		let anySet = false;
-		for (property in configuration) {
-			anySet = configuration[property] || anySet;
-		}
-		if (anySet) {
-			configuration.activateSpecialFeatures = true;
-		}
-		// console.log(configuration);
-		
 		// Assign optimized variables (reduce one object indexing)
-		recordPulseEvents = configuration.recordPulseEvents;
-		useIncomingStructures = configuration.useIncomingStructures;
-		exposeIncomingRelationIntermediary = configuration.exposeIncomingRelationIntermediary;
-		incomingStructuresAsCausalityObjects = configuration.incomingStructuresAsCausalityObjects;
+		let recordPulseEvents = configuration.recordPulseEvents;
+		let useIncomingStructures = configuration.useIncomingStructures;
+		let incomingStructuresAsCausalityObjects = configuration.incomingStructuresAsCausalityObjects;
 		
-		function setCumulativeAssignment(value) {
-			console.log("DO NOT USE!!!!");
-			// setConfiguration({cumulativeAssignment : value}); 
-		}
-		 
 
 		// Language extensions
 		let languageExtensions = {
@@ -2938,24 +2919,12 @@
 			setIndex : setIndex
 		}
 		
-		let trace = false;
-
-		function startTrace() {
-			trace = true;
-		}
-
-		function endTrace() {
-			trace = false;
-		}
-		
 		// Debugging and testing
 		let debuggingAndTesting = {
 			observeAll : observeAll,
 			cachedCallCount : cachedCallCount,
 			clearRepeaterLists : clearRepeaterLists,
 			resetObjectIds : resetObjectIds,
-			startTrace : startTrace,
-			endTrace : endTrace,
 			getInPulse : getInPulse
 		}
 			
@@ -2978,21 +2947,15 @@
 		}
 
 		
-		function getInPulse() {
-			return inPulse;
-		}
-		causalityInstance = {
+		let causalityInstance = {
+			// Install causality to global scope. 
 			install : install,
 			
-			// Framework setup (usually not used by application code)
-			// setConfiguration : setConfiguration,
-			getConfiguration : getConfiguration,
-			// setCumulativeAssignment : setCumulativeAssignment,
-			
-			// Setup & Configuration
+			// Setup. Consider: add these to configuration instead? 
 			addPostPulseAction : addPostPulseAction,
 			setCustomCanRead : setCustomCanRead,
 			setCustomCanWrite : setCustomCanWrite,
+			addRemovedLastIncomingRelationCallback : addRemovedLastIncomingRelationCallback,
 			
 			// Id expressions
 			isIdExpression : isIdExpression, 
@@ -3000,9 +2963,7 @@
 			extractIdFromExpression : extractIdFromExpression,
 			transformPossibleIdExpression : transformPossibleIdExpression,
 			
-			addRemovedLastIncomingRelationCallback : addRemovedLastIncomingRelationCallback,
-			
-			// Framework interface
+			// Activity list interface
 			setActivityListFilter : setActivityListFilter,
 			getActivityListLast : getActivityListLast,
 			getActivityListFirst : getActivityListFirst,
@@ -3038,7 +2999,6 @@
 			
 			// Special features
 			useIncomingStructures : false,
-			exposeIncomingRelationIntermediary : false,
 			incomingStructuresAsCausalityObjects: false,
 			incomingReferenceCounters : false, 
 			
@@ -3055,8 +3015,18 @@
 			requestedConfiguration = {};
 		}
 		
+		// Create configuration 
 		let defaultConfiguration = getDefaultConfiguration();
 		Object.assign(defaultConfiguration, requestedConfiguration);
+		let anySet = false;
+		for (property in defaultConfiguration) {
+			anySet = defaultConfiguration[property] || anySet;
+		}
+		if (anySet) {
+			defaultConfiguration.activateSpecialFeatures = true;
+		}
+		
+		// Create configuration signature
 		let configuration = sortedKeys(defaultConfiguration);
 		let signature = JSON.stringify(configuration);
 		// console.log("================= REQUEST: ==========");
