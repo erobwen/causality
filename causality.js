@@ -1124,17 +1124,14 @@
 			// }
 		// }
 		
-		function setHandlerObject(target, key, value) {
-			// logGroup();
-			if (configuration.objectActivityList) registerActivity(this);
-					
+		function setHandlerObject(target, key, value) {					
 			// Overlays
 			if (this.const.forwardsTo !== null) {
 				let overlayHandler = this.const.forwardsTo.const.handler;
 				return overlayHandler.set.apply(overlayHandler, [overlayHandler.target, key, value]);
 			}
 			
-			// Writeprotection
+			// Write protection
 			if (!canWrite(this.const.object)) return;
 			
 			// Ensure initialized
@@ -1170,15 +1167,31 @@
 			inPulse++;
 			observerNotificationPostponed++;
 			let undefinedKey = !(key in target);
+					
+			// logGroup();
+			if (configuration.objectActivityList) registerActivity(this);
 			
 			// Perform assignment with regards to incoming structures.
 			let incomingStructureValue;
-			if (configuration.useIncomingStructures && incomingStructuresDisabled === 0 && !isIndexParentOf(this.const.object, value)) {
-				incomingStructuresDisabled++;
-				incomingStructureValue = createAndRemoveIncomingRelations(this.const.object, key, value, previousValue);
-				target[key] = incomingStructureValue; 
-				incomingStructuresDisabled--;
-			} else {
+			if (configuration.useIncomingStructures) {
+				increaseIncomingCounter(value);
+				decreaseIncomingCounter(previousValue);
+				decreaseIncomingCounter(previousIncomingStructure);
+				if (incomingStructuresDisabled === 0) { // && !isIndexParentOf(this.const.object, value)
+					incomingStructuresDisabled++;
+					incomingStructureValue = createAndRemoveIncomingRelations(this.const.object, key, value, previousValue);
+					target[key] = incomingStructureValue; 
+					incomingStructuresDisabled--;
+				} else {
+					target[key] = value;
+				}
+			} 
+			else if (configuration.incomingReferenceCounters){
+				increaseIncomingCounter(value);
+				decreaseIncomingCounter(previousValue);
+				target[key] = value;
+			} 
+			else {
 				target[key] = value;
 			}
 			
