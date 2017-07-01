@@ -565,10 +565,6 @@
 			},
 
 			push : function() {
-				// log("push");
-				// logGroup();
-				// log(configuration.useIncomingStructures);
-				// log(incomingStructuresDisabled);
 				if (!canWrite(this.const.object)) return;
 				inPulse++;
 
@@ -578,10 +574,12 @@
 				let removed = null;
 				let added = argumentsArray;
 				
+				// TODO: configuration.incomingReferenceCounters || .... 
 				if (configuration.useIncomingStructures && incomingStructuresDisabled === 0) {
 					incomingStructuresDisabled++
 					added = createAndRemoveArrayIncomingRelations(this.const.object, index, removed, added); // TODO: implement for other array manipulators as well. 
-					// TODO: What about removed adjusted?
+					// TODO: What about removed adjusted? 
+					// TODO: What about the events? 
 					incomingStructuresDisabled--
 				}
 				
@@ -2925,13 +2923,9 @@
 		 *  Module installation
 		 * @param target
 		 */
-		function install(target, configuration) {
+		function install(target) {
 			if (typeof(target) === 'undefined') {
 				target = (typeof(global) !== 'undefined') ? global : window;
-			} else {
-				if (typeof(configuration) !== 'undefined') {
-					setConfiguration(configuration);
-				}			
 			}
 
 			Object.assign(target, languageExtensions);
