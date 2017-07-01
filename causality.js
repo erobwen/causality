@@ -1107,6 +1107,37 @@
 			}
 		}
 		
+		
+		
+		function increaseIncomingCounter(value) {
+			if (isObject(value)) {
+				if (typeof(value.const.incomingReferencesCount) === 'undefined') {
+					value.const.incomingReferencesCount = 0;
+				}
+				value.const.incomingReferencesCount++;
+			}
+		}
+		
+		function decreaseIncomingCounter(value) {
+			if (isObject(value)) {
+				value.const.incomingReferencesCount--;
+				if (value.const.incomingReferencesCount === 0) {
+					removedLastIncomingRelation(value);
+				}
+			}
+		}
+		
+		// if (useIncomingStructures) {
+			// if (useIncomingStructures && incomingStructuresDisabled === 0) {	
+				// increaseIncomingCounter(value);
+				// decreaseIncomingCounter(previousValue);
+				// decreaseIncomingCounter(previousIncomingStructure);
+			// } else {
+				// increaseIncomingCounter(value);
+				// decreaseIncomingCounter(previousValue);					
+			// }
+		// }
+		
 		function setHandlerObject(target, key, value) {
 			// logGroup();
 			if (configuration.objectActivityList) registerActivity(this);
