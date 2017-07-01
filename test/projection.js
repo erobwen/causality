@@ -118,7 +118,7 @@ describe("Projections", function(){
     };
 
     it("Testing just flattening", function(){
-		assert.equal(false, causality.getConfiguration().incomingRelations);
+		assert.equal(false, causality.getConfiguration().useIncomingStructures);
 		
         var tree = createTreeNode(1, [
             createTreeNode(2, [

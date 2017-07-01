@@ -1,5 +1,5 @@
 const assert = require('assert');
-let causality = require('../causality')({incomingRelations : true});
+let causality = require('../causality')({useIncomingStructures : true, incomingReferenceCounters : true});
 let create = causality.create;
 let forAllIncoming = causality.forAllIncoming;
 let log = require("../objectlog.js").log;

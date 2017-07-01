@@ -579,7 +579,7 @@
 			push : function() {
 				// log("push");
 				// logGroup();
-				// log(incomingRelations);
+				// log(useIncomingStructures);
 				// log(incomingStructuresDisabled);
 				if (!canWrite(this.const.object)) return;
 				inPulse++;
@@ -590,7 +590,7 @@
 				let removed = null;
 				let added = argumentsArray;
 				
-				if (incomingRelations && incomingStructuresDisabled === 0) {
+				if (useIncomingStructures && incomingStructuresDisabled === 0) {
 					incomingStructuresDisabled++
 					added = createAndRemoveArrayIncomingRelations(this.const.object, index, removed, added); // TODO: implement for other array manipulators as well. 
 					// TODO: What about removed adjusted?
@@ -1031,7 +1031,7 @@
 							registerChangeObserver(getSpecifier(this.const, "_enumerateObservers"));
 						}
 					}
-					if (incomingRelations && incomingStructuresDisabled === 0 && keyInTarget && key !== 'incoming') {
+					if (useIncomingStructures && incomingStructuresDisabled === 0 && keyInTarget && key !== 'incoming') {
 						// console.log("find referred object");
 						// console.log(key);
 						return findReferredObject(target[key]);
@@ -1157,7 +1157,7 @@
 			// Get previous value		// Get previous value
 			let previousValue;
 			let previousIncomingStructure;
-			if (incomingRelations && incomingStructuresDisabled === 0) {  // && !isIndexParentOf(this.const.object, value) (not needed... )
+			if (useIncomingStructures && incomingStructuresDisabled === 0) {  // && !isIndexParentOf(this.const.object, value) (not needed... )
 				// console.log("causality.getHandlerObject:");
 				// console.log(key);
 				previousIncomingStructure = target[key];
@@ -1187,7 +1187,7 @@
 			
 			// Perform assignment with regards to incoming structures.
 			let incomingStructureValue;
-			if (incomingRelations && incomingStructuresDisabled === 0 && !isIndexParentOf(this.const.object, value)) {
+			if (useIncomingStructures && incomingStructuresDisabled === 0 && !isIndexParentOf(this.const.object, value)) {
 				incomingStructuresDisabled++;
 				incomingStructureValue = createAndRemoveIncomingRelations(this.const.object, key, value, previousValue);
 				target[key] = incomingStructureValue; 
@@ -1208,7 +1208,7 @@
 			}
 
 			// Emit event
-			if (incomingRelations && incomingStructuresDisabled === 0 && !isIndexParentOf(this.const.object, value)) {
+			if (useIncomingStructures && incomingStructuresDisabled === 0 && !isIndexParentOf(this.const.object, value)) {
 				// Emit extra event 
 				incomingStructuresDisabled++
 				emitSetEvent(this, key, incomingStructureValue, previousIncomingStructure);
@@ -1826,7 +1826,7 @@
 		function emitEvent(handler, event) {
 			if (emitEventPaused === 0) {
 				// log("EMIT EVENT " + configuration.name + " " + event.type + " " + event.property + "=...");
-				if (incomingRelations) {
+				if (useIncomingStructures) {
 					event.incomingStructureEvent = incomingStructuresDisabled !== 0
 				}
 				// console.log(event);
@@ -2877,7 +2877,7 @@
 		 ************************************************************************/
 
 		
-		let incomingRelations = false;
+		let useIncomingStructures = false;
 		
 		let exposeIncomingRelationIntermediary;
 		let incomingStructuresAsCausalityObjects;
@@ -2898,7 +2898,7 @@
 		
 		// Assign optimized variables (reduce one object indexing)
 		recordPulseEvents = configuration.recordPulseEvents;
-		incomingRelations = configuration.incomingRelations;
+		useIncomingStructures = configuration.useIncomingStructures;
 		exposeIncomingRelationIntermediary = configuration.exposeIncomingRelationIntermediary;
 		incomingStructuresAsCausalityObjects = configuration.incomingStructuresAsCausalityObjects;
 		
@@ -3037,9 +3037,10 @@
 			activateSpecialFeatures : false, 
 			
 			// Special features
-			incomingRelations : false,
+			useIncomingStructures : false,
 			exposeIncomingRelationIntermediary : false,
 			incomingStructuresAsCausalityObjects: false,
+			incomingReferenceCounters : false, 
 			
 			cumulativeAssignment : false,
 			directStaticAccess : false,

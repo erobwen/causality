@@ -1,7 +1,7 @@
 const assert = require('assert');
 // const requireUncached = require('require-uncached');
 
-let causality = require('../causality')({objectActivityList : true, incomingRelations: true});
+let causality = require('../causality')({objectActivityList : true, useIncomingStructures: true});
 let create = causality.create;
 
 // let incoming = require('../incoming');
