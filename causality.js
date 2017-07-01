@@ -15,7 +15,6 @@
 	let logUngroup = objectlog.exit;
 
 	function createCausalityInstance(configuration) {
-
 		
 		/***************************************************************
 		 *
@@ -105,7 +104,7 @@
 					specifierProperty : specifierName, 
 					isIncomingStructure : true   // This is a reuse of this object as incoming node as well.
 				}
-				if (incomingStructuresAsCausalityObjects) {
+				if (configuration.incomingStructuresAsCausalityObjects) {
 					javascriptObject[specifierName] = createImmutable(specifier);
 				} else {
 					javascriptObject[specifierName] = specifier;				
@@ -402,7 +401,7 @@
 			let incomingStructures;
 			if (typeof(referencedObject.incoming) === 'undefined') {
 				incomingStructures = { isIncomingStructures : true, referredObject: referencedObject };
-				if (incomingStructuresAsCausalityObjects) {
+				if (configuration.incomingStructuresAsCausalityObjects) {
 					incomingStructures = create(incomingStructures);
 				}
 				referencedObject.incoming = incomingStructures;
@@ -413,7 +412,7 @@
 			// Create incoming for this particular property
 			if (typeof(incomingStructures[relationName]) === 'undefined') {
 				let incomingIncomingRelation = { isIncomingStructure : true, referredObject: referencedObject, incomingStructures : incomingStructures };
-				if (incomingStructuresAsCausalityObjects) {
+				if (configuration.incomingStructuresAsCausalityObjects) {
 					// Disable incoming relations here? otherwise we might end up with incoming structures between 
 					incomingIncomingRelation = create(incomingIncomingRelation);
 				}
@@ -481,7 +480,7 @@
 			if (typeof(incomingIncomingRelation.initialized) === 'undefined') {
 				incomingIncomingRelation.isRoot = true;
 				incomingIncomingRelation.contents = {};
-				if (incomingStructuresAsCausalityObjects) {
+				if (configuration.incomingStructuresAsCausalityObjects) {
 					incomingIncomingRelation.contents = create(incomingIncomingRelation.contents);
 				}
 				incomingIncomingRelation.contentsCounter = 0;
@@ -506,7 +505,7 @@
 					previous: null,
 					parent: null
 				};
-				if (incomingStructuresAsCausalityObjects) {
+				if (configuration.incomingStructuresAsCausalityObjects) {
 					newChunk.contents = create(newChunk.contents);
 					newChunk = create(newChunk);
 				}
@@ -568,7 +567,7 @@
 			push : function() {
 				// log("push");
 				// logGroup();
-				// log(useIncomingStructures);
+				// log(configuration.useIncomingStructures);
 				// log(incomingStructuresDisabled);
 				if (!canWrite(this.const.object)) return;
 				inPulse++;
@@ -579,7 +578,7 @@
 				let removed = null;
 				let added = argumentsArray;
 				
-				if (useIncomingStructures && incomingStructuresDisabled === 0) {
+				if (configuration.useIncomingStructures && incomingStructuresDisabled === 0) {
 					incomingStructuresDisabled++
 					added = createAndRemoveArrayIncomingRelations(this.const.object, index, removed, added); // TODO: implement for other array manipulators as well. 
 					// TODO: What about removed adjusted?
@@ -1020,7 +1019,7 @@
 							registerChangeObserver(getSpecifier(this.const, "_enumerateObservers"));
 						}
 					}
-					if (useIncomingStructures && incomingStructuresDisabled === 0 && keyInTarget && key !== 'incoming') {
+					if (configuration.useIncomingStructures && incomingStructuresDisabled === 0 && keyInTarget && key !== 'incoming') {
 						// console.log("find referred object");
 						// console.log(key);
 						return findReferredObject(target[key]);
@@ -1116,8 +1115,8 @@
 			}
 		}
 		
-		// if (useIncomingStructures) {
-			// if (useIncomingStructures && incomingStructuresDisabled === 0) {	
+		// if (configuration.useIncomingStructures) {
+			// if (configuration.useIncomingStructures && incomingStructuresDisabled === 0) {	
 				// increaseIncomingCounter(value);
 				// decreaseIncomingCounter(previousValue);
 				// decreaseIncomingCounter(previousIncomingStructure);
@@ -1146,7 +1145,7 @@
 			// Get previous value		// Get previous value
 			let previousValue;
 			let previousIncomingStructure;
-			if (useIncomingStructures && incomingStructuresDisabled === 0) {  // && !isIndexParentOf(this.const.object, value) (not needed... )
+			if (configuration.useIncomingStructures && incomingStructuresDisabled === 0) {  // && !isIndexParentOf(this.const.object, value) (not needed... )
 				// console.log("causality.getHandlerObject:");
 				// console.log(key);
 				previousIncomingStructure = target[key];
@@ -1176,7 +1175,7 @@
 			
 			// Perform assignment with regards to incoming structures.
 			let incomingStructureValue;
-			if (useIncomingStructures && incomingStructuresDisabled === 0 && !isIndexParentOf(this.const.object, value)) {
+			if (configuration.useIncomingStructures && incomingStructuresDisabled === 0 && !isIndexParentOf(this.const.object, value)) {
 				incomingStructuresDisabled++;
 				incomingStructureValue = createAndRemoveIncomingRelations(this.const.object, key, value, previousValue);
 				target[key] = incomingStructureValue; 
@@ -1197,7 +1196,7 @@
 			}
 
 			// Emit event
-			if (useIncomingStructures && incomingStructuresDisabled === 0 && !isIndexParentOf(this.const.object, value)) {
+			if (configuration.useIncomingStructures && incomingStructuresDisabled === 0 && !isIndexParentOf(this.const.object, value)) {
 				// Emit extra event 
 				incomingStructuresDisabled++
 				emitSetEvent(this, key, incomingStructureValue, previousIncomingStructure);
@@ -1780,40 +1779,40 @@
 		}
 
 		function emitImmutableCreationEvent(object) {
-			if (recordPulseEvents) {
+			if (configuration.recordPulseEvents) {
 				let event = { type: 'creation', object: object }
-				if (recordPulseEvents) {
+				if (configuration.recordPulseEvents) {
 					pulseEvents.push(event);
 				}
 			}		
 		} 
 		
 		function emitCreationEvent(handler) {
-			if (recordPulseEvents) {
+			if (configuration.recordPulseEvents) {
 				emitEvent(handler, { type: 'creation' });
 			}		
 		} 
 		 
 		function emitSpliceEvent(handler, index, removed, added) {
-			if (recordPulseEvents || typeof(handler.observers) !== 'undefined') {
+			if (configuration.recordPulseEvents || typeof(handler.observers) !== 'undefined') {
 				emitEvent(handler, { type: 'splice', index: index, removed: removed, added: added});
 			}
 		}
 
 		function emitSpliceReplaceEvent(handler, key, value, previousValue) {
-			if (recordPulseEvents || typeof(handler.observers) !== 'undefined') {
+			if (configuration.recordPulseEvents || typeof(handler.observers) !== 'undefined') {
 				emitEvent(handler, { type: 'splice', index: key, removed: [previousValue], added: [value] });
 			}
 		}
 
 		function emitSetEvent(handler, key, value, previousValue) {
-			if (recordPulseEvents || typeof(handler.observers) !== 'undefined') {
+			if (configuration.recordPulseEvents || typeof(handler.observers) !== 'undefined') {
 				emitEvent(handler, {type: 'set', property: key, newValue: value, oldValue: previousValue});
 			}
 		}
 
 		function emitDeleteEvent(handler, key, previousValue) {
-			if (recordPulseEvents || typeof(handler.observers) !== 'undefined') {
+			if (configuration.recordPulseEvents || typeof(handler.observers) !== 'undefined') {
 				emitEvent(handler, {type: 'delete', property: key, deletedValue: previousValue});
 			}
 		}
@@ -1821,13 +1820,13 @@
 		function emitEvent(handler, event) {
 			if (emitEventPaused === 0) {
 				// log("EMIT EVENT " + configuration.name + " " + event.type + " " + event.property + "=...");
-				if (useIncomingStructures) {
+				if (configuration.useIncomingStructures) {
 					event.incomingStructureEvent = incomingStructuresDisabled !== 0
 				}
 				// console.log(event);
 				// event.objectId = handler.const.id;
 				event.object = handler.const.object; 
-				if (recordPulseEvents) {
+				if (configuration.recordPulseEvents) {
 					pulseEvents.push(event);
 				}
 				if (typeof(handler.observers) !== 'undefined') {
@@ -1839,7 +1838,7 @@
 		}
 		
 		function emitUnobservableEvent(event) {
-			if (recordPulseEvents) {
+			if (configuration.recordPulseEvents) {
 				pulseEvents.push(event);
 			}
 		}
@@ -2883,12 +2882,6 @@
 		 ************************************************************************/
 
 		
-		// Assign optimized variables (reduce one object indexing)
-		let recordPulseEvents = configuration.recordPulseEvents;
-		let useIncomingStructures = configuration.useIncomingStructures;
-		let incomingStructuresAsCausalityObjects = configuration.incomingStructuresAsCausalityObjects;
-		
-
 		// Language extensions
 		let languageExtensions = {
 			// Object creation and identification
