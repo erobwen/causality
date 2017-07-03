@@ -1101,14 +1101,14 @@
 		}
 		*/
 
-		function isIndexParentOf(potentialParent, potentialIndex) {
-			if (!isObject(potentialParent) || !isObject(potentialIndex)) {  // what is actually an object, what 
-			// if (typeof(potentialParent) !== 'object' || typeof(potentialIndex) !== 'object') {
-				return false;
-			} else {
-				return (typeof(potentialIndex.indexParent) !== 'undefined') && potentialIndex.indexParent === potentialParent;
-			}
-		}
+		// function isIndexParentOf(potentialParent, potentialIndex) {
+			// if (!isObject(potentialParent) || !isObject(potentialIndex)) {  // what is actually an object, what 
+			// // if (typeof(potentialParent) !== 'object' || typeof(potentialIndex) !== 'object') {
+				// return false;
+			// } else {
+				// return (typeof(potentialIndex.indexParent) !== 'undefined') && potentialIndex.indexParent === potentialParent;
+			// }
+		// }
 		
 		
 		
@@ -1227,7 +1227,7 @@
 			}
 
 			// Emit event
-			if (configuration.useIncomingStructures && incomingStructuresDisabled === 0 && !isIndexParentOf(this.const.object, value)) {
+			if (configuration.useIncomingStructures && incomingStructuresDisabled === 0) {// && !isIndexParentOf(this.const.object, value)) {
 				// Emit extra event 
 				incomingStructuresDisabled++
 				emitSetEvent(this, key, incomingStructureValue, previousIncomingStructure);
