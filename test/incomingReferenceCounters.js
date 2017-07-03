@@ -13,6 +13,8 @@ describe("Incoming Relations", function(){
 		y.fum = y; // self reference
 
 		assert.equal(y.const.incomingReferencesCount, 2);
+		y.fum = null;
+		assert.equal(y.const.incomingReferencesCount, 1);
     });
 	
 	// it("Testing incoming relation recursivley", function(){

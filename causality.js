@@ -287,18 +287,17 @@
 			}
 			
 			// Tear down structure to old value
-			
 			if (isObject(previousValue)) {
-				if ((previousValue.const.incomingReferences -= 1) === 0) removedLastIncomingRelation(previousValue);
+				if (configuration.blockInitializeForIncomingStructures) blockingInitialize++;
 				removeIncomingStructure(objectProxy.const.id, previousValue); // TODO: Fix BUG. This really works?
 				if (typeof(previousValue.const.incomingObservers) !== 'undefined') {
 					notifyChangeObservers(previousValue.const.incomingObservers[referringRelation]);
 				}
+				if (configuration.blockInitializeForIncomingStructures) blockingInitialize--;
 			}
 
 			// Setup structure to new value
 			if (isObject(value)) {
-				value.const.incomingReferences++;
 				let referencedValue = createIncomingStructure(objectProxy, objectProxy.const.id, referringRelation, value);
 				if (typeof(value.const.incomingObservers) !== 'undefined') {
 					notifyChangeObservers(value.const.incomingObservers[referringRelation]);
@@ -309,6 +308,24 @@
 			return value;
 		}
 		
+		function removeIncomingRelation(objectProxy, key, removedValue) {
+			// Get refering object 
+			let referringRelation = key;
+			while (typeof(objectProxy.indexParent) !==  'undefined') {
+				referringRelation = objectProxy.indexParentRelation;
+				objectProxy = objectProxy.indexParent;
+			}
+			
+			// Tear down structure to old value
+			if (isObject(removedValue)) {
+				if (configuration.blockInitializeForIncomingStructures) blockingInitialize++;
+				removeIncomingStructure(objectProxy.const.id, removedValue); // TODO: Fix BUG. This really works?
+				if (typeof(removedValue.const.incomingObservers) !== 'undefined') {
+					notifyChangeObservers(removedValue.const.incomingObservers[referringRelation]);
+				}
+				if (configuration.blockInitializeForIncomingStructures) blockingInitialize--;
+			}
+		}
 		
 		function createAndRemoveArrayIncomingRelations(arrayProxy, index, removed, added) {
 			// Get refering object 
@@ -1096,21 +1113,25 @@
 		
 		
 		function increaseIncomingCounter(value) {
-			if (isObject(value)) {
+			if (configuration.blockInitializeForIncomingReferenceCounters) blockingInitialize++;
+			if (isObject(value)) {				
 				if (typeof(value.const.incomingReferencesCount) === 'undefined') {
 					value.const.incomingReferencesCount = 0;
 				}
 				value.const.incomingReferencesCount++;
 			}
+			if (configuration.blockInitializeForIncomingReferenceCounters) blockingInitialize--;
 		}
 		
 		function decreaseIncomingCounter(value) {
+			if (configuration.blockInitializeForIncomingReferenceCounters) blockingInitialize++;
 			if (isObject(value)) {
 				value.const.incomingReferencesCount--;
 				if (value.const.incomingReferencesCount === 0) {
 					removedLastIncomingRelation(value);
 				}
 			}
+			if (configuration.blockInitializeForIncomingReferenceCounters) blockingInitialize--;
 		}
 		
 		// if (configuration.useIncomingStructures) {
@@ -1180,18 +1201,17 @@
 				if (incomingStructuresDisabled === 0) { // && !isIndexParentOf(this.const.object, value)
 					incomingStructuresDisabled++;
 					incomingStructureValue = createAndRemoveIncomingRelations(this.const.object, key, value, previousValue);
-					target[key] = incomingStructureValue; 
+					increaseIncomingCounter(incomingStructureValue);
+					target[key] = incomingStructureValue;
 					incomingStructuresDisabled--;
 				} else {
 					target[key] = value;
 				}
-			} 
-			else if (configuration.incomingReferenceCounters){
+			} else if (configuration.incomingReferenceCounters){
 				increaseIncomingCounter(value);
 				decreaseIncomingCounter(previousValue);
 				target[key] = value;
-			} 
-			else {
+			} else {
 				target[key] = value;
 			}
 			
@@ -1237,7 +1257,34 @@
 				return true;
 			} else {
 				inPulse++;
-				let previousValue = target[key];
+				let previousValue;
+				let previousIncomingStructure;
+				if (configuration.useIncomingStructures && incomingStructuresDisabled === 0) {  // && !isIndexParentOf(this.const.object, value) (not needed... )
+					// console.log("causality.getHandlerObject:");
+					// console.log(key);
+					previousIncomingStructure = target[key];
+					previousValue = findReferredObject(target[key]);
+				} else {
+					previousValue = target[key]; 
+				}
+				
+				if (configuration.useIncomingStructures) {
+					decreaseIncomingCounter(previousValue);
+					decreaseIncomingCounter(previousIncomingStructure);
+					if (incomingStructuresDisabled === 0) { // && !isIndexParentOf(this.const.object, value)
+						incomingStructuresDisabled++;
+						removeIncomingRelation(this.const.object, key, previousValue);
+						delete target[key];
+						incomingStructuresDisabled--;
+					} else {
+						delete target[key];
+					}
+				} else if (configuration.incomingReferenceCounters){
+					decreaseIncomingCounter(previousValue);
+					delete target[key];
+				} else {
+					delete target[key];
+				}
 				delete target[key];
 				if(!( key in target )) { // Write protected?
 					emitDeleteEvent(this, key, previousValue);
@@ -3001,6 +3048,8 @@
 			useIncomingStructures : false,
 			incomingStructuresAsCausalityObjects: false,
 			incomingReferenceCounters : false, 
+			blockInitializeForIncomingStructures: false, 
+			blockInitializeForIncomingReferenceCounters: false, 
 			
 			cumulativeAssignment : false,
 			directStaticAccess : false,

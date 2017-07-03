@@ -55,7 +55,7 @@ describe("Activity list", function(){
 
 		x.z = z;
 		y.z = z;
-		assert.equal(z.const.incomingReferences, 2);
+		assert.equal(z.const.incomingReferencesCount, 2);
 		
 		// delete x.z;
 		// delete y.z; //TODO: make it work!
