@@ -851,9 +851,9 @@
 				target[key] = value;
 				if( target[key] === value || (Number.isNaN(target[key]) && Number.isNaN(value)) ) { // Write protected?
 					emitSetEvent(this, key, value, previousValue);
-					if (typeof(this.const._arrayObservers) !== 'undefined') {
-						notifyChangeObservers(this.const._arrayObservers);
-					}
+					// if (typeof(this.const._arrayObservers) !== 'undefined') {
+						// notifyChangeObservers(this.const._arrayObservers);
+					// }
 				}
 			}
 
@@ -1214,26 +1214,27 @@
 			} else {
 				target[key] = value;
 			}
-			
-			// If assignment was successful, notify change
-			if (undefinedKey) {
-				if (typeof(this.const._enumerateObservers) !== 'undefined') {
-					notifyChangeObservers(this.const._enumerateObservers);
-				}
-			} else {
-				if (typeof(this.const._propertyObservers) !== 'undefined' && typeof(this.const._propertyObservers[key]) !== 'undefined') {
-					notifyChangeObservers(this.const._propertyObservers[key]);
-				}
-			}
 
 			// Emit event
 			if (configuration.useIncomingStructures && incomingStructuresDisabled === 0) {// && !isIndexParentOf(this.const.object, value)) {
 				// Emit extra event 
-				incomingStructuresDisabled++
+				incomingStructuresDisabled++;
 				emitSetEvent(this, key, incomingStructureValue, previousIncomingStructure);
-				incomingStructuresDisabled--
+				incomingStructuresDisabled--;
 			}
 			emitSetEvent(this, key, value, previousValue);
+						
+						
+			// // If assignment was successful, notify change
+			// if (undefinedKey) {
+				// if (typeof(this.const._enumerateObservers) !== 'undefined') {
+					// notifyChangeObservers(this.const._enumerateObservers);
+				// }
+			// } else {
+				// if (typeof(this.const._propertyObservers) !== 'undefined' && typeof(this.const._propertyObservers[key]) !== 'undefined') {
+					// notifyChangeObservers(this.const._propertyObservers[key]);
+				// }
+			// }
 			
 			// End pulse 
 			observerNotificationPostponed--;
@@ -1863,9 +1864,22 @@
 			}
 		}
 
-		function emitSetEvent(handler, key, value, previousValue) {
+		function emitSetEvent(handler, key, value, previousValue) {	
 			if (configuration.recordPulseEvents || typeof(handler.observers) !== 'undefined') {
+				observerNotificationPostponed++;
 				emitEvent(handler, {type: 'set', property: key, newValue: value, oldValue: previousValue});
+				observerNotificationPostponed--;
+			}
+			
+			// If assignment was successful, notify change
+			if (typeof(previousValue) === 'undefined') {
+				if (typeof(handler.const._enumerateObservers) !== 'undefined') {
+					notifyChangeObservers(handler.const._enumerateObservers);
+				}
+			} else {
+				if (typeof(handler.const._propertyObservers) !== 'undefined' && typeof(handler.const._propertyObservers[key]) !== 'undefined') {
+					notifyChangeObservers(handler.const._propertyObservers[key]);
+				}
 			}
 		}
 
