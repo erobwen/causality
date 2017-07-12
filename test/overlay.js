@@ -36,7 +36,7 @@ describe("Overlays", function(){
         assert.equal(x.fie, 32);
 
         // Remove overlay
-        x.nonForwardStatic.forwardsTo = null;
+        x.nonForwardConst.forwardsTo = null;
 		// console.log(x.const.tag);
 		// console.log("no more overlay");
         assert.equal(x.foo, 1);

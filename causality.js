@@ -13,9 +13,10 @@
 	let log = objectlog.log;
 	let logGroup = objectlog.enter;
 	let logUngroup = objectlog.exit;
-
+	
+	
 	function createCausalityInstance(configuration) {
-		
+
 		/***************************************************************
 		 *
 		 *  Id format
@@ -760,7 +761,7 @@
 		 
 		/*
 		function getHandlerArrayOptimized(target, key) {
-			if (this.const.forwardsTo !== null && key !== 'nonForwardStatic') { //  && (typeof(overlayBypass[key]) === 'undefined')
+			if (this.const.forwardsTo !== null && key !== 'nonForwardConst') { //  && (typeof(overlayBypass[key]) === 'undefined')
 				let overlayHandler = this.const.forwardsTo.const.handler;
 				return overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
 			}
@@ -781,7 +782,7 @@
 		*/
 		
 		function getHandlerArray(target, key) {
-			if (this.const.forwardsTo !== null && key !== 'nonForwardStatic') { // && (typeof(overlayBypass[key]) === 'undefined')
+			if (this.const.forwardsTo !== null && key !== 'nonForwardConst') { // && (typeof(overlayBypass[key]) === 'undefined')
 				// console.log(this.const.forwardsTo);
 				let overlayHandler = this.const.forwardsTo.const.handler;
 				return overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
@@ -789,7 +790,7 @@
 			
 			ensureInitialized(this, target);
 			
-			if (key === "const" || key === "nonForwardStatic") {
+			if (key === "const" || key === "nonForwardConst") {
 				return this.const;
 			} else if (constArrayOverrides[key]) {
 				return constArrayOverrides[key].bind(this);
@@ -851,9 +852,9 @@
 				target[key] = value;
 				if( target[key] === value || (Number.isNaN(target[key]) && Number.isNaN(value)) ) { // Write protected?
 					emitSetEvent(this, key, value, previousValue);
-					// if (typeof(this.const._arrayObservers) !== 'undefined') {
-						// notifyChangeObservers(this.const._arrayObservers);
-					// }
+					if (typeof(this.const._arrayObservers) !== 'undefined') {
+						notifyChangeObservers(this.const._arrayObservers);
+					}
 				}
 			}
 
@@ -964,7 +965,7 @@
 		function getHandlerObjectOptimized(target, key) {
 			key = key.toString();
 
-			if (this.const.forwardsTo !== null && key !== "nonForwardStatic") {
+			if (this.const.forwardsTo !== null && key !== "nonForwardConst") {
 				let overlayHandler = this.const.forwardsTo.const.handler;
 				let result = overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
 				return result;
@@ -997,21 +998,23 @@
 	*/
 		
 		function getHandlerObject(target, key) {
-			if (configuration.objectActivityList) registerActivity(this);
+			// log("getHandlerObject, key: " + key);
 			key = key.toString();
 			// console.log("getHandlerObject: " + key);
 			// if (key instanceof 'Symbol') { incoming
 				// throw "foobar";
 			// }
-			if (this.const.forwardsTo !== null && key !== "nonForwardStatic") {
+			ensureInitialized(this, target);
+			
+			if (this.const.forwardsTo !== null && key !== "nonForwardConst") {
 				let overlayHandler = this.const.forwardsTo.const.handler;
 				let result = overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
 				return result;
 			}
 			
-			ensureInitialized(this, target);
+			if (configuration.objectActivityList) registerActivity(this);
 					
-			if (key === "const" || key === "nonForwardStatic") {
+			if (key === "const" || key === "nonForwardConst") {
 				return this.const;
 			} else if (configuration.directStaticAccess && typeof(this.const[key]) !== 'undefined') { // TODO: implement directStaticAccess for other readers. 
 				// console.log("direct const access: " + key);
@@ -1145,18 +1148,21 @@
 			// }
 		// }
 		
-		function setHandlerObject(target, key, value) {					
+		function setHandlerObject(target, key, value) {			
+			// Ensure initialized
+			ensureInitialized(this, target);
+			
 			// Overlays
 			if (this.const.forwardsTo !== null) {
 				let overlayHandler = this.const.forwardsTo.const.handler;
 				return overlayHandler.set.apply(overlayHandler, [overlayHandler.target, key, value]);
 			}
 			
+			// logGroup();
+			if (configuration.objectActivityList) registerActivity(this);
+			
 			// Write protection
 			if (!canWrite(this.const.object)) return;
-			
-			// Ensure initialized
-			ensureInitialized(this, target);
 			
 			// Get previous value		// Get previous value
 			let previousValue;
@@ -1189,8 +1195,7 @@
 			observerNotificationPostponed++;
 			let undefinedKey = !(key in target);
 					
-			// logGroup();
-			if (configuration.objectActivityList) registerActivity(this);
+
 			
 			// Perform assignment with regards to incoming structures.
 			let incomingStructureValue;
@@ -1214,27 +1219,26 @@
 			} else {
 				target[key] = value;
 			}
+			
+			// If assignment was successful, notify change
+			if (undefinedKey) {
+				if (typeof(this.const._enumerateObservers) !== 'undefined') {
+					notifyChangeObservers(this.const._enumerateObservers);
+				}
+			} else {
+				if (typeof(this.const._propertyObservers) !== 'undefined' && typeof(this.const._propertyObservers[key]) !== 'undefined') {
+					notifyChangeObservers(this.const._propertyObservers[key]);
+				}
+			}
 
 			// Emit event
 			if (configuration.useIncomingStructures && incomingStructuresDisabled === 0) {// && !isIndexParentOf(this.const.object, value)) {
 				// Emit extra event 
-				incomingStructuresDisabled++;
+				incomingStructuresDisabled++
 				emitSetEvent(this, key, incomingStructureValue, previousIncomingStructure);
-				incomingStructuresDisabled--;
+				incomingStructuresDisabled--
 			}
 			emitSetEvent(this, key, value, previousValue);
-						
-						
-			// // If assignment was successful, notify change
-			// if (undefinedKey) {
-				// if (typeof(this.const._enumerateObservers) !== 'undefined') {
-					// notifyChangeObservers(this.const._enumerateObservers);
-				// }
-			// } else {
-				// if (typeof(this.const._propertyObservers) !== 'undefined' && typeof(this.const._propertyObservers[key]) !== 'undefined') {
-					// notifyChangeObservers(this.const._propertyObservers[key]);
-				// }
-			// }
 			
 			// End pulse 
 			observerNotificationPostponed--;
@@ -1497,7 +1501,7 @@
 			}
 			
 			handler.const.const = handler.const;
-			handler.const.nonForwardStatic = handler.const;
+			handler.const.nonForwardConst = handler.const;
 			
 			// TODO: consider what we should do when we have reverse references. Should we loop through createdTarget and form proper reverse structures?
 			// Experiments: 
@@ -1510,6 +1514,7 @@
 
 			if (inReCache()) {
 				if (cacheId !== null &&  typeof(context.cacheIdObjectMap[cacheId]) !== 'undefined') {
+					// TODO: what if we have zombie objects in the cacheIdOBjectMap... we need to save their previous forwarding... and restore it at the end of the reCache.... 
 					// Overlay previously created
 					let infusionTarget = context.cacheIdObjectMap[cacheId];
 					infusionTarget.const.handler.const.forwardsTo = proxy;
@@ -1864,22 +1869,9 @@
 			}
 		}
 
-		function emitSetEvent(handler, key, value, previousValue) {	
+		function emitSetEvent(handler, key, value, previousValue) {
 			if (configuration.recordPulseEvents || typeof(handler.observers) !== 'undefined') {
-				observerNotificationPostponed++;
 				emitEvent(handler, {type: 'set', property: key, newValue: value, oldValue: previousValue});
-				observerNotificationPostponed--;
-			}
-			
-			// If assignment was successful, notify change
-			if (typeof(previousValue) === 'undefined') {
-				if (typeof(handler.const._enumerateObservers) !== 'undefined') {
-					notifyChangeObservers(handler.const._enumerateObservers);
-				}
-			} else {
-				if (typeof(handler.const._propertyObservers) !== 'undefined' && typeof(handler.const._propertyObservers[key]) !== 'undefined') {
-					notifyChangeObservers(handler.const._propertyObservers[key]);
-				}
 			}
 		}
 
@@ -2715,8 +2707,8 @@
 		}
 
 		function mergeOverlayIntoObject(object) {
-			let overlay = object.nonForwardStatic.forwardsTo;
-			object.nonForwardStatic.forwardsTo = null;
+			let overlay = object.nonForwardConst.forwardsTo;
+			object.nonForwardConst.forwardsTo = null;
 			mergeInto(overlay, object);
 		}
 
@@ -2729,7 +2721,7 @@
 		}
 
 		function genericRemoveForwarding() {
-			this.nonForwardStatic.forwardsTo = null;
+			this.nonForwardConst.forwardsTo = null;
 		}
 
 		function genericMergeAndRemoveForwarding() {
@@ -2739,6 +2731,8 @@
 		/************************************************************************
 		 *
 		 *  Projection (continous creation and infusion)
+		 *
+		 *  TODO: Deal with zombie objects that is already forwarding... 
 		 *
 		 ************************************************************************/
 
@@ -2792,7 +2786,7 @@
 						// console.log("Assimilating:");
 						withoutRecording(function() { // Do not observe reads from the overlays
 							cacheRecord.newlyCreated.forEach(function(created) {
-								if (created.nonForwardStatic.forwardsTo !== null) {
+								if (created.nonForwardConst.forwardsTo !== null) {
 									// console.log("Has overlay, merge!!!!");
 									mergeOverlayIntoObject(created);
 								} else {
@@ -2888,15 +2882,62 @@
 		}
 		
 		function pokeObject(object) {
+			let tmpFrozen = activityListFrozen;
+			activityListFrozen = 0;
 			registerActivity(object.const.handler);
+			activityListFrozen = tmpFrozen;
 		}
 
 		function removeFromActivityList(proxy) {
 			removeFromActivityListHandler(proxy.const.handler);
 		}
 		
+		let activityListFrozen = 0;
+		function freezeActivityList(action) {
+			activityListFrozen++;
+			action();
+			activityListFrozen--;
+		}
+		
+		function stacktrace() { 
+			function st2(f) {
+				return !f ? [] : 
+					st2(f.caller).concat([f.toString().split('(')[0].substring(9) + '(' + f.arguments.join(',') + ')']);
+			}
+			return st2(arguments.callee.caller);
+		}
+		
+		function logActivityList() {
+			activityListFrozen++;
+			blockingInitialize++;
+		
+			let current = activityListFirst;
+			let result = "[";
+			let first = true;
+						// log("activityList: ");
+			while(current !== null && typeof(current) !== 'undefined') {
+				if (!first) {
+					result += ", ";
+				}
+				result += current.const.object.name;
+				// current = current.activityListPrevious;
+				current = current.activityListNext;
+				first = false;
+			}
+			
+			log(result + "]");
+			
+			blockingInitialize--;
+			activityListFrozen--;
+		}
+
 		function registerActivity(handler) {
-			if (activityListFilter === null || activityListFilter(handler.const.object)) {
+			if (activityListFrozen === 0 && activityListFirst !== handler &&(activityListFilter === null || activityListFilter(handler.const.object))) {
+				activityListFrozen++;
+				blockingInitialize++;
+				// log("<<< registerActivity: "  + handler.target.name + " >>>");
+				logGroup();
+				// log(handler.target);
 				// Init if not initialized
 				if (typeof(handler.activityListNext) === 'undefined') {
 					handler.activityListNext = null;
@@ -2915,16 +2956,21 @@
 					activityListLast = handler;
 				}
 				activityListFirst = handler;				
+				
+				// logActivityList();
+				blockingInitialize--;
+				activityListFrozen--;
+				logUngroup();
 			}
 		}
 		
 		function removeFromActivityListHandler(handler) {
 			// Remove from wherever it is in the structure
 			if (handler.activityListNext !== null) {
-				handler.activityListNext.previous = handler.activityListPrevious;
+				handler.activityListNext.activityListPrevious = handler.activityListPrevious;
 			}
 			if (handler.activityListPrevious !== null) {
-				handler.activityListPrevious.next = handler.activityListNext;
+				handler.activityListPrevious.activityListNext = handler.activityListNext;
 			}
 			if (activityListLast === handler) {
 				activityListLast = handler.activityListPrevious;
@@ -3025,6 +3071,8 @@
 			transformPossibleIdExpression : transformPossibleIdExpression,
 			
 			// Activity list interface
+			logActivityList : logActivityList,
+			freezeActivityList : freezeActivityList,
 			setActivityListFilter : setActivityListFilter,
 			getActivityListLast : getActivityListLast,
 			getActivityListFirst : getActivityListFirst,
