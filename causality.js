@@ -71,7 +71,7 @@
 						stringBuffer.push(idExpressionPrefix + idMapper(parseInt(splitOnSuffix[0])) + idExpressionSuffix + splitOnSuffix[1]);
 					} else {
 						// Id expression syntax error
-						throw new Exception("Id expression syntax error");
+						throw new Error("Id expression syntax error");
 					}
 				}
 				return idExpressionPrefix + stringBuffer.join("") + idExpressionSuffix;
@@ -998,7 +998,7 @@
 	*/
 		
 		function getHandlerObject(target, key) {
-			// log("getHandlerObject, key: " + key);
+			if (trace.basic > 0) log("getHandlerObject, key: "  + this.const.name + "." + key);
 			key = key.toString();
 			// console.log("getHandlerObject: " + key);
 			// if (key instanceof 'Symbol') { incoming
@@ -1007,6 +1007,7 @@
 			ensureInitialized(this, target);
 			
 			if (this.const.forwardsTo !== null && key !== "nonForwardConst") {
+				// TODO: test that this can handle recursive forwards. 
 				let overlayHandler = this.const.forwardsTo.const.handler;
 				let result = overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
 				return result;
@@ -1148,18 +1149,25 @@
 			// }
 		// }
 		
+		let trace = { basic : 0}; 
+		
+		
 		function setHandlerObject(target, key, value) {			
 			// Ensure initialized
+			if (trace.basic > 0) log("setHandlerObject: " + this.const.name + ".key = ");
 			ensureInitialized(this, target);
 			
 			// Overlays
 			if (this.const.forwardsTo !== null) {
+				if (trace.basic > 0) log("forward");
 				let overlayHandler = this.const.forwardsTo.const.handler;
 				return overlayHandler.set.apply(overlayHandler, [overlayHandler.target, key, value]);
 			}
+			if (trace.basic > 0) log("here");
 			
 			// logGroup();
 			if (configuration.objectActivityList) registerActivity(this);
+			if (trace.basic > 0) log("configuration.objectActivityList: " + configuration.objectActivityList);
 			
 			// Write protection
 			if (!canWrite(this.const.object)) return;
@@ -2889,6 +2897,7 @@
 		}
 
 		function removeFromActivityList(proxy) {
+			if (trace.basic) log("<<< removeFromActivityList : "  + proxy.const.name + " >>>");
 			removeFromActivityListHandler(proxy.const.handler);
 		}
 		
@@ -2919,7 +2928,7 @@
 				if (!first) {
 					result += ", ";
 				}
-				result += current.const.object.name;
+				result += current.const.name;
 				// current = current.activityListPrevious;
 				current = current.activityListNext;
 				first = false;
@@ -2935,7 +2944,7 @@
 			if (activityListFrozen === 0 && activityListFirst !== handler &&(activityListFilter === null || activityListFilter(handler.const.object))) {
 				activityListFrozen++;
 				blockingInitialize++;
-				// log("<<< registerActivity: "  + handler.target.name + " >>>");
+				if (trace.basic) log("<<< registerActivity: "  + handler.const.name + " >>>");
 				logGroup();
 				// log(handler.target);
 				// Init if not initialized
@@ -2957,7 +2966,7 @@
 				}
 				activityListFirst = handler;				
 				
-				// logActivityList();
+				if (trace.basic) logActivityList();
 				blockingInitialize--;
 				activityListFrozen--;
 				logUngroup();
@@ -3036,7 +3045,8 @@
 			cachedCallCount : cachedCallCount,
 			clearRepeaterLists : clearRepeaterLists,
 			resetObjectIds : resetObjectIds,
-			getInPulse : getInPulse
+			getInPulse : getInPulse,
+			trace : trace
 		}
 			
 		/**
