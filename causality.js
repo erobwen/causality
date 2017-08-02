@@ -399,8 +399,8 @@
 		
 		function createIncomingStructure(referingObject, referingObjectId, property, object) {
 			// log("createIncomingStructure");
-			let incomingIncomingRelation = getIncomingRelationStructure(object, property);
-			let incomingRelationChunk = intitializeAndConstructIncomingStructure(incomingIncomingRelation, referingObject, referingObjectId);
+			let incomingStructure = getIncomingRelationStructure(object, property);
+			let incomingRelationChunk = intitializeAndConstructIncomingStructure(incomingStructure, referingObject, referingObjectId);
 			if (incomingRelationChunk !== null) {
 				return incomingRelationChunk;
 			} else {
@@ -429,12 +429,12 @@
 			
 			// Create incoming for this particular property
 			if (typeof(incomingStructures[relationName]) === 'undefined') {
-				let incomingIncomingRelation = { isIncomingStructure : true, referredObject: referencedObject, incomingStructures : incomingStructures };
+				let incomingStructure = { isIncomingStructure : true, referredObject: referencedObject, incomingStructures : incomingStructures };
 				if (configuration.incomingStructuresAsCausalityObjects) {
 					// Disable incoming relations here? otherwise we might end up with incoming structures between 
-					incomingIncomingRelation = create(incomingIncomingRelation);
+					incomingStructure = create(incomingStructure);
 				}
-				incomingStructures[relationName] = incomingIncomingRelation;
+				incomingStructures[relationName] = incomingStructure;
 			}
 			
 			return incomingStructures[relationName];
@@ -488,34 +488,35 @@
 			}
 		}
 		
-		function intitializeAndConstructIncomingStructure(incomingIncomingRelation, referingObject, referingObjectId) {
+		function intitializeAndConstructIncomingStructure(incomingStructure, referingObject, referingObjectId) {
 			let refererId = idExpression(referingObjectId);
 			// console.log("intitializeAndConstructIncomingStructure:");
 			// console.log(referingObject);
 			
 			
 			// console.log(activeRecorder);
-			if (typeof(incomingIncomingRelation.initialized) === 'undefined') {
-				incomingIncomingRelation.isRoot = true;
-				incomingIncomingRelation.contents = {};
+			if (typeof(incomingStructure.initialized) === 'undefined') {
+				incomingStructure.isRoot = true;
+				incomingStructure.contents = {};
 				if (configuration.incomingStructuresAsCausalityObjects) {
-					incomingIncomingRelation.contents = create(incomingIncomingRelation.contents);
+					incomingStructure.contents = create(incomingStructure.contents);
 				}
-				incomingIncomingRelation.contentsCounter = 0;
-				incomingIncomingRelation.initialized = true;
-				incomingIncomingRelation.first = null;
-				incomingIncomingRelation.last = null;
+				incomingStructure.contentsCounter = 0;
+				incomingStructure.initialized = true;
+				incomingStructure.first = null;
+				incomingStructure.last = null;
 			}
 
 			// Already added as relation
-			if (typeof(incomingIncomingRelation.contents[refererId]) !== 'undefined') {
+			if (typeof(incomingStructure.contents[refererId]) !== 'undefined') {
 				return null;
 			}
 
 			// Move on to new chunk?
-			if (incomingIncomingRelation.contentsCounter === configuration.incomingStructureChunkSize) {
+			if (incomingStructure.contentsCounter === configuration.incomingStructureChunkSize) {
+				log("newChunk!!!");
 				let newChunk = {
-					referredObject : incomingIncomingRelation.referredObject,
+					referredObject : incomingStructure.referredObject,
 					isRoot : false,
 					contents: {},
 					contentsCounter: 0,
@@ -528,28 +529,28 @@
 					newChunk = create(newChunk);
 				}
 
-				if (incomingIncomingRelation.isRoot) {
-					newChunk.parent = incomingIncomingRelation;
-					incomingIncomingRelation.first = newChunk;
-					incomingIncomingRelation.last = newChunk;
+				if (incomingStructure.isRoot) {
+					newChunk.parent = incomingStructure;
+					incomingStructure.first = newChunk;
+					incomingStructure.last = newChunk;
 				} else {
-					incomingIncomingRelation.next = newChunk;
-					newChunk.previous = incomingIncomingRelation;
-					newChunk.parent = incomingIncomingRelation.parent;
-					incomingIncomingRelation.parent.last = newChunk;
+					incomingStructure.next = newChunk;
+					newChunk.previous = incomingStructure;
+					newChunk.parent = incomingStructure.parent;
+					incomingStructure.parent.last = newChunk;
 				}
-				incomingIncomingRelation = newChunk;
+				incomingStructure = newChunk;
 			}
 
 			// Add repeater on object beeing observed, if not already added before
-			let incomingIncomingRelationContents = incomingIncomingRelation.contents;
-			if (typeof(incomingIncomingRelationContents[refererId]) === 'undefined') {
-				incomingIncomingRelation.contentsCounter = incomingIncomingRelation.contentsCounter + 1;
-				incomingIncomingRelationContents[refererId] = referingObject;
+			let incomingStructureContents = incomingStructure.contents;
+			if (typeof(incomingStructureContents[refererId]) === 'undefined') {
+				incomingStructure.contentsCounter = incomingStructure.contentsCounter + 1;
+				incomingStructureContents[refererId] = referingObject;
 
 				// Note dependency in repeater itself (for cleaning up)
-				// activeRecorder.sources.push(incomingIncomingRelation);
-				return incomingIncomingRelation;
+				// activeRecorder.sources.push(incomingStructure);
+				return incomingStructure;
 			} else {
 				return null;
 			}
