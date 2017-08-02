@@ -198,8 +198,6 @@
 		 *
 		 ***************************************************************/
 
-		let incomingStructureChunkSize = 500;
-
 		function forAllIncoming(object, property, callback) {
 			registerAnyChangeObserver(getSpecifier(getSpecifier(object.const, "incomingObservers"), property));
 			withoutRecording(function() { // This is needed for setups where incoming structures are made out of causality objects. 
@@ -255,9 +253,11 @@
 		let incomingStructuresDisabled = 0;
 
 		function disableIncomingRelations(action) {
+			inPulse++;
 			incomingStructuresDisabled++;
 			action();
 			incomingStructuresDisabled--;
+			if(--inPulse === 0) postPulseCleanup();
 		}
 		
 		let removedLastIncomingRelationCallback = null;
@@ -513,7 +513,7 @@
 			}
 
 			// Move on to new chunk?
-			if (incomingIncomingRelation.contentsCounter === incomingStructureChunkSize) {
+			if (incomingIncomingRelation.contentsCounter === configuration.incomingStructureChunkSize) {
 				let newChunk = {
 					referredObject : incomingIncomingRelation.referredObject,
 					isRoot : false,
@@ -1154,23 +1154,32 @@
 		
 		function setHandlerObject(target, key, value) {			
 			// Ensure initialized
-			if (trace.basic > 0) log("setHandlerObject: " + this.const.name + ".key = ");
+			if (trace.basic > 0) {
+				log("setHandlerObject: " + this.const.name + ".key = ");
+				logGroup();
+			}
 			ensureInitialized(this, target);
 			
 			// Overlays
 			if (this.const.forwardsTo !== null) {
 				if (trace.basic > 0) log("forward");
 				let overlayHandler = this.const.forwardsTo.const.handler;
+				if (trace.basic > 0) logUngroup();
 				return overlayHandler.set.apply(overlayHandler, [overlayHandler.target, key, value]);
+			} else {
+				if (trace.basic > 0) log("no forward");
 			}
-			if (trace.basic > 0) log("here");
 			
 			// logGroup();
 			if (configuration.objectActivityList) registerActivity(this);
 			if (trace.basic > 0) log("configuration.objectActivityList: " + configuration.objectActivityList);
 			
 			// Write protection
-			if (!canWrite(this.const.object)) return;
+			if (!canWrite(this.const.object)) {
+				if (trace.basic > 0) logUngroup();
+				return;
+			}
+			if (trace.basic > 0) log("can write!");
 			
 			// Get previous value		// Get previous value
 			let previousValue;
@@ -1178,8 +1187,12 @@
 			if (configuration.useIncomingStructures && incomingStructuresDisabled === 0) {  // && !isIndexParentOf(this.const.object, value) (not needed... )
 				// console.log("causality.getHandlerObject:");
 				// console.log(key);
+				incomingStructuresDisabled++;
+				activityListFrozen++;
 				previousIncomingStructure = target[key];
 				previousValue = findReferredObject(target[key]);
+				activityListFrozen--;
+				incomingStructuresDisabled--;
 			} else {
 				previousValue = target[key]; 
 			}
@@ -1188,6 +1201,7 @@
 			if (key in target) {
 				if (previousValue === value || (Number.isNaN(previousValue) && Number.isNaN(value)) ) {
 					// if (configuration.name === 'objectCausality')  log("ALREAD SET");
+					if (trace.basic > 0) logUngroup();
 					return true;
 				}
 			}
@@ -1195,6 +1209,7 @@
 			// If cumulative assignment, inside recorder and value is undefined, no assignment.
 			if (configuration.cumulativeAssignment && inActiveRecording && (isNaN(value) || typeof(value) === 'undefined')) {
 				// if (configuration.name === 'objectCausality')  log("CUMULATIVE");
+				if (trace.basic > 0) logUngroup();
 				return true;
 			}
 			
@@ -1208,6 +1223,7 @@
 			// Perform assignment with regards to incoming structures.
 			let incomingStructureValue;
 			if (configuration.useIncomingStructures) {
+				activityListFrozen++;
 				increaseIncomingCounter(value);
 				decreaseIncomingCounter(previousValue);
 				decreaseIncomingCounter(previousIncomingStructure);
@@ -1220,9 +1236,12 @@
 				} else {
 					target[key] = value;
 				}
+				activityListFrozen--;
 			} else if (configuration.incomingReferenceCounters){
+				activityListFrozen++;
 				increaseIncomingCounter(value);
 				decreaseIncomingCounter(previousValue);
+				activityListFrozen--;
 				target[key] = value;
 			} else {
 				target[key] = value;
@@ -1252,6 +1271,7 @@
 			observerNotificationPostponed--;
 			proceedWithPostponedNotifications();
 			if (--inPulse === 0) postPulseCleanup();
+			if (trace.basic > 0) logUngroup();
 			return true;
 		}
 
@@ -1396,6 +1416,11 @@
 		} 
 		 
 		function create(createdTarget, cacheId) {
+			if (trace.basic > 0) {
+				log("create:");
+				logGroup();
+			}
+			
 			inPulse++;
 			let id = nextId++;
 			
@@ -1539,7 +1564,11 @@
 			}
 			
 			emitCreationEvent(handler);
+			if (configuration.objectActivityList) registerActivity(handler);
 			if (--inPulse === 0) postPulseCleanup();
+			
+			if (trace.basic > 0) logUngroup();
+			
 			return proxy;
 		}
 
@@ -2037,7 +2066,13 @@
 		}
 
 		let recordingPaused = 0;
-
+		
+		function assertNotRecording() {
+			if (inActiveRecording) {
+				throw new Error("Should not be in a recording right now...");
+			}
+		}
+		
 		function withoutRecording(action) {
 			recordingPaused++;
 			updateInActiveRecording();
@@ -2546,6 +2581,18 @@
 						let cacheRecord = functionCacher.deleteExistingRecord();
 						notifyChangeObservers(cacheRecord.contextObservers);
 					}.bind(this));
+
+					// Future design:
+				// let returnValue = uponChangeDo(
+					// function () {
+						// return callAction();
+					// }.bind(this),
+					// createImmutable({
+						// object: cacheRecord,
+						// method: "notifyObservers"
+					// })
+				// );	
+					
 				leaveContext();
 				cacheRecord.returnValue = returnValue;
 				getSpecifier(cacheRecord, "contextObservers").noMoreObserversCallback = function() {
@@ -2939,12 +2986,16 @@
 			blockingInitialize--;
 			activityListFrozen--;
 		}
-
+		
 		function registerActivity(handler) {
 			if (activityListFrozen === 0 && activityListFirst !== handler &&(activityListFilter === null || activityListFilter(handler.const.object))) {
 				activityListFrozen++;
 				blockingInitialize++;
-				if (trace.basic) log("<<< registerActivity: "  + handler.const.name + " >>>");
+				if (trace.basic) {
+					// stacktrace();
+					// throw new Error("see ya");
+					log("<<< registerActivity: "  + handler.const.name + " >>>");
+				}
 				logGroup();
 				// log(handler.target);
 				// Init if not initialized
@@ -3023,6 +3074,7 @@
 			
 			// Global modifiers
 			withoutSideEffects : withoutSideEffects,
+			assertNotRecording : assertNotRecording,
 			withoutRecording : withoutRecording,
 			withoutNotifyChange : nullifyObserverNotification,
 			withoutEmittingEvents : withoutEmittingEvents,
@@ -3115,9 +3167,10 @@
 		return {
 			// Main feature switch, turn off for performance! This property will be set automatically depending on the other settings.
 			activateSpecialFeatures : false, 
-			
+						
 			// Special features
 			useIncomingStructures : false,
+			incomingStructureChunkSize: 500,
 			incomingStructuresAsCausalityObjects: false,
 			incomingReferenceCounters : false, 
 			blockInitializeForIncomingStructures: false, 
@@ -3141,7 +3194,7 @@
 		Object.assign(defaultConfiguration, requestedConfiguration);
 		let anySet = false;
 		for (property in defaultConfiguration) {
-			anySet = defaultConfiguration[property] || anySet;
+			anySet = (defaultConfiguration[property] === true) || anySet;
 		}
 		if (anySet) {
 			defaultConfiguration.activateSpecialFeatures = true;
