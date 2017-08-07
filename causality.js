@@ -474,9 +474,9 @@
 							incomingRelation.previous.next = incomingRelation.next;
 						}
 
-						// Send dissconnected event...
-						//incomingRelation.... redirect to next in event...
-
+						if (configuration.incomingChunkRemovedCallback !== null) {
+							configuration.incomingChunkRemovedCallback(incomingRelation);
+						}
 						incomingRelation.previous = null;
 						incomingRelation.next = null;
 
@@ -503,13 +503,13 @@
 			if (typeof(incomingStructureRoot.initialized) === 'undefined') {
 				incomingStructureRoot.isRoot = true;
 				incomingStructureRoot.contents = {};
-				if (configuration.incomingStructuresAsCausalityObjects) {
-					incomingStructureRoot.contents = create(incomingStructureRoot.contents);
-				}
 				incomingStructureRoot.contentsCounter = 0;
 				incomingStructureRoot.initialized = true;
 				incomingStructureRoot.first = null;
 				incomingStructureRoot.last = null;
+				if (configuration.incomingStructuresAsCausalityObjects) {
+					incomingStructureRoot.contents = create(incomingStructureRoot.contents);
+				}
 			}
 
 			// Already added in the root
@@ -531,6 +531,7 @@
 					// log("newChunk!!!");
 					let newChunk = {
 						referredObject : incomingStructureRoot.referredObject,
+						isIncomingStructure : true,
 						isRoot : false,
 						contents: {},
 						contentsCounter: 0,
@@ -3193,6 +3194,7 @@
 			// Special features
 			useIncomingStructures : false,
 			incomingStructureChunkSize: 500,
+			incomingChunkRemovedCallback : null,
 			incomingStructuresAsCausalityObjects: false,
 			incomingReferenceCounters : false, 
 			blockInitializeForIncomingStructures: false, 
