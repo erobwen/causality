@@ -410,7 +410,7 @@
 		} 
 		
 		
-		function getIncomingRelationStructure(referencedObject, relationName) {
+		function getIncomingRelationStructure(referencedObject, property) {
 			// Sanity test TODO: remove 
 			if (incomingStructuresDisabled === 0) {
 				referencedObject.foo.bar;
@@ -419,7 +419,7 @@
 			// Create incoming structure
 			let incomingStructures;
 			if (typeof(referencedObject.incoming) === 'undefined') {
-				incomingStructures = { isIncomingStructures : true, referredObject: referencedObject };
+				incomingStructures = { isIncomingStructures : true, referredObject: referencedObject, last: null, first: null };
 				if (configuration.incomingStructuresAsCausalityObjects) {
 					incomingStructures = create(incomingStructures);
 				}
@@ -429,16 +429,24 @@
 			}
 			
 			// Create incoming for this particular property
-			if (typeof(incomingStructures[relationName]) === 'undefined') {
-				let incomingStructure = { relationName : relationName, isIncomingStructure : true, referredObject: referencedObject, incomingStructures : incomingStructures };
+			if (typeof(incomingStructures[property]) === 'undefined') {
+				let incomingStructure = { property : property, isIncomingStructure : true, referredObject: referencedObject, incomingStructures : incomingStructures, next: null, previous: incomingStructures.last };
+				if (incomingStructures.first === null) {
+					incomingStructures.first = incomingStructure;
+					incomingStructures.last = incomingStructure;
+				} else {					
+					incomingStructures.last.next = incomingStructure;
+					incomingStructures.last = incomingStructure;
+				}
+				
 				if (configuration.incomingStructuresAsCausalityObjects) {
 					// Disable incoming relations here? otherwise we might end up with incoming structures between 
 					incomingStructure = create(incomingStructure);
 				}
-				incomingStructures[relationName] = incomingStructure;
+				incomingStructures[property] = incomingStructure;
 			}
 			
-			return incomingStructures[relationName];
+			return incomingStructures[property];
 		}
 		
 		
@@ -1021,27 +1029,36 @@
 	*/
 		
 		function getHandlerObject(target, key) {
-			if (trace.basic > 0) log("getHandlerObject, key: "  + this.const.name + "." + key);
+			if (trace.basic > 0) {
+				log("getHandlerObject: "  + this.const.name + "." + key);
+				logGroup();
+			}
 			key = key.toString();
-			// console.log("getHandlerObject: " + key);
+			// log("getHandlerObject: " + key);
 			// if (key instanceof 'Symbol') { incoming
 				// throw "foobar";
 			// }
 			ensureInitialized(this, target);
 			
 			if (this.const.forwardsTo !== null && key !== "nonForwardConst") {
+				if (trace.basic > 0) log("forwarding ... ");
 				// TODO: test that this can handle recursive forwards. 
 				let overlayHandler = this.const.forwardsTo.const.handler;
+				if (trace.basic > 0) log("apply ... ");
 				let result = overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
+				if (trace.basic > 0) log("... finish apply");
+				if (trace.basic > 0) logUngroup();
 				return result;
 			}
 			
 			if (configuration.objectActivityList) registerActivity(this);
 					
 			if (key === "const" || key === "nonForwardConst") {
+				if (trace.basic > 0) logUngroup();
 				return this.const;
 			} else if (configuration.directStaticAccess && typeof(this.const[key]) !== 'undefined') { // TODO: implement directStaticAccess for other readers. 
 				// console.log("direct const access: " + key);
+				if (trace.basic > 0) logUngroup();
 				return this.const[key];
 			} else {
 				if (typeof(key) !== 'undefined') {
@@ -1049,6 +1066,7 @@
 					while ( scan !== null && typeof(scan) !== 'undefined' ) {
 						let descriptor = Object.getOwnPropertyDescriptor(scan, key);
 						if (typeof(descriptor) !== 'undefined' && typeof(descriptor.get) !== 'undefined') {
+							if (trace.basic > 0) logUngroup();
 							return descriptor.get.bind(this.const.object)();
 						}
 						scan = Object.getPrototypeOf( scan );
@@ -1064,8 +1082,10 @@
 					if (configuration.useIncomingStructures && incomingStructuresDisabled === 0 && keyInTarget && key !== 'incoming') {
 						// console.log("find referred object");
 						// console.log(key);
+						if (trace.basic > 0) logUngroup();
 						return findReferredObject(target[key]);
 					} else {
+						if (trace.basic > 0) logUngroup();
 						return target[key];
 					}
 				}
@@ -1178,7 +1198,8 @@
 		function setHandlerObject(target, key, value) {			
 			// Ensure initialized
 			if (trace.basic > 0) {
-				log("setHandlerObject: " + this.const.name + ".key = ");
+				log("setHandlerObject: " + this.const.name + "." + key + "= ");
+				// throw new Error("What the actual fuck, I mean jesuz..!!!");
 				logGroup();
 			}
 			ensureInitialized(this, target);
@@ -1475,7 +1496,9 @@
 					ownKeys: ownKeysHandlerArray,
 					has: hasHandlerArray,
 					defineProperty: definePropertyHandlerArray,
-					getOwnPropertyDescriptor: getOwnPropertyDescriptorHandlerArray
+					getOwnPropertyDescriptor: getOwnPropertyDescriptorHandlerArray,
+					activityListNext : null,
+					activityListPrevious : null				
 				};
 							// Optimization
 				// if (!configuration.activateSpecialFeatures) {
@@ -1502,7 +1525,9 @@
 					ownKeys: ownKeysHandlerObject,
 					has: hasHandlerObject,
 					defineProperty: definePropertyHandlerObject,
-					getOwnPropertyDescriptor: getOwnPropertyDescriptorHandlerObject
+					getOwnPropertyDescriptor: getOwnPropertyDescriptorHandlerObject,
+					activityListNext : null,
+					activityListPrevious : null				
 				};
 				// Optimization
 				// if (!configuration.activateSpecialFeatures) {
@@ -1620,9 +1645,11 @@
 		 
 		function ensureInitialized(handler, target) {
 			if (handler.const.initializer !== null && blockingInitialize === 0) {
+				if (trace.basic > 0) { log("initializing..."); logGroup() }
 				let initializer = handler.const.initializer;
 				handler.const.initializer = null;
 				initializer(handler.const.object);
+				if (trace.basic > 0) logUngroup();
 			}
 		}
 
@@ -2940,7 +2967,7 @@
 		let activityListFilter = null;
 		
 		function setActivityListFilter(filter) {
-			let activityListFilter = filter;
+			activityListFilter = filter;
 		}
 		
 		function getActivityListFirst() {
@@ -3011,39 +3038,48 @@
 		}
 		
 		function registerActivity(handler) {
-			if (activityListFrozen === 0 && activityListFirst !== handler &&(activityListFilter === null || activityListFilter(handler.const.object))) {
+			// log("registerActivity");
+			if (activityListFrozen === 0 && activityListFirst !== handler ) {
+				// log("here");
 				activityListFrozen++;
 				blockingInitialize++;
-				if (trace.basic) {
-					// stacktrace();
-					// throw new Error("see ya");
-					log("<<< registerActivity: "  + handler.const.name + " >>>");
-				}
-				logGroup();
-				// log(handler.target);
-				// Init if not initialized
-				if (typeof(handler.activityListNext) === 'undefined') {
-					handler.activityListNext = null;
-					handler.activityListPrevious = null;
-				}
 				
-				// Remove from wherever it is in the structure
-				removeFromActivityListHandler(handler);
+				if (activityListFilter === null || activityListFilter(handler.const.object)) {
+					// log("here2");
+								
+					if (trace.basic) {
+						// stacktrace();
+						// throw new Error("see ya");
+						log("<<< registerActivity: "  + handler.const.name + " >>>");
+						// log(activityListFilter(handler.const.object));
+					}
+					logGroup();
+					// log(handler.target);
+					// Init if not initialized
+					if (typeof(handler.activityListNext) === 'undefined') {
+						handler.activityListNext = null;
+						handler.activityListPrevious = null;
+					}
+					
+					// Remove from wherever it is in the structure
+					removeFromActivityListHandler(handler);
 
-				// Add first
-				handler.activityListPrevious = null;
-				if (activityListFirst !== null) {
-					activityListFirst.activityListPrevious = handler;
-					handler.activityListNext = activityListFirst;
-				} else {
-					activityListLast = handler;
+					// Add first
+					handler.activityListPrevious = null;
+					if (activityListFirst !== null) {
+						activityListFirst.activityListPrevious = handler;
+						handler.activityListNext = activityListFirst;
+					} else {
+						activityListLast = handler;
+					}
+					activityListFirst = handler;				
+					
+					if (trace.basic) logActivityList();
+					logUngroup();
 				}
-				activityListFirst = handler;				
 				
-				if (trace.basic) logActivityList();
 				blockingInitialize--;
 				activityListFrozen--;
-				logUngroup();
 			}
 		}
 		
