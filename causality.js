@@ -383,7 +383,7 @@
 			// }
 			// log("findReferredObject");
 			// logGroup();
-			if (typeof(referredItem) === 'object') {
+			if (typeof(referredItem) === 'object' && referredItem !== null) {
 				// log("is object");
 				if (typeof(referredItem.referredObject) !== 'undefined') {
 					// logUngroup();		
