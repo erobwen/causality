@@ -1582,7 +1582,7 @@
 			}
 			
 			handler.const.const = handler.const;
-			handler.const.nonForwardConst = handler.const;
+			// handler.const.nonForwardConst = handler.const;
 			
 			// TODO: consider what we should do when we have reverse references. Should we loop through createdTarget and form proper reverse structures?
 			// Experiments: 
@@ -1595,10 +1595,10 @@
 
 			if (inReCache()) {
 				if (cacheId !== null &&  typeof(context.cacheIdObjectMap[cacheId]) !== 'undefined') {
-					// TODO: what if we have zombie objects in the cacheIdOBjectMap... we need to save their previous forwarding... and restore it at the end of the reCache.... 
 					// Overlay previously created
-					let infusionTarget = context.cacheIdObjectMap[cacheId];
-					infusionTarget.const.handler.const.forwardsTo = proxy;
+					let infusionTarget = context.cacheIdObjectMap[cacheId]; // TODO: this map should be compressed in regards to multi level zombies.
+					infusionTarget.nonForwardConst.storedForwardsTo = infusionTarget.nonForwardConst.forwardsTo;
+					infusionTarget.nonForwardConst.forwardsTo = proxy;
 					context.newlyCreated.push(infusionTarget);
 					return infusionTarget;   // Borrow identity of infusion target.
 				} else {
@@ -2813,7 +2813,8 @@
 
 		function mergeOverlayIntoObject(object) {
 			let overlay = object.nonForwardConst.forwardsTo;
-			object.nonForwardConst.forwardsTo = null;
+			object.nonForwardConst.forwardsTo = object.nonForwardConst.storedForwardsTo;
+			delete object.nonForwardConst.storedForwardsTo;
 			mergeInto(overlay, object);
 		}
 
@@ -2822,11 +2823,11 @@
 		}
 
 		function genericForwarder(otherObject) {
-			this.const.forwardsTo = otherObject;
+			this.const.forwardsTo = otherObject; // Note: not in use
 		}
 
 		function genericRemoveForwarding() {
-			this.nonForwardConst.forwardsTo = null;
+			this.nonForwardConst.forwardsTo = null; // Note: not in use
 		}
 
 		function genericMergeAndRemoveForwarding() {
