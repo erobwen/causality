@@ -297,7 +297,7 @@
 			if (isObject(previousValue)) {
 				if (trace.basic) log("tear down previous... ");
 				if (configuration.blockInitializeForIncomingStructures) blockingInitialize++;
-				removeIncomingStructure(objectProxy.const.id, previousStructure); // TODO: Fix BUG. This really works?
+				removeIncomingStructure(objectProxy.const.id, previousStructure);
 				if (typeof(previousValue.const.incomingObservers) !== 'undefined') {
 					notifyChangeObservers(previousValue.const.incomingObservers[referringRelation]);
 				}
@@ -316,7 +316,7 @@
 			return value;
 		}
 		
-		function removeIncomingRelation(objectProxy, key, removedValue) {
+		function removeIncomingRelation(objectProxy, key, removedValue, previousIncomingStructure) {
 			// Get refering object 
 			let referringRelation = key;
 			while (typeof(objectProxy.indexParent) !==  'undefined') {
@@ -327,7 +327,7 @@
 			// Tear down structure to old value
 			if (isObject(removedValue)) {
 				if (configuration.blockInitializeForIncomingStructures) blockingInitialize++;
-				removeIncomingStructure(objectProxy.const.id, removedValue); // TODO: Fix BUG. This really works?
+				removeIncomingStructure(objectProxy.const.id, previousIncomingStructure); 
 				if (typeof(removedValue.const.incomingObservers) !== 'undefined') {
 					notifyChangeObservers(removedValue.const.incomingObservers[referringRelation]);
 				}
@@ -1360,7 +1360,7 @@
 					decreaseIncomingCounter(previousIncomingStructure);
 					if (state.incomingStructuresDisabled === 0) { // && !isIndexParentOf(this.const.object, value)
 						state.incomingStructuresDisabled++;
-						removeIncomingRelation(this.const.object, key, previousValue);
+						removeIncomingRelation(this.const.object, key, previousValue, previousIncomingStructure);
 						delete target[key];
 						state.incomingStructuresDisabled--;
 					} else {
