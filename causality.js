@@ -16,6 +16,10 @@
 	
 	
 	function createCausalityInstance(configuration) {
+		
+		let state = { 
+			useIncomingStructures : configuration.useIncomingStructures
+		};
 
 		/***************************************************************
 		 *
@@ -199,9 +203,11 @@
 		 ***************************************************************/
 
 		function forAllIncoming(object, property, callback) {
+			if(trace.basics) log("forAllIncoming");
 			registerAnyChangeObserver(getSpecifier(getSpecifier(object.const, "incomingObservers"), property));
 			withoutRecording(function() { // This is needed for setups where incoming structures are made out of causality objects. 
 				if (typeof(object.incoming) !== 'undefined') {
+					if(trace.basics) log("incoming exists!");
 					let relations = object.incoming;
 					if (typeof(relations[property]) !== 'undefined') {
 						let relation = relations[property];
@@ -624,7 +630,7 @@
 				let added = argumentsArray;
 				
 				// TODO: configuration.incomingReferenceCounters || .... 
-				if (configuration.useIncomingStructures && incomingStructuresDisabled === 0) {
+				if (state.useIncomingStructures && incomingStructuresDisabled === 0) {
 					incomingStructuresDisabled++
 					added = createAndRemoveArrayIncomingRelations(this.const.object, index, removed, added); // TODO: implement for other array manipulators as well. 
 					// TODO: What about removed adjusted? 
@@ -1079,7 +1085,7 @@
 							registerChangeObserver(getSpecifier(this.const, "_enumerateObservers"));
 						}
 					}
-					if (configuration.useIncomingStructures && incomingStructuresDisabled === 0 && keyInTarget && key !== 'incoming') {
+					if (state.useIncomingStructures && incomingStructuresDisabled === 0 && keyInTarget && key !== 'incoming') {
 						// console.log("find referred object");
 						// console.log(key);
 						if (trace.basic > 0) logUngroup();
@@ -1181,8 +1187,8 @@
 			if (configuration.blockInitializeForIncomingReferenceCounters) blockingInitialize--;
 		}
 		
-		// if (configuration.useIncomingStructures) {
-			// if (configuration.useIncomingStructures && incomingStructuresDisabled === 0) {	
+		// if (state.useIncomingStructures) {
+			// if (state.useIncomingStructures && incomingStructuresDisabled === 0) {	
 				// increaseIncomingCounter(value);
 				// decreaseIncomingCounter(previousValue);
 				// decreaseIncomingCounter(previousIncomingStructure);
@@ -1228,7 +1234,7 @@
 			// Get previous value		// Get previous value
 			let previousValue;
 			let previousIncomingStructure;
-			if (configuration.useIncomingStructures && incomingStructuresDisabled === 0) {  // && !isIndexParentOf(this.const.object, value) (not needed... )
+			if (state.useIncomingStructures && incomingStructuresDisabled === 0) {  // && !isIndexParentOf(this.const.object, value) (not needed... )
 				// console.log("causality.getHandlerObject:");
 				// console.log(key);
 				incomingStructuresDisabled++;
@@ -1262,11 +1268,9 @@
 			observerNotificationPostponed++;
 			let undefinedKey = !(key in target);
 					
-
-			
 			// Perform assignment with regards to incoming structures.
 			let incomingStructureValue;
-			if (configuration.useIncomingStructures) {
+			if (state.useIncomingStructures) {
 				activityListFrozen++;
 				increaseIncomingCounter(value);
 				decreaseIncomingCounter(previousValue);
@@ -1303,7 +1307,7 @@
 			}
 
 			// Emit event
-			if (configuration.useIncomingStructures && incomingStructuresDisabled === 0) {// && !isIndexParentOf(this.const.object, value)) {
+			if (state.useIncomingStructures && incomingStructuresDisabled === 0) {// && !isIndexParentOf(this.const.object, value)) {
 				// Emit extra event 
 				incomingStructuresDisabled++
 				emitSetEvent(this, key, incomingStructureValue, previousIncomingStructure);
@@ -1336,7 +1340,7 @@
 				inPulse++;
 				let previousValue;
 				let previousIncomingStructure;
-				if (configuration.useIncomingStructures && incomingStructuresDisabled === 0) {  // && !isIndexParentOf(this.const.object, value) (not needed... )
+				if (state.useIncomingStructures && incomingStructuresDisabled === 0) {  // && !isIndexParentOf(this.const.object, value) (not needed... )
 					// console.log("causality.getHandlerObject:");
 					// console.log(key);
 					previousIncomingStructure = target[key];
@@ -1345,7 +1349,7 @@
 					previousValue = target[key]; 
 				}
 				
-				if (configuration.useIncomingStructures) {
+				if (state.useIncomingStructures) {
 					decreaseIncomingCounter(previousValue);
 					decreaseIncomingCounter(previousIncomingStructure);
 					if (incomingStructuresDisabled === 0) { // && !isIndexParentOf(this.const.object, value)
@@ -1547,6 +1551,7 @@
 				initializer : initializer,
 				causalityInstance : causalityInstance,
 				id: id,
+				name: createdTarget.name,
 				cacheId : cacheId,
 				forwardsTo : null,
 				target: createdTarget,
@@ -1969,9 +1974,13 @@
 		}
 
 		function emitEvent(handler, event) {
+			if (trace.basic) {
+				log("emitEvent: ");// + event.type + " " + event.property);
+				log(event);
+			}
 			if (emitEventPaused === 0) {
 				// log("EMIT EVENT " + configuration.name + " " + event.type + " " + event.property + "=...");
-				if (configuration.useIncomingStructures) {
+				if (state.useIncomingStructures) {
 					event.incomingStructureEvent = incomingStructuresDisabled !== 0
 				}
 				// console.log(event);
@@ -3177,6 +3186,8 @@
 
 		
 		let causalityInstance = {
+			state : state,
+			
 			// Install causality to global scope. 
 			install : install,
 			
