@@ -18,7 +18,8 @@
 	function createCausalityInstance(configuration) {
 		
 		let state = { 
-			useIncomingStructures : configuration.useIncomingStructures
+			useIncomingStructures : configuration.useIncomingStructures,
+			incomingStructuresDisabled : 0
 		};
 
 		/***************************************************************
@@ -126,7 +127,7 @@
 		 ***************************************************************/
 		 
 		function setIndex(object, property, index) {
-			incomingStructuresDisabled++;
+			state.incomingStructuresDisabled++;
 			
 			let previousValue = object[property];
 			if (typeof(previousValue) === 'object') {
@@ -138,7 +139,7 @@
 			index.indexParentRelation = property;
 			object[property] = index;
 			
-			incomingStructuresDisabled--;
+			state.incomingStructuresDisabled--;
 			return index;
 		}
 		 
@@ -154,27 +155,27 @@
 		
 		
 		function createArrayIndex(object, property) {
-			incomingStructuresDisabled++;
+			state.incomingStructuresDisabled++;
 			
 			let index = create([]);
 			index.indexParent = object;
 			index.indexParentRelation = property;
 			object[property] = index;
 			
-			incomingStructuresDisabled--;
+			state.incomingStructuresDisabled--;
 			return index;
 		}
 		
 
 		function createObjectIndex(object, property) {
-			incomingStructuresDisabled++;
+			state.incomingStructuresDisabled++;
 			
 			let index = create({});
 			index.indexParent = object;
 			index.indexParentRelation = property;
 			object[property] = index;
 
-			incomingStructuresDisabled--;
+			state.incomingStructuresDisabled--;
 			return index;
 		}
 
@@ -232,7 +233,7 @@
 		
 
 		// function hasIncomingRelationArray(array, index) { // Maybe not needed???
-			// incomingStructuresDisabled++;
+			// state.incomingStructuresDisabled++;
 			// let result = array[index];
 			// if (typeof(result.isIncomingStructure)) {
 				// return true;
@@ -240,12 +241,12 @@
 				// // Check if there is an internal incoming relation.
 			// }
 			// return false;
-			// incomingStructuresDisabled--;			
+			// state.incomingStructuresDisabled--;			
 		// }
 
 		
 		function hasIncomingRelation(object, property) {
-			incomingStructuresDisabled++;
+			state.incomingStructuresDisabled++;
 			let result = object[property];
 			if (typeof(result.isIncomingStructure)) {
 				return true;
@@ -253,16 +254,15 @@
 				// Check if there is an internal incoming relation.
 			}
 			return false;
-			incomingStructuresDisabled--;			
+			state.incomingStructuresDisabled--;			
 		}
 
-		let incomingStructuresDisabled = 0;
 
 		function disableIncomingRelations(action) {
 			inPulse++;
-			incomingStructuresDisabled++;
+			state.incomingStructuresDisabled++;
 			action();
-			incomingStructuresDisabled--;
+			state.incomingStructuresDisabled--;
 			if(--inPulse === 0) postPulseCleanup();
 		}
 		
@@ -284,7 +284,7 @@
 		
 		
 		function createAndRemoveIncomingRelations(objectProxy, key, value, previousValue) {
-			// console.log("setup incoming relation");
+			if (trace.basic) log("createAndRemoveIncomingRelations");
 			
 			// Get refering object 
 			let referringRelation = key;
@@ -295,6 +295,7 @@
 			
 			// Tear down structure to old value
 			if (isObject(previousValue)) {
+				if (trace.basic) log("tear down previous... ");
 				if (configuration.blockInitializeForIncomingStructures) blockingInitialize++;
 				removeIncomingStructure(objectProxy.const.id, previousValue); // TODO: Fix BUG. This really works?
 				if (typeof(previousValue.const.incomingObservers) !== 'undefined') {
@@ -418,7 +419,7 @@
 		
 		function getIncomingRelationStructure(referencedObject, property) {
 			// Sanity test TODO: remove 
-			if (incomingStructuresDisabled === 0) {
+			if (state.incomingStructuresDisabled === 0) {
 				referencedObject.foo.bar;
 			}
 			
@@ -630,12 +631,12 @@
 				let added = argumentsArray;
 				
 				// TODO: configuration.incomingReferenceCounters || .... 
-				if (state.useIncomingStructures && incomingStructuresDisabled === 0) {
-					incomingStructuresDisabled++
+				if (state.useIncomingStructures && state.incomingStructuresDisabled === 0) {
+					state.incomingStructuresDisabled++
 					added = createAndRemoveArrayIncomingRelations(this.const.object, index, removed, added); // TODO: implement for other array manipulators as well. 
 					// TODO: What about removed adjusted? 
 					// TODO: What about the events? 
-					incomingStructuresDisabled--
+					state.incomingStructuresDisabled--
 				}
 				
 				observerNotificationNullified++;
@@ -1085,7 +1086,7 @@
 							registerChangeObserver(getSpecifier(this.const, "_enumerateObservers"));
 						}
 					}
-					if (state.useIncomingStructures && incomingStructuresDisabled === 0 && keyInTarget && key !== 'incoming') {
+					if (state.useIncomingStructures && state.incomingStructuresDisabled === 0 && keyInTarget && key !== 'incoming') {
 						// console.log("find referred object");
 						// console.log(key);
 						if (trace.basic > 0) logUngroup();
@@ -1188,7 +1189,7 @@
 		}
 		
 		// if (state.useIncomingStructures) {
-			// if (state.useIncomingStructures && incomingStructuresDisabled === 0) {	
+			// if (state.useIncomingStructures && state.incomingStructuresDisabled === 0) {	
 				// increaseIncomingCounter(value);
 				// decreaseIncomingCounter(previousValue);
 				// decreaseIncomingCounter(previousIncomingStructure);
@@ -1201,7 +1202,7 @@
 		let trace = { basic : 0}; 
 		
 		
-		function setHandlerObject(target, key, value) {			
+		function setHandlerObject(target, key, value) {
 			// Ensure initialized
 			if (trace.basic > 0) {
 				log("setHandlerObject: " + this.const.name + "." + key + "= ");
@@ -1234,15 +1235,15 @@
 			// Get previous value		// Get previous value
 			let previousValue;
 			let previousIncomingStructure;
-			if (state.useIncomingStructures && incomingStructuresDisabled === 0) {  // && !isIndexParentOf(this.const.object, value) (not needed... )
+			if (state.useIncomingStructures && state.incomingStructuresDisabled === 0) {  // && !isIndexParentOf(this.const.object, value) (not needed... )
 				// console.log("causality.getHandlerObject:");
 				// console.log(key);
-				incomingStructuresDisabled++;
+				state.incomingStructuresDisabled++;
 				activityListFrozen++;
 				previousIncomingStructure = target[key];
 				previousValue = findReferredObject(target[key]);
 				activityListFrozen--;
-				incomingStructuresDisabled--;
+				state.incomingStructuresDisabled--;
 			} else {
 				previousValue = target[key]; 
 			}
@@ -1275,12 +1276,12 @@
 				increaseIncomingCounter(value);
 				decreaseIncomingCounter(previousValue);
 				decreaseIncomingCounter(previousIncomingStructure);
-				if (incomingStructuresDisabled === 0) { // && !isIndexParentOf(this.const.object, value)
-					incomingStructuresDisabled++;
+				if (state.incomingStructuresDisabled === 0) { // && !isIndexParentOf(this.const.object, value)
+					state.incomingStructuresDisabled++;
 					incomingStructureValue = createAndRemoveIncomingRelations(this.const.object, key, value, previousValue);
 					increaseIncomingCounter(incomingStructureValue);
 					target[key] = incomingStructureValue;
-					incomingStructuresDisabled--;
+					state.incomingStructuresDisabled--;
 				} else {
 					target[key] = value;
 				}
@@ -1307,11 +1308,11 @@
 			}
 
 			// Emit event
-			if (state.useIncomingStructures && incomingStructuresDisabled === 0) {// && !isIndexParentOf(this.const.object, value)) {
+			if (state.useIncomingStructures && state.incomingStructuresDisabled === 0) {// && !isIndexParentOf(this.const.object, value)) {
 				// Emit extra event 
-				incomingStructuresDisabled++
+				state.incomingStructuresDisabled++
 				emitSetEvent(this, key, incomingStructureValue, previousIncomingStructure);
-				incomingStructuresDisabled--
+				state.incomingStructuresDisabled--
 			}
 			emitSetEvent(this, key, value, previousValue);
 			
@@ -1340,7 +1341,7 @@
 				inPulse++;
 				let previousValue;
 				let previousIncomingStructure;
-				if (state.useIncomingStructures && incomingStructuresDisabled === 0) {  // && !isIndexParentOf(this.const.object, value) (not needed... )
+				if (state.useIncomingStructures && state.incomingStructuresDisabled === 0) {  // && !isIndexParentOf(this.const.object, value) (not needed... )
 					// console.log("causality.getHandlerObject:");
 					// console.log(key);
 					previousIncomingStructure = target[key];
@@ -1352,11 +1353,11 @@
 				if (state.useIncomingStructures) {
 					decreaseIncomingCounter(previousValue);
 					decreaseIncomingCounter(previousIncomingStructure);
-					if (incomingStructuresDisabled === 0) { // && !isIndexParentOf(this.const.object, value)
-						incomingStructuresDisabled++;
+					if (state.incomingStructuresDisabled === 0) { // && !isIndexParentOf(this.const.object, value)
+						state.incomingStructuresDisabled++;
 						removeIncomingRelation(this.const.object, key, previousValue);
 						delete target[key];
-						incomingStructuresDisabled--;
+						state.incomingStructuresDisabled--;
 					} else {
 						delete target[key];
 					}
@@ -1981,7 +1982,7 @@
 			if (emitEventPaused === 0) {
 				// log("EMIT EVENT " + configuration.name + " " + event.type + " " + event.property + "=...");
 				if (state.useIncomingStructures) {
-					event.incomingStructureEvent = incomingStructuresDisabled !== 0
+					event.incomingStructureEvent = state.incomingStructuresDisabled !== 0
 				}
 				// console.log(event);
 				// event.objectId = handler.const.id;
