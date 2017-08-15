@@ -283,7 +283,7 @@
 		 *-----------------------------------------------*/
 		
 		
-		function createAndRemoveIncomingRelations(objectProxy, key, value, previousValue) {
+		function createAndRemoveIncomingRelations(objectProxy, key, value, previousValue, previousStructure) {
 			if (trace.basic) log("createAndRemoveIncomingRelations");
 			
 			// Get refering object 
@@ -297,7 +297,7 @@
 			if (isObject(previousValue)) {
 				if (trace.basic) log("tear down previous... ");
 				if (configuration.blockInitializeForIncomingStructures) blockingInitialize++;
-				removeIncomingStructure(objectProxy.const.id, previousValue); // TODO: Fix BUG. This really works?
+				removeIncomingStructure(objectProxy.const.id, previousStructure); // TODO: Fix BUG. This really works?
 				if (typeof(previousValue.const.incomingObservers) !== 'undefined') {
 					notifyChangeObservers(previousValue.const.incomingObservers[referringRelation]);
 				}
@@ -461,6 +461,11 @@
 		* Structure helpers
 		*/				
 		function removeIncomingStructure(refererId, referedEntity) {
+			if (trace.basic) {
+				log("removeIncomingStructure");
+				log(refererId);
+				log(referedEntity, 3);
+			}
 			if (typeof(referedEntity.isIncomingStructure) !== 'undefined') {
 				let incomingRelation = referedEntity;
 				let incomingRelationContents = incomingRelation['contents'];
@@ -1036,7 +1041,7 @@
 	*/
 		
 		function getHandlerObject(target, key) {
-			if (trace.basic > 0) {
+			if (trace.get > 0) {
 				log("getHandlerObject: "  + this.const.name + "." + key);
 				logGroup();
 			}
@@ -1048,24 +1053,24 @@
 			ensureInitialized(this, target);
 			
 			if (this.const.forwardsTo !== null && key !== "nonForwardConst") {
-				if (trace.basic > 0) log("forwarding ... ");
+				if (trace.get > 0) log("forwarding ... ");
 				// TODO: test that this can handle recursive forwards. 
 				let overlayHandler = this.const.forwardsTo.const.handler;
-				if (trace.basic > 0) log("apply ... ");
+				if (trace.get > 0) log("apply ... ");
 				let result = overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
-				if (trace.basic > 0) log("... finish apply");
-				if (trace.basic > 0) logUngroup();
+				if (trace.get > 0) log("... finish apply");
+				if (trace.get > 0) logUngroup();
 				return result;
 			}
 			
 			if (configuration.objectActivityList) registerActivity(this);
 					
 			if (key === "const" || key === "nonForwardConst") {
-				if (trace.basic > 0) logUngroup();
+				if (trace.get > 0) logUngroup();
 				return this.const;
 			} else if (configuration.directStaticAccess && typeof(this.const[key]) !== 'undefined') { // TODO: implement directStaticAccess for other readers. 
 				// console.log("direct const access: " + key);
-				if (trace.basic > 0) logUngroup();
+				if (trace.get > 0) logUngroup();
 				return this.const[key];
 			} else {
 				if (typeof(key) !== 'undefined') {
@@ -1073,7 +1078,7 @@
 					while ( scan !== null && typeof(scan) !== 'undefined' ) {
 						let descriptor = Object.getOwnPropertyDescriptor(scan, key);
 						if (typeof(descriptor) !== 'undefined' && typeof(descriptor.get) !== 'undefined') {
-							if (trace.basic > 0) logUngroup();
+							if (trace.get > 0) logUngroup();
 							return descriptor.get.bind(this.const.object)();
 						}
 						scan = Object.getPrototypeOf( scan );
@@ -1089,10 +1094,10 @@
 					if (state.useIncomingStructures && state.incomingStructuresDisabled === 0 && keyInTarget && key !== 'incoming') {
 						// console.log("find referred object");
 						// console.log(key);
-						if (trace.basic > 0) logUngroup();
+						if (trace.get > 0) logUngroup();
 						return findReferredObject(target[key]);
 					} else {
-						if (trace.basic > 0) logUngroup();
+						if (trace.get > 0) logUngroup();
 						return target[key];
 					}
 				}
@@ -1278,7 +1283,7 @@
 				decreaseIncomingCounter(previousIncomingStructure);
 				if (state.incomingStructuresDisabled === 0) { // && !isIndexParentOf(this.const.object, value)
 					state.incomingStructuresDisabled++;
-					incomingStructureValue = createAndRemoveIncomingRelations(this.const.object, key, value, previousValue);
+					incomingStructureValue = createAndRemoveIncomingRelations(this.const.object, key, value, previousValue, previousIncomingStructure);
 					increaseIncomingCounter(incomingStructureValue);
 					target[key] = incomingStructureValue;
 					state.incomingStructuresDisabled--;
