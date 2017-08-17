@@ -297,7 +297,7 @@
 			if (isObject(previousValue)) {
 				if (trace.basic) log("tear down previous... ");
 				if (configuration.blockInitializeForIncomingStructures) blockingInitialize++;
-				removeIncomingStructure(objectProxy.const.id, previousStructure);
+				removeIncomingStructure(objectProxy.const.id, previousStructure); // TODO: Fix BUG. This really works?
 				if (typeof(previousValue.const.incomingObservers) !== 'undefined') {
 					notifyChangeObservers(previousValue.const.incomingObservers[referringRelation]);
 				}
@@ -316,7 +316,7 @@
 			return value;
 		}
 		
-		function removeIncomingRelation(objectProxy, key, removedValue, previousIncomingStructure) {
+		function removeIncomingRelation(objectProxy, key, removedValue, previousStructure) {
 			// Get refering object 
 			let referringRelation = key;
 			while (typeof(objectProxy.indexParent) !==  'undefined') {
@@ -327,7 +327,7 @@
 			// Tear down structure to old value
 			if (isObject(removedValue)) {
 				if (configuration.blockInitializeForIncomingStructures) blockingInitialize++;
-				removeIncomingStructure(objectProxy.const.id, previousIncomingStructure); 
+				removeIncomingStructure(objectProxy.const.id, previousStructure);
 				if (typeof(removedValue.const.incomingObservers) !== 'undefined') {
 					notifyChangeObservers(removedValue.const.incomingObservers[referringRelation]);
 				}
@@ -1876,8 +1876,9 @@
 		
 		function pulse(action) {
 			inPulse++;
-			action();
+			let result = action();
 			if (--inPulse === 0) postPulseCleanup();
+			return result;
 		}
 
 		let transaction = postponeObserverNotification;
@@ -1975,7 +1976,7 @@
 
 		function emitDeleteEvent(handler, key, previousValue) {
 			if (configuration.recordPulseEvents || typeof(handler.observers) !== 'undefined') {
-				emitEvent(handler, {type: 'delete', property: key, deletedValue: previousValue});
+				emitEvent(handler, {type: 'delete', property: key, oldValue: previousValue});
 			}
 		}
 
