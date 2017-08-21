@@ -108,7 +108,8 @@
 				let specifier = { 
 					specifierParent : javascriptObject, 
 					specifierProperty : specifierName, 
-					isIncomingStructure : true   // This is a reuse of this object as incoming node as well.
+					isIncomingStructure : true,   // This is a reuse of this object as incoming node as well.
+					name : "incomingStructure"
 				}
 				if (configuration.incomingStructuresAsCausalityObjects) {
 					javascriptObject[specifierName] = createImmutable(specifier);
@@ -328,6 +329,7 @@
 			if (isObject(removedValue)) {
 				if (configuration.blockInitializeForIncomingStructures) blockingInitialize++;
 				removeIncomingStructure(objectProxy.const.id, previousStructure);
+				// removeIncomingStructure(objectProxy.const.id, removedValue);
 				if (typeof(removedValue.const.incomingObservers) !== 'undefined') {
 					notifyChangeObservers(removedValue.const.incomingObservers[referringRelation]);
 				}
@@ -426,7 +428,7 @@
 			// Create incoming structure
 			let incomingStructures;
 			if (typeof(referencedObject.incoming) === 'undefined') {
-				incomingStructures = { isIncomingStructures : true, referredObject: referencedObject, last: null, first: null };
+				incomingStructures = { name: "isIncomingStructures", isIncomingStructures : true, referredObject: referencedObject, last: null, first: null };
 				if (configuration.incomingStructuresAsCausalityObjects) {
 					incomingStructures = create(incomingStructures);
 				}
@@ -522,6 +524,7 @@
 			// console.log(activeRecorder);
 			if (typeof(incomingStructureRoot.initialized) === 'undefined') {
 				incomingStructureRoot.isRoot = true;
+				// incomingStructureRoot.contents = { name: "contents" };
 				incomingStructureRoot.contents = {};
 				incomingStructureRoot.contentsCounter = 0;
 				incomingStructureRoot.initialized = true;
@@ -1174,6 +1177,10 @@
 		function increaseIncomingCounter(value) {
 			if (configuration.blockInitializeForIncomingReferenceCounters) blockingInitialize++;
 			if (isObject(value)) {				
+				if (value.const.incomingReferencesCount < 0) {
+					log(value.const.incomingReferencesCount);
+					throw Error("WTAF");
+				} 
 				if (typeof(value.const.incomingReferencesCount) === 'undefined') {
 					value.const.incomingReferencesCount = 0;
 				}
@@ -1186,6 +1193,7 @@
 			if (configuration.blockInitializeForIncomingReferenceCounters) blockingInitialize++;
 			if (isObject(value)) {
 				value.const.incomingReferencesCount--;
+				if (value.const.incomingReferencesCount < 0) throw Error("WTAF");
 				if (value.const.incomingReferencesCount === 0) {
 					removedLastIncomingRelation(value);
 				}
@@ -1278,12 +1286,12 @@
 			let incomingStructureValue;
 			if (state.useIncomingStructures) {
 				activityListFrozen++;
-				increaseIncomingCounter(value);
 				decreaseIncomingCounter(previousValue);
-				decreaseIncomingCounter(previousIncomingStructure);
+				increaseIncomingCounter(value);
 				if (state.incomingStructuresDisabled === 0) { // && !isIndexParentOf(this.const.object, value)
 					state.incomingStructuresDisabled++;
 					incomingStructureValue = createAndRemoveIncomingRelations(this.const.object, key, value, previousValue, previousIncomingStructure);
+					decreaseIncomingCounter(previousIncomingStructure);
 					increaseIncomingCounter(incomingStructureValue);
 					target[key] = incomingStructureValue;
 					state.incomingStructuresDisabled--;
@@ -1360,7 +1368,7 @@
 					decreaseIncomingCounter(previousIncomingStructure);
 					if (state.incomingStructuresDisabled === 0) { // && !isIndexParentOf(this.const.object, value)
 						state.incomingStructuresDisabled++;
-						removeIncomingRelation(this.const.object, key, previousValue, previousIncomingStructure);
+                        removeIncomingRelation(this.const.object, key, previousValue, previousIncomingStructure);
 						delete target[key];
 						state.incomingStructuresDisabled--;
 					} else {
