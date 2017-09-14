@@ -1368,7 +1368,7 @@
 					decreaseIncomingCounter(previousIncomingStructure);
 					if (state.incomingStructuresDisabled === 0) { // && !isIndexParentOf(this.const.object, value)
 						state.incomingStructuresDisabled++;
-                        removeIncomingRelation(this.const.object, key, previousValue, previousIncomingStructure);
+						removeIncomingRelation(this.const.object, key, previousValue, previousIncomingStructure);
 						delete target[key];
 						state.incomingStructuresDisabled--;
 					} else {
