@@ -1,3 +1,4 @@
+'use strict';
 // Using UMD pattern: https://github.com/umdjs/umd
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
@@ -73,8 +74,8 @@
         }
     }
 
-    let argumentsToArray = function(arguments) {
-        return Array.prototype.slice.call(arguments);
+    let argumentsToArray = function(argumentList) {
+        return Array.prototype.slice.call(argumentList);
     };
 
 
@@ -1155,7 +1156,7 @@
             }
 
             let contents = observers.contents;
-            for (id in contents) {
+            for (let id in contents) {
                 notifyChangeObserver(contents[id]);
             }
 
@@ -1468,7 +1469,7 @@
 
             // cacheRecord.remove = function() {}; // Never removed directly, only when no observers & no direct application call
             cacheRecord.repeaterHandle = repeatOnChange(function() {
-                returnValue = this[functionName].apply(this, argumentsList);
+                return this[functionName].apply(this, argumentsList);
             }.bind(this));
             leaveContext();
 
@@ -1701,13 +1702,13 @@
                 spliceArguments.push.apply(spliceArguments, splice.added); //.map(mapValue))
                 target.splice.apply(target, spliceArguments);
             });
-            for (property in source) {
+            for (let property in source) {
                 if (isNaN(property)) {
                     target[property] = source[property];
                 }
             }
         } else {
-            for (property in source) {
+            for (let property in source) {
                 target[property] = source[property];
             }
         }
