@@ -6,6 +6,7 @@
     } else if (typeof module === 'object' && module.exports) {
         module.exports = factory(); // Support NodeJS
     } else {
+        if( !root && typeof window != 'undefined' ) root = window;
         root.causality = factory(); // Support browser global
     }
 }(this, function () {
