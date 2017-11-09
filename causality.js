@@ -936,9 +936,9 @@
         // console.log(event);
         event.objectId = handler.overrides.__id;
         if (typeof(handler.observers) !== 'undefined') {
-            handler.observers.forEach(function(observerFunction) {
-                observerFunction(event);
-            });
+            for (let id in handler.observers)  {
+                handler.observers[id](event);
+            }
         }
     }
 
@@ -948,12 +948,23 @@
         });
     }
 
+	let nextObserverId = 0; 
     function genericObserveFunction(observerFunction) {
         let handler = this.__handler;
+		let observer = {
+			id : nextObserverId++,
+			handler : handler,
+			remove : function() {
+				delete this.handler.observers[this.id];
+			}
+			// observerFunction : observerFunction, // not needed... 
+		}
+		enterContext("observe", observer);
         if (typeof(handler.observers) === 'undefined') {
-            handler.observers = [];
+            handler.observers = {};
         }
-        handler.observers.push(observerFunction);
+        handler.observers[observer.id] = observerFunction;
+		leaveContext();
     }
 
 
