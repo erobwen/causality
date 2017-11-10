@@ -605,6 +605,7 @@
      ***************************************************************/
 
     function create(createdTarget, cacheId) {
+		inPulse++;
         if (typeof(createdTarget) === 'undefined') {
             createdTarget = {};
         }
@@ -706,6 +707,8 @@
             writeRestriction[proxy.__id] = true;
         }
 
+		emitCreationEvent(handler);
+		if (--inPulse === 0) postPulseCleanup();
         return proxy;
     }
 
@@ -892,15 +895,20 @@
         });
         contextsScheduledForPossibleDestruction = [];
         postPulseHooks.forEach(function(callback) {
-            callback();
+            callback(events);
         });
+		if (recordEvents) events = [];
     }
 
     let postPulseHooks = [];
     function addPostPulseAction(callback) {
         postPulseHooks.push(callback);
     }
-
+	
+    function removeAllPostPulseActions() {
+		postPulseHooks = [];
+	}
+	
 
     /**********************************
      *  Observe
@@ -908,31 +916,57 @@
      *
      **********************************/
 
+	let recordEvents = false;
+	function setRecordEvents(value) {
+		recordEvents = value; 
+	} 
+	 
     function emitSpliceEvent(handler, index, removed, added) {
-        if (typeof(handler.observers) !== 'undefined') {
-            emitEvent(handler, { type: 'splice', index: index, removed: removed, added: added});
+        if (recordEvents || typeof(handler.observers) !== 'undefined') {
+            emitEvent(handler, {type: 'splice', index: index, removed: removed, added: added});
         }
     }
 
     function emitSpliceReplaceEvent(handler, key, value, previousValue) {
-        if (typeof(handler.observers) !== 'undefined') {
-            emitEvent(handler, { type: 'splice', index: key, removed: [previousValue], added: [value] });
+        if (recordEvents || typeof(handler.observers) !== 'undefined') {
+            emitEvent(handler, {type: 'splice', index: key, removed: [previousValue], added: [value] });
         }
     }
 
     function emitSetEvent(handler, key, value, previousValue) {
-        if (typeof(handler.observers) !== 'undefined') {
+        if (recordEvents || typeof(handler.observers) !== 'undefined') {
             emitEvent(handler, {type: 'set', property: key, newValue: value, oldValue: previousValue});
         }
     }
 
     function emitDeleteEvent(handler, key, previousValue) {
-        if (typeof(handler.observers) !== 'undefined') {
+        if (recordEvents || typeof(handler.observers) !== 'undefined') {
             emitEvent(handler, {type: 'delete', property: key, deletedValue: previousValue});
         }
     }
+	
+	// TODO: Remove this!!!! This is just to defer updates of some tests that do not expect creation events. 
+	let newEventStyle = false;
+	function setNewEventStyle(value) { 
+		newEventStyle = value;
+	} 
+	
+	function emitCreationEvent(handler) {
+		if (newEventStyle && recordEvents) {
+			emitEvent(handler, {type: 'create'})
+		}
+	}
+	
+	let events = [];
 
     function emitEvent(handler, event) {
+		if (newEventStyle) {
+			event.object = handler.overrides.__proxy;			
+		} 
+		if (recordEvents) {
+			events.push(event);
+		}
+		
         // console.log(event);
         event.objectId = handler.overrides.__id;
         if (typeof(handler.observers) !== 'undefined') {
@@ -1925,6 +1959,9 @@
         withoutNotifyChange : nullifyObserverNotification,
         pulse : pulse,
         transaction: transaction,
-        addPostPulseAction : addPostPulseAction
+        addPostPulseAction : addPostPulseAction, 
+		removeAllPostPulseActions : removeAllPostPulseActions, 
+		setRecordEvents : setRecordEvents,
+		setNewEventStyle : setNewEventStyle // TEMPORARY... to be removed... 
     };
 }));
