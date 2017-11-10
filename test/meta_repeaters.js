@@ -1,9 +1,10 @@
+'use strict';
 const assert = require('assert');
 require('../causality').install();
 describe("Meta repeaters", function(){
 
     it("Test working", function(){
-        events = [];
+        const events = [];
 
         let nodePrototype = {
             emitHelloEvent : function(arg1, arg2) {
@@ -67,7 +68,7 @@ describe("Meta repeaters", function(){
 
 
     it("Test overlapping sets, only trigger unique sub-repeaters", function(){
-        events = [];
+        const events = [];
 
         let nodePrototype = {
             emitHelloEvent : function(arg1, arg2) {
@@ -146,7 +147,7 @@ describe("Meta repeaters", function(){
 
 
     it("Test unique signatures", function(){
-        events = [];
+        const events = [];
 
         let nodePrototype = {
             emitHelloEvent : function(arg1, arg2) {

@@ -1,3 +1,4 @@
+//'use strict'; // throws TypeError in strict mode
 const assert = require('assert');
 require('../causality').install();
 

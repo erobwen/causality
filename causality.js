@@ -1954,6 +1954,7 @@
         c : create,
         uponChangeDo : uponChangeDo,
         repeatOnChange : repeatOnChange,
+        repeat : repeatOnChange,
         withoutSideEffects : withoutSideEffects,
         withoutRecording : withoutRecording,
         withoutNotifyChange : nullifyObserverNotification,
@@ -1962,6 +1963,7 @@
         addPostPulseAction : addPostPulseAction, 
 		removeAllPostPulseActions : removeAllPostPulseActions, 
 		setRecordEvents : setRecordEvents,
+        resetObjectIds : resetObjectIds,
 		setNewEventStyle : setNewEventStyle // TEMPORARY... to be removed... 
     };
 }));

@@ -2,7 +2,7 @@
 
 # Causality
 
-![Alt text](/logotype.png?raw=true "Causality Logotype")
+![Alt text](/docs/logotype.png?raw=true "Causality Logotype")
 
 A library for reactive programming based on Javascript proxies (ES6)
 
@@ -286,7 +286,7 @@ The purpose of reCache is to reactivley transform data structures, where a small
 
 For example, assume you write an algorithm that flattens a tree in pre-order. Then, if you add one node in the original tree, it will result in a limited change in the array or linked list that is the result of the reCache. This has to do with the identity reuse.
 
-![Alt text](/reCached.png?raw=true "Causality Logotype")
+![Alt text](/docs/reCached.png?raw=true "Causality Logotype")
 
 This is similar to the technique used in React where elements of the synthetic dom are given ids, so that they are matched with elements in the existing dom. The minimal update is then found, and merged into the existing dom. reCaching generalizes this technique so that it can easily be employed for any data transformation, and attatches it to a sophisticated system of cache invalidation!
 
@@ -355,7 +355,7 @@ https://gitter.im/avantgarde_web_development/Lobby
 
 Causality could work as a replacement for MobX. Some early, and perhaps non-conclusive experiments indicate that causality could potentially be almost twice as fast as MobX. It also takes full advantage of ES6/proxies. Causality also offers more advanced features such as cached, reCached and withoutSideEffects. On the other hand, MobX is a more mature library with a large supporting community and better integration with other libraries.
 
-![Alt text](/performance.png?raw=true "Causality Logotype")
+![Alt text](/doc/performance.png?raw=true "Causality Logotype")
 
 # Trivia
 

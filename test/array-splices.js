@@ -1,9 +1,9 @@
-const assert = require('assert');
+'use strict';
+const assert = require('chai').assert;
 require('../causality').install();
 //const log = console.log.bind(console);
 
-
-describe("observe arrays", function(){
+describe("array-splices", function(){
 	resetObjectIds();
     
 	var result;

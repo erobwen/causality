@@ -1,5 +1,7 @@
+'use strict';
 const assert = require('assert');
-require('../causality').install();
+const causality = require('../causality');
+causality.install();
 
 
 
@@ -8,13 +10,13 @@ describe("Overlays", function(){
     it('testing', function () {
         // Simple object
         // console.log(" Simple object ===========================")
-        let x = create({name: "original"});
+        let x = causality.create({name: "original"});
         x.foo = 1;
         assert.equal(x.foo, 1);
 
         // Create overlay
         // console.log(" Create overlay ===========================")
-        let xOverlay = create({ name: "overlay"});
+        let xOverlay = causality.create({ name: "overlay"});
         x.__handler.overrides.__overlay = xOverlay;
         // console.log(x.__handler);
         // console.log(x.__handler.overrides);

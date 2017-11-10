@@ -1,3 +1,4 @@
+'use strict';
 const assert = require('assert');
 require('../causality').install();
 const log = console.log.bind(console);
