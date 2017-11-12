@@ -1,6 +1,5 @@
 'use strict';
-
-const expect = require('chai').expect;
+const assert = require('assert');
 const causality = require('../causality');
 causality.install();
 
@@ -42,10 +41,9 @@ describe("Post pulse", function(){
         causality.resetObjectIds();
         //console.log('setup');
 		causality.setRecordEvents(true);
-		causality.setNewEventStyle(true);
 		causality.addPostPulseAction(function(events) {
             //console.log( events );
-            expect( events ).to.eql(expected[i++] );
+            assert.deepEqual( events, expected[i++] );
 		});
 
         //console.log('start');
@@ -66,7 +64,6 @@ describe("Post pulse", function(){
         //console.log('cleanup');
         causality.removeAllPostPulseActions();
 		causality.setRecordEvents(false);
-		causality.setNewEventStyle(false);
         //console.log('end');
     });
 });

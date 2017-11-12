@@ -865,13 +865,15 @@
 
     let inPulse = 0;
 
+    // A sequence of transactions, end with cleanup.
     function pulse(action) {
         inPulse++;
         callback();
         if (--inPulse === 0) postPulseCleanup();
     }
 
-    let transaction = postponeObserverNotification;
+    // Single transaction, end with cleanup.
+    const transaction = postponeObserverNotification;
 
     function postponeObserverNotification(callback) {
         inPulse++;
@@ -945,14 +947,8 @@
         }
     }
 	
-	// TODO: Remove this!!!! This is just to defer updates of some tests that do not expect creation events. 
-	let newEventStyle = false;
-	function setNewEventStyle(value) { 
-		newEventStyle = value;
-	} 
-	
 	function emitCreationEvent(handler) {
-		if (newEventStyle && recordEvents) {
+		if (recordEvents) {
 			emitEvent(handler, {type: 'create'})
 		}
 	}
@@ -960,9 +956,8 @@
 	let events = [];
 
     function emitEvent(handler, event) {
-		if (newEventStyle) {
-			event.object = handler.overrides.__proxy;			
-		} 
+		event.object = handler.overrides.__proxy;			
+
 		if (recordEvents) {
 			events.push(event);
 		}
@@ -1914,56 +1909,47 @@
      *  Module installation
      * @param target
      */
+
+    const exported = {
+        install:                install,
+        
+        // Main API
+        create:                 create,
+        c:                      create,
+        uponChangeDo:           uponChangeDo,
+        repeatOnChange:         repeatOnChange,
+        repeat:                 repeatOnChange,
+        withoutSideEffects:     withoutSideEffects,
+
+        // Modifiers
+        withoutRecording:       withoutRecording,
+        withoutNotifyChange:    nullifyObserverNotification,
+
+        // Pulse
+        pulse:                  pulse,
+        transaction:            transaction,
+        addPostPulseAction:     addPostPulseAction,
+        removeAllPostPulseActions: removeAllPostPulseActions, 
+        setRecordEvents:        setRecordEvents,
+
+        // Experimental
+        setCumulativeAssignment:setCumulativeAssignment,
+
+        // Debugging and testing
+        observeAll:             observeAll,
+        cachedCallCount:        cachedCallCount,
+        clearRepeaterLists:     clearRepeaterLists,
+        resetObjectIds:         resetObjectIds,
+    };
+
     function install(target) {
         if (typeof(target) === 'undefined') {
             target = (typeof(global) !== 'undefined') ? global : window;
         }
 
-        // Main API
-        target['create']                  = create;
-        target['c']                       = create;
-        target['uponChangeDo']            = uponChangeDo;
-        target['repeatOnChange']          = repeatOnChange;
-        target['repeat']                  = repeatOnChange;
-        target['withoutSideEffects']      = withoutSideEffects;
-
-        // Modifiers
-        target['withoutRecording']        = withoutRecording;
-        target['withoutNotifyChange']     = nullifyObserverNotification;
-
-        // Pulse
-        target['pulse']                   = pulse; // A sequence of transactions, end with cleanup.
-        target['transaction']             = transaction;  // Single transaction, end with cleanup.
-        target['addPostPulseAction']      = addPostPulseAction;
-
-        // Experimental
-        target['setCumulativeAssignment'] = setCumulativeAssignment;
-
-        // Debugging and testing
-        target['observeAll'] = observeAll;
-        target['cachedCallCount'] = cachedCallCount;
-        target['clearRepeaterLists'] = clearRepeaterLists;
-        target['resetObjectIds'] = resetObjectIds;
+        Object.assign( target, exported );
         return target;
     }
 
-    return {
-        install: install,
-        
-        create : create,
-        c : create,
-        uponChangeDo : uponChangeDo,
-        repeatOnChange : repeatOnChange,
-        repeat : repeatOnChange,
-        withoutSideEffects : withoutSideEffects,
-        withoutRecording : withoutRecording,
-        withoutNotifyChange : nullifyObserverNotification,
-        pulse : pulse,
-        transaction: transaction,
-        addPostPulseAction : addPostPulseAction, 
-		removeAllPostPulseActions : removeAllPostPulseActions, 
-		setRecordEvents : setRecordEvents,
-        resetObjectIds : resetObjectIds,
-		setNewEventStyle : setNewEventStyle // TEMPORARY... to be removed... 
-    };
+    return exported;
 }));

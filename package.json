@@ -23,7 +23,6 @@
     "homepage": "https://github.com/erobwen/causality#readme",
     "devDependencies": {
         "bower-json": "^0.8.1",
-        "chai": "^4.1.2",
         "mocha": "^3.1.2"
     }
 }

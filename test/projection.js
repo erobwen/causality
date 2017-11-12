@@ -236,12 +236,14 @@ describe("Projections", function(){
         // console.log("=======================================================");
 
         // Assert eventws
-        assert.deepEqual(detectedEvents,
-            [ { type: 'splice',
-                index: 4,
-                removed: [],
-                added: [ { value: 4.5 } ],
-                objectId: 15 } ]);
+        const expected1 = [
+            { type: 'splice',
+              index: 4,
+              removed: [],
+              added: [ { value: 4.5 } ],
+              objectId: 15 } ];
+        expected1[0].object = flattened;
+        assert.deepEqual(detectedEvents, expected1 );
 
         // Assert updated
         assert.deepEqual(flattened.map((object) => { return object.value; }), [1, 2, 3, 4, 4.5, 5, 6, 7]);
@@ -276,12 +278,14 @@ describe("Projections", function(){
         tree.children[0].children.push(createTreeNode(4.5, []));
 
         // Assert eventws
-        assert.deepEqual(detectedEvents,
-            [ { type: 'splice',
-                index: 4,
-                removed: [],
-                added: [ { value: 4.5 } ],
-                objectId: 15 } ]);
+        const expected1 = [
+            { type: 'splice',
+              index: 4,
+              removed: [],
+              added: [ { value: 4.5 } ],
+              objectId: 15 } ];
+        expected1[0].object = flattened;
+        assert.deepEqual(detectedEvents, expected1 );
 
         // Assert updated
         assert.deepEqual(flattened.map((object) => { return object.value; }), [1, 2, 3, 4, 4.5, 5, 6, 7]);
