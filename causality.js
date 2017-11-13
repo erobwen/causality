@@ -1283,16 +1283,6 @@
         return refreshRepeater({
             id: repeaterId++,
             description: description,
-            action: function() {
-				this.repeaterAction();
-				if (this.nonRecordedAction !== null) {
-					recordingPaused++;
-					updateInActiveRecording();
-					this.nonRecordedAction();
-					recordingPaused--;
-					updateInActiveRecording();					
-				}
-			},
 			repeaterAction : repeaterAction,
 			nonRecordedAction: repeaterNonRecordingAction,
             remove: function() {
@@ -1312,13 +1302,16 @@
         // console.log("context type: " + repeater.type);
         nextIsMicroContext = true;
         repeater.returnValue = uponChangeDo(
-			repeater.action.bind(repeater), 
+			repeater.repeaterAction, 
             function () {
                 // unlockSideEffects(function() {
                 repeaterDirty(repeater);
                 // });
             }
         );
+		if (repeater.nonRecordedAction !== null) {			
+			repeater.nonRecordedAction();
+		}
         leaveContext();
         return repeater;
     }
