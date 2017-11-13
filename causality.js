@@ -1264,22 +1264,37 @@
     }
 
     let repeaterId = 0;
-    function repeatOnChange() { // description(optional), action
+	function repeatOnChange() { // description(optional), action
         // Arguments
-        let repeaterAction;
         let description = '';
-        if (arguments.length > 1) {
-            description    = arguments[0];
+        let repeaterAction;
+		let repeaterNonRecordingAction = null;
+		if (typeof(arguments[0]) === 'string') {
+			description = arguments[0];
             repeaterAction = arguments[1];
+			if (typeof(arguments[2]) !== 'undefined') repeaterNonRecordingAction = arguments[2];
         } else {
             repeaterAction = arguments[0];
+			if (typeof(arguments[1]) !== 'undefined') repeaterNonRecordingAction = arguments[1];
         }
+
 
         // Activate!
         return refreshRepeater({
             id: repeaterId++,
             description: description,
-            action: repeaterAction,
+            action: function() {
+				this.repeaterAction();
+				if (this.nonRecordedAction !== null) {
+					recordingPaused++;
+					updateInActiveRecording();
+					this.nonRecordedAction();
+					recordingPaused--;
+					updateInActiveRecording();					
+				}
+			},
+			repeaterAction : repeaterAction,
+			nonRecordedAction: repeaterNonRecordingAction,
             remove: function() {
                 // console.log("removeRepeater: " + repeater.id + "." + repeater.description);
                 removeChildContexts(this);
@@ -1297,7 +1312,7 @@
         // console.log("context type: " + repeater.type);
         nextIsMicroContext = true;
         repeater.returnValue = uponChangeDo(
-            repeater.action,
+			repeater.action.bind(repeater), 
             function () {
                 // unlockSideEffects(function() {
                 repeaterDirty(repeater);
