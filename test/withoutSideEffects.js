@@ -1,4 +1,4 @@
-//'use strict'; // throws TypeError in strict mode
+'use strict';
 const assert = require('assert');
 require('../causality').install();
 
@@ -12,8 +12,13 @@ describe("Without side effects", function(){
             const y = create({});
             y.v = 42;
 
-            x.v = 42;
-            x2.push(42);
+          try{
+						x.v = 42;
+					} catch( err ){
+						assert.equal( err.name, 'TypeError' );
+					}
+
+					x2.push(42); // no TypeError for push
 
             return y.v;
         });
