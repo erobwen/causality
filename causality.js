@@ -806,7 +806,8 @@
                 // Build a new macro context
                 enteredContext.children = [];
 
-                if (context !== null && typeof(enteredContext.independent) === 'undefined') {
+                // The "&& inActiveRecording" is a temporary fix in wait of a better way to have independant blocks of code not adding to parent context
+                if (context !== null && typeof(enteredContext.independent) === 'undefined' && inActiveRecording ) {
                     context.children.push(enteredContext);
                 }
                 context = enteredContext;
