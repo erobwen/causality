@@ -10,16 +10,48 @@
         root.causality = factory(); // Support browser global
     }
 }(this, function () {
-    function values(obj) {
-        var vals = [];
-        for( var key in obj ) {
-            if ( obj.hasOwnProperty(key) ) {
-                vals.push(obj[key]);
-            }
-        }
-        return vals;
-    }
+    /***************************************************************
+     *
+     *  Debug & helpers
+     *
+     ***************************************************************/
+	 
+	let debug = true;
+	let objectlog;
+	if (debug) {
+		objectlog = require('./test/debug/objectlog.js');		
+	} 
 
+	 // Debugging
+	function log(entity, pattern) {
+		recordingPaused++;
+		updateContextState();
+		objectlog.log(entity, pattern);
+		recordingPaused--;
+		updateContextState();
+	}
+	
+	function logGroup(entity, pattern) {
+		recordingPaused++;
+		updateContextState();
+		objectlog.group(entity, pattern);
+		recordingPaused--;
+		updateContextState();
+	} 
+	
+	function logUngroup() {
+		objectlog.groupEnd(); 
+	} 
+
+	function logToString(entity, pattern) {
+		recordingPaused++;
+		updateContextState();
+		let result = objectlog.logToString(entity, pattern);
+		recordingPaused--;
+		updateContextState();
+		return result;
+	}
+		
     // Helper to quickly get a child object (this function was a great idea, but caused performance issues in stress-tests)
     function getMap() {
         let argumentList = argumentsToArray(arguments);
@@ -78,7 +110,6 @@
     let argumentsToArray = function(argumentList) {
         return Array.prototype.slice.call(argumentList);
     };
-
 
     /***************************************************************
      *
@@ -741,29 +772,36 @@
 			scanContext = scanContext.parent;
 		}
     }
+	
+	function removeSingleChildContext(context) {
+		context.children[0].remove();
+		context.children.length = 0;		
+	}
 
     function removeChildContexts(context) {
         if (typeof(context.children) !== 'undefined' && context.children.length > 0) {
             context.children.forEach(function (child) {
                 child.remove();
             });
-            context.children = [];
+            context.children.length = 0;
         }
     }
 
     // occuring types: recording, repeater_refreshing, cached_call, reCache, block_side_effects
     function enterContext(type, enteredContext) {
+		log("enterContext: " + type);
         if (typeof(enteredContext.initialized) === 'undefined') {
             // Initialize context
             enteredContext.parent = null;
 			enteredContext.type = type;
 			enteredContext.children = [];
             enteredContext.directlyInvokedByApplication = (context === null);
+			log("enteredContext.directlyInvokedByApplication: " + enteredContext.directlyInvokedByApplication);
 
 			// Connect with parent
 			if (context !== null) {
-				enteredContext.parent = context;
 				context.children.push(enteredContext);
+				enteredContext.parent = context;
 			}
             enteredContext.initialized = true;
         }
@@ -810,10 +848,14 @@
     let contextsScheduledForPossibleDestruction = [];
 
     function postPulseCleanup() {
-        // console.log("post pulse cleanup");
+		logGroup("postPulseCleanup");
+        // log("post pulse cleanup");
         contextsScheduledForPossibleDestruction.forEach(function(context) {
+			log(context.directlyInvokedByApplication);
+			log(context, 2);
             if (!context.directlyInvokedByApplication) {
                 if (emptyObserverSet(context.contextObservers)) {
+					log("Kill it!");
                     context.remove();
                 }
             }
@@ -822,6 +864,7 @@
         postPulseHooks.forEach(function(callback) {
             callback(events);
         });
+		logUngroup();
 		if (recordEvents) events = [];
     }
 
@@ -885,7 +928,7 @@
 			events.push(event);
 		}
 		
-        // console.log(event);
+        // log(event);
         event.objectId = handler.overrides.__id;
         if (typeof(handler.observers) !== 'undefined') {
             for (let id in handler.observers)  {
@@ -1021,7 +1064,7 @@
     let sourcesObserverSetChunkSize = 500;
     function registerAnyChangeObserver(description, observerSet) { // instance can be a cached method if observing its return value, object & definition only needed for debugging.
         if (activeRecorder !== null) {
-            // console.log(activeRecorder);
+            // log(activeRecorder);
             if (typeof(observerSet.initialized) === 'undefined') {
                 observerSet.description = description;
                 observerSet.isRoot = true;
@@ -1208,10 +1251,10 @@
 			repeaterAction : repeaterAction,
 			nonRecordedAction: repeaterNonRecordingAction,
             remove: function() {
-                // console.log("removeRepeater: " + repeater.id + "." + repeater.description);
+                // log("removeRepeater: " + repeater.id + "." + repeater.description);
                 removeChildContexts(this);
                 detatchRepeater(this);
-                this.micro.remove(); // Remove recorder!
+                removeSingleChildContext(this); // Remove recorder!
             },
             nextDirty : null,
             previousDirty : null
@@ -1220,8 +1263,8 @@
 
     function refreshRepeater(repeater) {
         enterContext('repeater_refreshing', repeater);
-        // console.log("parent context type: " + repeater.parent.type);
-        // console.log("context type: " + repeater.type);
+        // log("parent context type: " + repeater.parent.type);
+        // log("context type: " + repeater.type);
         repeater.returnValue = uponChangeDo(
 			repeater.repeaterAction, 
             function () {
@@ -1427,7 +1470,7 @@
             cacheRecord.independent = true; // Do not delete together with parent
             cacheRecord.remove = function() {
                 functionCacher.deleteExistingRecord();
-                cacheRecord.micro.remove();
+				removeSingleChildContext(cacheRecord);
             };
             cacheRecord.contextObservers = {
                 noMoreObserversCallback : function() {
@@ -1498,7 +1541,7 @@
             // Is this call non-automatic
             cacheRecord.remove = function() {
                 functionCacher.deleteExistingRecord();
-                cacheRecord.micro.remove(); // Remove recorder
+				removeSingleChildContext(cacheRecord);
             };
 
             cachedCalls++;
@@ -1722,21 +1765,21 @@
     }
 
     function genericReCacheFunction() {
-        // console.log("call reCache");
+        // log("call reCache");
         // Split argumentsp
         let argumentsList = argumentsToArray(arguments);
         let functionName = argumentsList.shift();
         let functionCacher = getFunctionCacher(this.__handler, "_reCachedCalls", functionName, argumentsList);
 
         if (!functionCacher.cacheRecordExists()) {
-            // console.log("init reCache ");
+            // log("init reCache ");
             let cacheRecord = functionCacher.createNewRecord();
             cacheRecord.independent = true; // Do not delete together with parent
 
             cacheRecord.cacheIdObjectMap = {};
             cacheRecord.remove = function() {
                 functionCacher.deleteExistingRecord();
-                cacheRecord.micro.remove(); // Remove recorder
+                removeSingleChildContext(cacheRecord); // Remove recorder
             };
 
             // Is this call non-automatic
@@ -1753,21 +1796,21 @@
                 function () {
                     cacheRecord.newlyCreated = [];
                     let newReturnValue;
-                    // console.log("better be true");
-                    // console.log(inReCache);
+                    // log("better be true");
+                    // log(inReCache);
                     newReturnValue = this[functionName].apply(this, argumentsList);
-                    // console.log(cacheRecord.newlyCreated);
+                    // log(cacheRecord.newlyCreated);
 
-                    // console.log("Assimilating:");
+                    // log("Assimilating:");
                     withoutRecording(function() { // Do not observe reads from the overlays
                         cacheRecord.newlyCreated.forEach(function(created) {
                             if (created.__overlay !== null) {
-                                // console.log("Has overlay!");
-                                // console.log(created.__overlay);
+                                // log("Has overlay!");
+                                // log(created.__overlay);
                                 mergeOverlayIntoObject(created);
                             } else {
-                                // console.log("Infusion id of newly created:");
-                                // console.log(created.__cacheId);
+                                // log("Infusion id of newly created:");
+                                // log(created.__cacheId);
                                 if (created.__cacheId !== null) {
 
                                     cacheRecord.cacheIdObjectMap[created.__cacheId] = created;
