@@ -1,6 +1,7 @@
 'use strict';
 const assert = require('assert');
 require('../causality').install();
+let objectlog = require('./debug/objectlog.js');
 describe("Meta repeaters", function(){
 
     it("Test working", function(){
