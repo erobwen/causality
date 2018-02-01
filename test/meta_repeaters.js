@@ -9,7 +9,7 @@ describe("Meta repeaters", function(){
 
         let nodePrototype = {
             emitHelloEvent : function(arg1, arg2) {
-                // console.log("pushing hello " + this.value);
+                log(">>>>>> pushing hello " + this.value + " <<<<<<<");
                 events.push("hello " + this.value);
             }
         };
@@ -33,11 +33,12 @@ describe("Meta repeaters", function(){
 
         // Meta repeater
         repeatOnChange(function() {
-            // console.log(array);
+            logGroup("Meta repeater: Installing other repeaters...");
             array.forEach(function(node) {
                 // console.log(node);
                 node.repeat('emitHelloEvent', 'some', 'argument');
             });
+			logUngroup();
         });
 
         // Assert all repeaters run once upon creation
@@ -50,11 +51,15 @@ describe("Meta repeaters", function(){
         // console.log(a._repeaters.emitHelloEvent);
 
         // Assert add repeaer to new nodes
-        // console.log("============= restruct ================");
+        log("======================================");
         transaction(function() {
+			log("---");
             array.shift();
+			log("---");
             array.push(d);
+			log("---");
         });
+        log("======================================");
         // console.log("============= end restruct ================");
         assert.equal(events.length, 5);
 

@@ -789,10 +789,14 @@
 			log("... has children...");
             context.children.forEach(function (child) {
 				if (typeof(child.removeWithParent) !== 'undefined') {
-					log("...removing specific child...");
+					log("...removing specific child: " + child.type);
 					log(child);
 					child.remove();
 				} else {
+					log("...should not be removed with parent:" + child.type);
+					log("emptyObserverSet: " + emptyObserverSet(child.contextObservers));
+					// log("------=======------=======------=======------=======------=======------=======")
+					// contextsScheduledForPossibleDestruction.push(child);
 					newChildren.push(child);
 				}
             });
@@ -863,17 +867,22 @@
     let contextsScheduledForPossibleDestruction = [];
 
     function postPulseCleanup() {
-		logGroup("postPulseCleanup");
+		logGroup("postPulseCleanup: " + contextsScheduledForPossibleDestruction.length);
         // log("post pulse cleanup");
         contextsScheduledForPossibleDestruction.forEach(function(context) {
 			// log(context.directlyInvokedByApplication);
-			// log(context, 2);
+			logGroup("... consider remove context: " + context.type);
             if (!context.directlyInvokedByApplication) {
+				log("... not directly invoked by application... ");
                 if (emptyObserverSet(context.contextObservers)) {
-					log("Remove a context since it has no more observers, and is not directly invoked by application");
+					log("... empty observer set... ");
+					log("Remove a context since it has no more observers, and is not directly invoked by application: " + context.type);
                     context.remove();
-                }
+                } else {
+					log("not empty observer set");
+				}
             }
+			logUngroup();
         });
         contextsScheduledForPossibleDestruction = [];
         postPulseHooks.forEach(function(callback) {
@@ -1012,7 +1021,6 @@
             uponChangeAction: doAfterChange,
             remove : function() {
 				log("remove recording");
-				removeChildContexts(this);
                 // Clear out previous observations
                 this.sources.forEach(function(observerSet) { // From observed object
                     // let observerSetContents = getMap(observerSet, 'contents');
@@ -1059,6 +1067,8 @@
                     }
                 }.bind(this));
                 this.sources.lenght = 0;  // From repeater itself.
+				
+				removeChildContexts(this);
             }
         });
         let returnValue = doFirst();
@@ -1481,21 +1491,24 @@
 
 
     function genericRepeatFunction() {
+		logGroup("genericRepeatFunction:");
         // Split arguments
         let argumentsList = argumentsToArray(arguments);
         let functionName = argumentsList.shift();
         let functionCacher = getFunctionCacher(this.__handler, "_repeaters", functionName, argumentsList);
 
         if (!functionCacher.cacheRecordExists()) {
-            // Never encountered these arguments before, make a new cache
+			log(">>> create new repeater... ");
+			// Never encountered these arguments before, make a new cache
             let cacheRecord = functionCacher.createNewRecord();
             cacheRecord.independent = true; // Do not delete together with parent
 			// removeWithParent = false;
             cacheRecord.remove = function() {
 				log("remove cached_repeater");
+				log(this, 2);
                 functionCacher.deleteExistingRecord();
 				removeSingleChildContext(cacheRecord);
-            };
+            }.bind(this);
             cacheRecord.contextObservers = {
                 noMoreObserversCallback : function() {
                     contextsScheduledForPossibleDestruction.push(cacheRecord);
@@ -1510,10 +1523,13 @@
             leaveContext();
 
             registerAnyChangeObserver("functionCache.contextObservers", cacheRecord.contextObservers);
+			logUngroup();
             return cacheRecord.repeaterHandle; // return something else...
         } else {
+            log(">>> reusing old repeater... ");
             let cacheRecord = functionCacher.getExistingRecord();
             registerAnyChangeObserver("functionCache.contextObservers", cacheRecord.contextObservers);
+			logUngroup();
             return functionCacher.getExistingRecord().repeaterHandle;
         }
     }
@@ -1859,7 +1875,7 @@
             return cacheRecord.returnValue;
         } else {
             // Encountered these arguments before, reuse previous repeater
-            let cacheRecord = functionCacher.getExistingRecord();
+			let cacheRecord = functionCacher.getExistingRecord();
             registerAnyChangeObserver("functionCache.contextObservers", cacheRecord.contextObservers);
             return cacheRecord.returnValue;
         }
