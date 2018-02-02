@@ -10,6 +10,18 @@
         root.causality = factory(); // Support browser global
     }
 }(this, function () {
+	/***************************************************************
+	 *
+	 *  State
+	 *
+	 ***************************************************************/
+	let state = {
+		inPulse : 0,
+		recordingPaused : 0,
+		observerNotificationNullified : 0,
+		observerNotificationPostponed : 0
+	};
+	 
     /***************************************************************
      *
      *  Debug & helpers
@@ -27,18 +39,18 @@
 
 	 // Debugging
 	function log(entity, pattern) {
-		recordingPaused++;
+		state.recordingPaused++;
 		updateContextState();
 		objectlog.log(entity, pattern);
-		recordingPaused--;
+		state.recordingPaused--;
 		updateContextState();
 	}
 	
 	function logGroup(entity, pattern) {
-		recordingPaused++;
+		state.recordingPaused++;
 		updateContextState();
 		objectlog.group(entity, pattern);
-		recordingPaused--;
+		state.recordingPaused--;
 		updateContextState();
 	} 
 	
@@ -47,10 +59,10 @@
 	} 
 
 	function logToString(entity, pattern) {
-		recordingPaused++;
+		state.recordingPaused++;
 		updateContextState();
 		let result = objectlog.logToString(entity, pattern);
-		recordingPaused--;
+		state.recordingPaused--;
 		updateContextState();
 		return result;
 	}
@@ -123,73 +135,73 @@
     let staticArrayOverrides = {
         pop : function() {
             if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
-            inPulse++;
+            state.inPulse++;
 
             let index = this.target.length - 1;
-            observerNotificationNullified++;
+            state.observerNotificationNullified++;
             let result = this.target.pop();
-            observerNotificationNullified--;
+            state.observerNotificationNullified--;
             if (this._arrayObservers !== null) {
                 notifyChangeObservers("_arrayObservers", this._arrayObservers);
             }
             emitSpliceEvent(this, index, [result], null);
-            if (--inPulse === 0) postPulseCleanup();
+            if (--state.inPulse === 0) postPulseCleanup();
             return result;
         },
 
         push : function() {
             if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
-            inPulse++;
+            state.inPulse++;
 
             let index = this.target.length;
             let argumentsArray = argumentsToArray(arguments);
-            observerNotificationNullified++;
+            state.observerNotificationNullified++;
             this.target.push.apply(this.target, argumentsArray);
-            observerNotificationNullified--;
+            state.observerNotificationNullified--;
             if (this._arrayObservers !== null) {
                 notifyChangeObservers("_arrayObservers", this._arrayObservers);
             }
             emitSpliceEvent(this, index, null, argumentsArray);
-            if (--inPulse === 0) postPulseCleanup();
+            if (--state.inPulse === 0) postPulseCleanup();
             return this.target.length;
         },
 
         shift : function() {
             if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
-            inPulse++;
+            state.inPulse++;
 
-            observerNotificationNullified++;
+            state.observerNotificationNullified++;
             let result = this.target.shift();
-            observerNotificationNullified--;
+            state.observerNotificationNullified--;
             if (this._arrayObservers !== null) {
                 notifyChangeObservers("_arrayObservers", this._arrayObservers);
             }
             emitSpliceEvent(this, 0, [result], null);
-            if (--inPulse === 0) postPulseCleanup();
+            if (--state.inPulse === 0) postPulseCleanup();
             return result;
 
         },
 
         unshift : function() {
             if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
-            inPulse++;
+            state.inPulse++;
 
             let index = this.target.length;
             let argumentsArray = argumentsToArray(arguments);
-            observerNotificationNullified++;
+            state.observerNotificationNullified++;
             this.target.unshift.apply(this.target, argumentsArray);
-            observerNotificationNullified--;
+            state.observerNotificationNullified--;
             if (this._arrayObservers !== null) {
                 notifyChangeObservers("_arrayObservers", this._arrayObservers);
             }
             emitSpliceEvent(this, 0, null, argumentsArray);
-            if (--inPulse === 0) postPulseCleanup();
+            if (--state.inPulse === 0) postPulseCleanup();
             return this.target.length;
         },
 
         splice : function() {
             if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
-            inPulse++;
+            state.inPulse++;
 
             let argumentsArray = argumentsToArray(arguments);
             let index = argumentsArray[0];
@@ -198,20 +210,20 @@
                 removedCount = this.target.length - index;
             let added = argumentsArray.slice(2);
             let removed = this.target.slice(index, index + removedCount);
-            observerNotificationNullified++;
+            state.observerNotificationNullified++;
             let result = this.target.splice.apply(this.target, argumentsArray);
-            observerNotificationNullified--;
+            state.observerNotificationNullified--;
             if (this._arrayObservers !== null) {
                 notifyChangeObservers("_arrayObservers", this._arrayObservers);
             }
             emitSpliceEvent(this, index, removed, added);
-            if (--inPulse === 0) postPulseCleanup();
+            if (--state.inPulse === 0) postPulseCleanup();
             return result; // equivalent to removed
         },
 
         copyWithin: function(target, start, end) {
             if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
-            inPulse++;
+            state.inPulse++;
 
             if (target < 0) { start = this.target.length - target; }
             if (start < 0) { start = this.target.length - start; }
@@ -224,15 +236,15 @@
             let removed = this.target.slice(index, index + end - start);
             let added = this.target.slice(start, end);
 
-            observerNotificationNullified++;
+            state.observerNotificationNullified++;
             let result = this.target.copyWithin(target, start, end);
-            observerNotificationNullified--;
+            state.observerNotificationNullified--;
             if (this._arrayObservers !== null) {
                 notifyChangeObservers("_arrayObservers", this._arrayObservers);
             }
 
             emitSpliceEvent(this, target, added, removed);
-            if (--inPulse === 0) postPulseCleanup();
+            if (--state.inPulse === 0) postPulseCleanup();
             return result;
         }
     };
@@ -240,19 +252,19 @@
     ['reverse', 'sort', 'fill'].forEach(function(functionName) {
         staticArrayOverrides[functionName] = function() {
             if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
-            inPulse++;
+            state.inPulse++;
 
             let argumentsArray = argumentsToArray(arguments);
             let removed = this.target.slice(0);
 
-            observerNotificationNullified++;
+            state.observerNotificationNullified++;
             let result = this.target[functionName].apply(this.target, argumentsArray);
-            observerNotificationNullified--;
+            state.observerNotificationNullified--;
             if (this._arrayObservers !== null) {
                 notifyChangeObservers("_arrayObservers", this._arrayObservers);
             }
             emitSpliceEvent(this, 0, removed, this.target.slice(0));
-            if (--inPulse === 0) postPulseCleanup();
+            if (--state.inPulse === 0) postPulseCleanup();
             return result;
         };
     });
@@ -311,7 +323,7 @@
         }
 
         if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
-        inPulse++;
+        state.inPulse++;
 
         if (!isNaN(key)) {
             // Number index
@@ -337,7 +349,7 @@
             }
         }
 
-        if (--inPulse === 0) postPulseCleanup();
+        if (--state.inPulse === 0) postPulseCleanup();
 
         if( target[key] !== value && !(Number.isNaN(target[key]) && Number.isNaN(value)) ) return false; // Write protected?
         return true;
@@ -352,7 +364,7 @@
             return true;
         }
         if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return true;
-        inPulse++;
+        state.inPulse++;
 
         let previousValue = target[key];
         delete target[key];
@@ -362,7 +374,7 @@
                 notifyChangeObservers("_arrayObservers", this._arrayObservers);
             }
         }
-        if (--inPulse === 0) postPulseCleanup();
+        if (--state.inPulse === 0) postPulseCleanup();
         if( key in target ) return false; // Write protected?
         return true;
     }
@@ -404,12 +416,12 @@
             return overlayHandler.defineProperty.apply(overlayHandler, [overlayHandler.target, key, oDesc]);
         }
         if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
-        inPulse++;
+        state.inPulse++;
 
         if (this._arrayObservers !== null) {
             notifyChangeObservers("_arrayObservers", this._arrayObservers);
         }
-        if (--inPulse === 0) postPulseCleanup();
+        if (--state.inPulse === 0) postPulseCleanup();
         return target;
     }
 
@@ -498,7 +510,7 @@
             }
         }
 
-        inPulse++;
+        state.inPulse++;
 
         let undefinedKey = !(key in target);
         target[key]      = value;
@@ -515,7 +527,7 @@
             }
             emitSetEvent(this, key, value, previousValue);
         }
-        if (--inPulse === 0) postPulseCleanup();
+        if (--state.inPulse === 0) postPulseCleanup();
         if( resultValue !== value  && !(Number.isNaN(resultValue) && Number.isNaN(value))) return false; // Write protected?
         return true;
     }
@@ -532,7 +544,7 @@
         if (!(key in target)) {
             return true;
         } else {
-            inPulse++;
+            state.inPulse++;
             let previousValue = target[key];
             delete target[key];
             if(!( key in target )) { // Write protected?
@@ -541,7 +553,7 @@
                     notifyChangeObservers("_enumerateObservers", this._enumerateObservers);
                 }
             }
-            if (--inPulse === 0) postPulseCleanup();
+            if (--state.inPulse === 0) postPulseCleanup();
             if( key in target ) return false; // Write protected?
             return true;
         }
@@ -586,12 +598,12 @@
         }
 
         if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
-        inPulse++;
+        state.inPulse++;
 
         if (typeof(this._enumerateObservers) !== 'undefined') {
             notifyChangeObservers("_enumerateObservers", this._enumerateObservers);
         }
-        if (--inPulse === 0) postPulseCleanup();
+        if (--state.inPulse === 0) postPulseCleanup();
         return Reflect.defineProperty(target, key, descriptor);
     }
 
@@ -618,7 +630,7 @@
      ***************************************************************/
 
     function create(createdTarget, cacheId) {
-		inPulse++;
+		state.inPulse++;
         if (typeof(createdTarget) === 'undefined') {
             createdTarget = {};
         }
@@ -721,7 +733,7 @@
         }
 
 		emitCreationEvent(handler);
-		if (--inPulse === 0) postPulseCleanup();
+		if (--state.inPulse === 0) postPulseCleanup();
         return proxy;
     }
 
@@ -741,7 +753,7 @@
 	let inReCache = null;
 
     function updateContextState() {
-        inActiveRecording = (context !== null) ? ((context.type === "recording") && recordingPaused === 0) : false;
+        inActiveRecording = (context !== null) ? ((context.type === "recording") && state.recordingPaused === 0) : false;
 		activeRecorder = (inActiveRecording) ? context : null;
 		
 		inCachedCall = null;
@@ -879,25 +891,23 @@
      *  Upon change do
      **********************************/
 
-    let inPulse = 0;
-
     // A sequence of transactions, end with cleanup.
     function pulse(action) {
-        inPulse++;
+        state.inPulse++;
         callback();
-        if (--inPulse === 0) postPulseCleanup();
+        if (--state.inPulse === 0) postPulseCleanup();
     }
 
     // Single transaction, end with cleanup.
     const transaction = postponeObserverNotification;
 
     function postponeObserverNotification(callback) {
-        inPulse++;
-        observerNotificationPostponed++;
+        state.inPulse++;
+        state.observerNotificationPostponed++;
         callback();
-        observerNotificationPostponed--;
+        state.observerNotificationPostponed--;
         proceedWithPostponedNotifications();
-        if (--inPulse === 0) postPulseCleanup();
+        if (--state.inPulse === 0) postPulseCleanup();
     }
 
     let contextsScheduledForPossibleDestruction = [];
@@ -1113,13 +1123,11 @@
         return returnValue;
     }
 
-    let recordingPaused = 0;
-
     function withoutRecording(action) {
-        recordingPaused++;
+        state.recordingPaused++;
         updateContextState();
         action();
-        recordingPaused--;
+        state.recordingPaused--;
         updateContextState();
     }
 
@@ -1197,11 +1205,8 @@
     let nextObserverToNotifyChange = null;
     let lastObserverToNotifyChange = null;
 
-    let observerNotificationPostponed = 0;
-    let observerNotificationNullified = 0;
-
     function proceedWithPostponedNotifications() {
-        if (observerNotificationPostponed == 0) {
+        if (state.observerNotificationPostponed == 0) {
             while (nextObserverToNotifyChange !== null) {
                 let recorder = nextObserverToNotifyChange;
                 nextObserverToNotifyChange = nextObserverToNotifyChange.nextToNotify;
@@ -1214,16 +1219,16 @@
     }
 
     function nullifyObserverNotification(callback) {
-        observerNotificationNullified++;
+        state.observerNotificationNullified++;
         callback();
-        observerNotificationNullified--;
+        state.observerNotificationNullified--;
     }
 
 
     // Recorders is a map from id => recorder
     function notifyChangeObservers(description, observers) {
         if (typeof(observers.initialized) !== 'undefined') {
-            if (observerNotificationNullified > 0) {
+            if (state.observerNotificationNullified > 0) {
                 return;
             }
 
@@ -1248,7 +1253,7 @@
     function notifyChangeObserver(observer) {
         if (observer != context) {
             observer.remove(); // Cannot be any more dirty than it already is!
-            if (observerNotificationPostponed > 0) {
+            if (state.observerNotificationPostponed > 0) {
                 if (lastObserverToNotifyChange !== null) {
                     lastObserverToNotifyChange.nextToNotify = observer;
                 } else {
@@ -1420,8 +1425,10 @@
         }
     }
 
+	// This is purley for testing
     let cachedCalls = 0;
 
+	// This is purley for testing
     function cachedCallCount() {
         return cachedCalls;
     }
@@ -1992,10 +1999,15 @@
         clearRepeaterLists:     clearRepeaterLists,
         resetObjectIds:         resetObjectIds,
 		
+		// Logging
 		log : log,
 		logGroup : logGroup,
 		logUngroup : logUngroup,
-		logToString : logToString
+		logToString : logToString,
+		
+		// Advanced (only if you know what you are doing) 
+		state : state, 
+		postPulseCleanup : postPulseCleanup
     };
 
     function install(target) {
