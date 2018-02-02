@@ -777,6 +777,7 @@
 				} else {
 					trace.context && log("...removing specific child: " + child.type);
 					trace.context && log(child);
+					// Note: do not remove parent reference, as we could potentially need it to climb past a removed parent?
 					child.removeContextsRecursivley();
 				}
 			});
@@ -798,6 +799,7 @@
 	function removeContextsRecursivley() {
 		trace.context && logGroup("removeContextsRecursivley");
 		this.remove();
+		this.isRemoved = true;
 		removeChildContexts(this);
 		trace.context && logUngroup();
 	}
@@ -844,6 +846,9 @@
 
     function leaveContext() {
 		context = context.parent;
+		while(context !== null && typeof(context.isRemoved) !== 'undefined') {			
+			context = context.parent;
+		}
         updateContextState();
     }
 
