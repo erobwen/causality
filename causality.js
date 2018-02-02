@@ -724,16 +724,16 @@
             mergeAndRemoveForwarding: genericMergeAndRemoveForwarding
         };
 
-        if (inReCache) {
-            if (cacheId !== null &&  typeof(context.cacheIdObjectMap[cacheId]) !== 'undefined') {
+        if (inReCache !== null) {
+            if (cacheId !== null &&  typeof(inReCache.cacheIdObjectMap[cacheId]) !== 'undefined') {
                 // Overlay previously created
-                let infusionTarget = context.cacheIdObjectMap[cacheId];
+                let infusionTarget = inReCache.cacheIdObjectMap[cacheId];
                 infusionTarget.__handler.overrides.__overlay = proxy;
-                context.newlyCreated.push(infusionTarget);
+                inReCache.newlyCreated.push(infusionTarget);
                 return infusionTarget;   // Borrow identity of infusion target.
             } else {
                 // Newly created in this reCache cycle. Including overlaid ones.
-                context.newlyCreated.push(proxy);
+                inReCache.newlyCreated.push(proxy);
             }
         }
 
@@ -983,10 +983,10 @@
     }
 
 	let nextObserverId = 0; 
-    function genericObserveFunction(observerFunction) {
+    function genericObserveFunction(observerFunction, independent) {
         let handler = this.__handler;
 		let observer = {
-			independent : false,
+			independent : independent,
 			id : nextObserverId++,
 			handler : handler,
 			remove : function() {
