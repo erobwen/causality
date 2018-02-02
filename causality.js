@@ -834,7 +834,7 @@
 			// Connect with parent
 			if (context !== null) {
 				context.children.push(enteredContext);
-				enteredContext.parent = context;
+				enteredContext.parent = context; // Even a shared context like a cached call only has the first callee as its parent. Others will just observe it. 
 			}
             enteredContext.initialized = true;
         }
