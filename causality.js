@@ -16,6 +16,9 @@
      *
      ***************************************************************/
 	 
+	let trace = {
+		context : 0
+	} 
 	let debug = true;
 	let objectlog;
 	if (debug) {
@@ -755,21 +758,23 @@
 
     let inActiveRecording = false;
 	let activeRecorder = null;
-	let inCachedCall = false;
-	let inReCache = false;
+	let inCachedCall = null;
+	let inReCache = null;
 
     function updateContextState() {
         inActiveRecording = (context !== null) ? ((context.type === "recording") && recordingPaused === 0) : false;
 		activeRecorder = (inActiveRecording) ? context : null;
 		
-		inCachedCall = false;
-		inReCache = false;
+		inCachedCall = null;
+		inReCache = null;
 		// TODO: do something to replace this scan???
-		let scanContext = context;
-		while (scanContext !== null) {
-			if (scanContext.type === "cached_call") inCachedCall = true;
-			if (scanContext.type === "reCache") inReCache = true;
-			scanContext = scanContext.parent;
+		if (context !== null) {
+			let independentAncestor = context;
+			while (!independentAncestor.independent && independentAncestor.parent !== null) {
+				independentAncestor = independentAncestor.parent;
+			}
+			inCachedCall = (independentAncestor.type === "cached_call") ? independentAncestor : null; 
+			inReCache = (independentAncestor.type === "reCache") ? independentAncestor : null;			
 		}
     }
 	
@@ -783,35 +788,35 @@
 	// }
 
     function removeChildContexts(context) {
-		logGroup("removeChildContexts:" + context.type);
+		trace.context && logGroup("removeChildContexts:" + context.type);
         if (typeof(context.children) !== 'undefined' && context.children.length > 0) {
 			let newChildren = [];
-			logGroup("... has children...");
+			trace.context && logGroup("... has children...");
             context.children.forEach(function (child) {
-				if (typeof(child.removeWithParent) !== 'undefined') {
-					log("...removing specific child: " + child.type);
-					log(child);
-					child.removeContextsRecursivley();
-				} else {
-					log("...should not be removed with parent:" + child.type);
-					log("...emptyObserverSet: " + emptyObserverSet(child.contextObservers));
+				if (child.independent) {
+					trace.context && log("...should not be removed with parent:" + child.type);
+					trace.context && log("...emptyObserverSet: " + emptyObserverSet(child.contextObservers));
 					// log("------=======------=======------=======------=======------=======------=======")
 					// contextsScheduledForPossibleDestruction.push(child);
 					newChildren.push(child);
+				} else {
+					trace.context && log("...removing specific child: " + child.type);
+					trace.context && log(child);
+					child.removeContextsRecursivley();
 				}
             });
-			logUngroup();
+			trace.context && logUngroup();
             context.children = newChildren;
         }
-		logUngroup();
+		trace.context && logUngroup();
     }
 	
 	
 	function removeContextsRecursivley() {
-		logGroup("removeContextsRecursivley");
+		trace.context && logGroup("removeContextsRecursivley");
 		this.remove();
 		removeChildContexts(this);
-		logUngroup();
+		trace.context && logUngroup();
 	}
 
     // occuring types: recording, repeater_refreshing, cached_call, reCache, block_side_effects
@@ -877,28 +882,28 @@
     let contextsScheduledForPossibleDestruction = [];
 
     function postPulseCleanup() {
-		logGroup("postPulseCleanup: " + contextsScheduledForPossibleDestruction.length);
+		trace.context && logGroup("postPulseCleanup: " + contextsScheduledForPossibleDestruction.length);
         // log("post pulse cleanup");
         contextsScheduledForPossibleDestruction.forEach(function(context) {
 			// log(context.directlyInvokedByApplication);
-			logGroup("... consider remove context: " + context.type);
+			trace.context && logGroup("... consider remove context: " + context.type);
             if (!context.directlyInvokedByApplication) {
-				log("... not directly invoked by application... ");
+				trace.context && log("... not directly invoked by application... ");
                 if (emptyObserverSet(context.contextObservers)) {
-					log("... empty observer set... ");
-					log("Remove a context since it has no more observers, and is not directly invoked by application: " + context.type);
+					trace.context && log("... empty observer set... ");
+					trace.context && log("Remove a context since it has no more observers, and is not directly invoked by application: " + context.type);
                     context.removeContextsRecursivley();
                 } else {
-					log("... not empty observer set");
+					trace.context && log("... not empty observer set");
 				}
             }
-			logUngroup();
+			trace.context && logUngroup();
         });
         contextsScheduledForPossibleDestruction = [];
         postPulseHooks.forEach(function(callback) {
             callback(events);
         });
-		logUngroup();
+		trace.context && logUngroup();
 		if (recordEvents) events = [];
     }
 
@@ -981,11 +986,11 @@
     function genericObserveFunction(observerFunction) {
         let handler = this.__handler;
 		let observer = {
-			removeWithParent : true,
+			independent : false,
 			id : nextObserverId++,
 			handler : handler,
 			remove : function() {
-				log("remove observe...");
+				trace.context && log("remove observe...");
 				delete this.handler.observers[this.id];
 			}
 			// observerFunction : observerFunction, // not needed... 
@@ -1023,14 +1028,14 @@
 
         // Recorder context
         enterContext('recording', {
-			removeWithParent : true,
+			independent : false,
             nextToNotify: null,
             id: recorderId++,
             description: description,
             sources : [],
             uponChangeAction: doAfterChange,
             remove : function() {
-				logGroup("remove recording");
+				trace.context && logGroup("remove recording");
                 // Clear out previous observations
                 this.sources.forEach(function(observerSet) { // From observed object
                     // let observerSetContents = getMap(observerSet, 'contents');
@@ -1041,7 +1046,7 @@
                     delete observerSetContents[this.id];
                     let noMoreObservers = false;
                     observerSet.contentsCounter--;
-					log("observerSet.contentsCounter: " + observerSet.contentsCounter);
+					trace.context && log("observerSet.contentsCounter: " + observerSet.contentsCounter);
                     if (observerSet.contentsCounter == 0) {
                         if (observerSet.isRoot) {
                             if (observerSet.first === null && observerSet.last === null) {
@@ -1078,7 +1083,7 @@
                     }
                 }.bind(this));
                 this.sources.length = 0;  // From repeater itself.
-				logUngroup();
+				trace.context && logUngroup();
             }
         });
         let returnValue = doFirst();
@@ -1286,7 +1291,7 @@
 
         // Activate!
         return refreshRepeater({
-			removeWithParent : true,
+			independent : false,
             id: repeaterId++,
             description: description,
 			repeaterAction : repeaterAction,
@@ -1501,21 +1506,21 @@
 
 
     function genericRepeatFunction() {
-		logGroup("genericRepeatFunction:");
+		trace.context && logGroup("genericRepeatFunction:");
         // Split arguments
         let argumentsList = argumentsToArray(arguments);
         let functionName = argumentsList.shift();
         let functionCacher = getFunctionCacher(this.__handler, "_repeaters", functionName, argumentsList);
 
         if (!functionCacher.cacheRecordExists()) {
-			log(">>> create new repeater... ");
+			trace.context && log(">>> create new repeater... ");
 			// Never encountered these arguments before, make a new cache
             let cacheRecord = functionCacher.createNewRecord();
             cacheRecord.independent = true; // Do not delete together with parent
-			// removeWithParent = false;
+
             cacheRecord.remove = function() {
-				log("remove cached_repeater");
-				log(this, 2);
+				trace.context && log("remove cached_repeater");
+				trace.context && log(this, 2);
                 functionCacher.deleteExistingRecord();
 				// removeSingleChildContext(cacheRecord);
             }.bind(this);
@@ -1533,13 +1538,13 @@
             leaveContext();
 
             registerAnyChangeObserver("functionCache.contextObservers", cacheRecord.contextObservers);
-			logUngroup();
+			trace.context && logUngroup();
             return cacheRecord.repeaterHandle; // return something else...
         } else {
-            log(">>> reusing old repeater... ");
+            trace.context && log(">>> reusing old repeater... ");
             let cacheRecord = functionCacher.getExistingRecord();
             registerAnyChangeObserver("functionCache.contextObservers", cacheRecord.contextObservers);
-			logUngroup();
+			trace.context && logUngroup();
             return functionCacher.getExistingRecord().repeaterHandle;
         }
     }
@@ -1570,7 +1575,7 @@
 
     function genericCallAndCacheInCacheFunction() {
         let argumentsArray = argumentsToArray(arguments);
-        if (inCachedCall) {
+        if (inCachedCall !== null) {
             return this.cached.apply(this, argumentsArray);
         } else {
             let functionName = argumentsArray.shift();
@@ -1587,11 +1592,10 @@
         if (!functionCacher.cacheRecordExists()) {
             let cacheRecord = functionCacher.createNewRecord();
             cacheRecord.independent = true; // Do not delete together with parent
-			// removeWithParent = true;
 			
             // Is this call non-automatic
             cacheRecord.remove = function() {
-				log("remove cached_call");
+				trace.context && log("remove cached_call");
                 functionCacher.deleteExistingRecord();
 				// removeSingleChildContext(cacheRecord);
             };
@@ -1827,11 +1831,10 @@
             // log("init reCache ");
             let cacheRecord = functionCacher.createNewRecord();
             cacheRecord.independent = true; // Do not delete together with parent
-			// removeWithParent = true;
 			
             cacheRecord.cacheIdObjectMap = {};
             cacheRecord.remove = function() {
-				log("remove reCache");
+				trace.context && log("remove reCache");
                 functionCacher.deleteExistingRecord();
                 // removeSingleChildContext(cacheRecord); // Remove recorder
             };
