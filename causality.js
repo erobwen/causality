@@ -257,19 +257,6 @@
         };
     });
 
-    // Cumulative assignment settings.
-    let cumulativeAssignment = false;
-    function setCumulativeAssignment(value) {
-        cumulativeAssignment = value;
-    }
-
-    let collecting = [];
-    function collect(array, action) {
-        collecting.push(array);
-        action();
-        collecting.pop();
-    }
-
     let nextId = 1;
     function resetObjectIds() {
         nextId = 1;
@@ -323,10 +310,6 @@
             }
         }
 
-        // If cumulative assignment, inside recorder and value is undefined, no assignment.
-        if (cumulativeAssignment && inActiveRecording && (isNaN(value) || typeof(value) === 'undefined')) {
-            return true;
-        }
         if (writeRestriction !== null && typeof(writeRestriction[this.overrides.__id]) === 'undefined') return;
         inPulse++;
 
@@ -515,10 +498,6 @@
             }
         }
 
-        // If cumulative assignment, inside recorder and value is undefined, no assignment.
-        if (cumulativeAssignment && inActiveRecording && (isNaN(value) || typeof(value) === 'undefined')) {
-            return true;
-        }
         inPulse++;
 
         let undefinedKey = !(key in target);
@@ -1957,9 +1936,6 @@
         addPostPulseAction:     addPostPulseAction,
         removeAllPostPulseActions: removeAllPostPulseActions, 
         setRecordEvents:        setRecordEvents,
-
-        // Experimental
-        setCumulativeAssignment:setCumulativeAssignment,
 
         // Debugging and testing
         observeAll:             observeAll,
