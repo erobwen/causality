@@ -773,43 +773,53 @@
 		}
     }
 	
-	function removeSingleChildContext(context) {
-		logGroup("removeSingleChildContext:" + context.type);
-		if (context.children.length === 1 && typeof(context.children[0].removeWithParent) !== 'undefined') {
-			context.children[0].remove();
-			context.children.length = 0;			
-		}
-		logUngroup();
-	}
+	// function removeSingleChildContext(context) {
+		// logGroup("removeSingleChildContext:" + context.type);
+		// if (context.children.length === 1 && typeof(context.children[0].removeWithParent) !== 'undefined') {
+			// context.children[0].removeContextsRecursivley();
+			// context.children.length = 0;			
+		// }
+		// logUngroup();
+	// }
 
     function removeChildContexts(context) {
 		logGroup("removeChildContexts:" + context.type);
         if (typeof(context.children) !== 'undefined' && context.children.length > 0) {
 			let newChildren = [];
-			log("... has children...");
+			logGroup("... has children...");
             context.children.forEach(function (child) {
 				if (typeof(child.removeWithParent) !== 'undefined') {
 					log("...removing specific child: " + child.type);
 					log(child);
-					child.remove();
+					child.removeContextsRecursivley();
 				} else {
 					log("...should not be removed with parent:" + child.type);
-					log("emptyObserverSet: " + emptyObserverSet(child.contextObservers));
+					log("...emptyObserverSet: " + emptyObserverSet(child.contextObservers));
 					// log("------=======------=======------=======------=======------=======------=======")
 					// contextsScheduledForPossibleDestruction.push(child);
 					newChildren.push(child);
 				}
             });
+			logUngroup();
             context.children = newChildren;
         }
 		logUngroup();
     }
+	
+	
+	function removeContextsRecursivley() {
+		logGroup("removeContextsRecursivley");
+		this.remove();
+		removeChildContexts(this);
+		logUngroup();
+	}
 
     // occuring types: recording, repeater_refreshing, cached_call, reCache, block_side_effects
     function enterContext(type, enteredContext) {
 		// logGroup("enterContext: " + type);
         if (typeof(enteredContext.initialized) === 'undefined') {
             // Initialize context
+			enteredContext.removeContextsRecursivley = removeContextsRecursivley;
             enteredContext.parent = null;
 			enteredContext.type = type;
 			enteredContext.children = [];
@@ -877,9 +887,9 @@
                 if (emptyObserverSet(context.contextObservers)) {
 					log("... empty observer set... ");
 					log("Remove a context since it has no more observers, and is not directly invoked by application: " + context.type);
-                    context.remove();
+                    context.removeContextsRecursivley();
                 } else {
-					log("not empty observer set");
+					log("... not empty observer set");
 				}
             }
 			logUngroup();
@@ -1020,7 +1030,7 @@
             sources : [],
             uponChangeAction: doAfterChange,
             remove : function() {
-				log("remove recording");
+				logGroup("remove recording");
                 // Clear out previous observations
                 this.sources.forEach(function(observerSet) { // From observed object
                     // let observerSetContents = getMap(observerSet, 'contents');
@@ -1031,6 +1041,7 @@
                     delete observerSetContents[this.id];
                     let noMoreObservers = false;
                     observerSet.contentsCounter--;
+					log("observerSet.contentsCounter: " + observerSet.contentsCounter);
                     if (observerSet.contentsCounter == 0) {
                         if (observerSet.isRoot) {
                             if (observerSet.first === null && observerSet.last === null) {
@@ -1066,9 +1077,8 @@
                         }
                     }
                 }.bind(this));
-                this.sources.lenght = 0;  // From repeater itself.
-				
-				removeChildContexts(this);
+                this.sources.length = 0;  // From repeater itself.
+				logUngroup();
             }
         });
         let returnValue = doFirst();
@@ -1284,7 +1294,7 @@
             remove: function() {
                 log("remove repeater_refreshing"); //" + this.id + "." + this.description);
                 detatchRepeater(this);
-                removeSingleChildContext(this); // Remove recorder!
+                // removeSingleChildContext(this); // Remove recorder!
                 // removeChildContexts(this);
             },
             nextDirty : null,
@@ -1312,8 +1322,8 @@
     }
 
     function repeaterDirty(repeater) { // TODO: Add update block on this stage?
-        // removeChildContexts(repeater);
-		removeSingleChildContext(repeater);
+        removeChildContexts(repeater);
+		// removeSingleChildContext(repeater);
 
         if (lastDirtyRepeater === null) {
             lastDirtyRepeater = repeater;
@@ -1507,7 +1517,7 @@
 				log("remove cached_repeater");
 				log(this, 2);
                 functionCacher.deleteExistingRecord();
-				removeSingleChildContext(cacheRecord);
+				// removeSingleChildContext(cacheRecord);
             }.bind(this);
             cacheRecord.contextObservers = {
                 noMoreObserversCallback : function() {
@@ -1583,7 +1593,7 @@
             cacheRecord.remove = function() {
 				log("remove cached_call");
                 functionCacher.deleteExistingRecord();
-				removeSingleChildContext(cacheRecord);
+				// removeSingleChildContext(cacheRecord);
             };
 
             cachedCalls++;
@@ -1823,7 +1833,7 @@
             cacheRecord.remove = function() {
 				log("remove reCache");
                 functionCacher.deleteExistingRecord();
-                removeSingleChildContext(cacheRecord); // Remove recorder
+                // removeSingleChildContext(cacheRecord); // Remove recorder
             };
 
             // Is this call non-automatic
