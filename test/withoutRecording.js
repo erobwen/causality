@@ -80,7 +80,9 @@ describe("Without recording", function(){
 				//console.log('x.a is true');
 
 				withoutRecording(()=>{
-					y.observe( observing_y, true );
+					enterIndependentContext();
+					y.observe( observing_y);
+					leaveIndependentContext();
 				});
 
 			} else {

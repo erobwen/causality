@@ -853,6 +853,26 @@
     }
 
 
+	function enterIndependentContext() {
+		enterContext("independently", {
+			independent : true,
+			remove : () => {}
+		}); 		
+	}
+	
+	function leaveIndependentContext() {
+		leaveContext();
+	}
+	
+	function independently(action) {
+		enterContext("independently", {
+			independent : true,
+			remove : () => {}
+		}); 
+		action();
+		leaveContext();
+	}
+	
     /**********************************
      *  Pulse & Transactions
      *
@@ -984,10 +1004,10 @@
     }
 
 	let nextObserverId = 0; 
-    function genericObserveFunction(observerFunction, independent) {
+    function genericObserveFunction(observerFunction) { //, independent
         let handler = this.__handler;
 		let observer = {
-			independent : independent,
+			// independent : independent,  // wrap with independent context instead!
 			id : nextObserverId++,
 			handler : handler,
 			remove : function() {
@@ -1320,8 +1340,10 @@
                 // });
             }
         );
-		if (repeater.nonRecordedAction !== null) {			
+		if (repeater.nonRecordedAction !== null) {
+			enterIndependentContext();
 			repeater.nonRecordedAction();
+			leaveIndependentContext();
 		}
         leaveContext();
         return repeater;
@@ -1958,6 +1980,11 @@
         addPostPulseAction:     addPostPulseAction,
         removeAllPostPulseActions: removeAllPostPulseActions, 
         setRecordEvents:        setRecordEvents,
+		
+		// Independently
+		enterIndependentContext : enterIndependentContext,
+		leaveIndependentContext : leaveIndependentContext,
+		independently : independently,
 
         // Debugging and testing
         observeAll:             observeAll,
