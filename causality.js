@@ -757,21 +757,17 @@
 		}
     }
 	
-	// function removeSingleChildContext(context) {
-		// logGroup("removeSingleChildContext:" + context.type);
-		// if (context.children.length === 1 && typeof(context.children[0].removeWithParent) !== 'undefined') {
-			// context.children[0].removeContextsRecursivley();
-			// context.children.length = 0;			
-		// }
-		// logUngroup();
-	// }
-
     function removeChildContexts(context) {
 		trace.context && logGroup("removeChildContexts:" + context.type);
-        if (typeof(context.children) !== 'undefined' && context.children.length > 0) {
+		if (context.child !== null) {
+			if (!context.child.independent) {
+				context.child.removeContextsRecursivley();
+				context.child = null;
+			}
+		}
+		if (context.children !== null) {				
 			let newChildren = [];
-			trace.context && logGroup("... has children...");
-            context.children.forEach(function (child) {
+			context.children.forEach(function (child) {
 				if (child.independent) {
 					trace.context && log("...should not be removed with parent:" + child.type);
 					trace.context && log("...emptyObserverSet: " + emptyObserverSet(child.contextObservers));
@@ -783,10 +779,18 @@
 					trace.context && log(child);
 					child.removeContextsRecursivley();
 				}
-            });
-			trace.context && logUngroup();
-            context.children = newChildren;
-        }
+			});
+			if (newChildren.length === 0) {
+				context.child = null;
+				context.children = null;
+			} else if (newChildren.length === 1) {
+				context.child = newChildren[0];
+				context.children = null;
+			} else {
+				context.child = null;
+				context.children = newChildren;
+			}
+		}
 		trace.context && logUngroup();
     }
 	
@@ -798,6 +802,18 @@
 		trace.context && logUngroup();
 	}
 
+	// Optimization, do not create array if not needed.
+	function addChild(context, child) {
+		if (context.child === null && context.children === null) {
+			context.child = child;
+		} else if (context.children === null) {
+			context.children = [context.child, child];
+			context.child = null;
+		} else {
+			context.children.push(child);
+		}
+	}
+	
     // occuring types: recording, repeater_refreshing, cached_call, reCache, block_side_effects
     function enterContext(type, enteredContext) {
 		// logGroup("enterContext: " + type);
@@ -806,13 +822,14 @@
 			enteredContext.removeContextsRecursivley = removeContextsRecursivley;
             enteredContext.parent = null;
 			enteredContext.type = type;
-			enteredContext.children = [];
+			enteredContext.child = null;
+			enteredContext.children = null;
             enteredContext.directlyInvokedByApplication = (context === null);
 			// log("enteredContext.directlyInvokedByApplication: " + enteredContext.directlyInvokedByApplication);
 
 			// Connect with parent
 			if (context !== null) {
-				context.children.push(enteredContext);
+				addChild(context, enteredContext)
 				enteredContext.parent = context; // Even a shared context like a cached call only has the first callee as its parent. Others will just observe it. 
 			}
             enteredContext.initialized = true;
