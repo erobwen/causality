@@ -109,7 +109,7 @@
         }
     }
 
-    let lastOfArray = function(array) {
+    function lastOfArray(array) {
         return array[array.length - 1];
     };
 
@@ -122,7 +122,7 @@
         }
     }
 
-    let argumentsToArray = function(argumentList) {
+    function argumentsToArray(argumentList) {
         return Array.prototype.slice.call(argumentList);
     };
 
@@ -774,18 +774,19 @@
 		if (context.child !== null) {
 			if (!context.child.independent) {
 				context.child.removeContextsRecursivley();
-				context.child = null;
+				// context.child = null;
 			}
 		}
+		context.child = null; // always remove
 		if (context.children !== null) {				
-			let newChildren = [];
+			// let newChildren = [];
 			context.children.forEach(function (child) {
 				if (child.independent) {
 					trace.context && log("...should not be removed with parent:" + child.type);
 					trace.context && log("...emptyObserverSet: " + emptyObserverSet(child.contextObservers));
 					// log("------=======------=======------=======------=======------=======------=======")
 					// contextsScheduledForPossibleDestruction.push(child);
-					newChildren.push(child);
+					// newChildren.push(child);
 				} else {
 					trace.context && log("...removing specific child: " + child.type);
 					trace.context && log(child);
@@ -793,17 +794,18 @@
 					child.removeContextsRecursivley();
 				}
 			});
-			if (newChildren.length === 0) {
-				context.child = null;
-				context.children = null;
-			} else if (newChildren.length === 1) {
-				context.child = newChildren[0];
-				context.children = null;
-			} else {
-				context.child = null;
-				context.children = newChildren;
-			}
+			// if (newChildren.length === 0) {
+				// context.child = null;
+				// context.children = null;
+			// } else if (newChildren.length === 1) {
+				// context.child = newChildren[0];
+				// context.children = null;
+			// } else {
+				// context.child = null;
+				// context.children = newChildren;
+			// }
 		}
+		context.children = []; // always clear
 		trace.context && logUngroup();
     }
 	
@@ -858,9 +860,9 @@
 
     function leaveContext() {
 		context = context.parent;
-		while(context !== null && typeof(context.isRemoved) !== 'undefined') {			
-			context = context.parent;
-		}
+		// while(context !== null && typeof(context.isRemoved) !== 'undefined') {			
+			// context = context.parent;
+		// }
         updateContextState();
     }
 
