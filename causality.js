@@ -769,6 +769,17 @@
 			inCachedCall = (independentAncestor.type === "cached_call") ? independentAncestor : null; 
 			inReCache = (independentAncestor.type === "reCache") ? independentAncestor : null;			
 		}
+		// if (independentContext === null && context !== null) {
+			// throw new Error("wtf!");
+		// }
+		// if (independentContext !== null) {
+			// let inCachedCall2 = (independentContext.type === "cached_call") ? independentContext : null; 
+			// let inReCache2 = (independentContext.type === "reCache") ? independentContext : null;
+			// if (inCachedCall2 !== inCachedCall) throw new Error("wtf");
+			// if (inReCache2 !== inReCache) throw new Error("wtf");
+			// inCachedCall = inCachedCall2;
+			// inReCache = inReCache2;
+		// }
     }
 	
     function removeChildContexts(context) {
@@ -816,6 +827,7 @@
             // Initialize context
 			enteredContext.removeContextsRecursivley = removeContextsRecursivley;
             enteredContext.parent = null;
+			enteredContext.independentParent = null;
 			enteredContext.type = type;
 			enteredContext.child = null;
 			enteredContext.children = null;
@@ -826,9 +838,16 @@
 			if (context !== null) {
 				addChild(context, enteredContext)
 				enteredContext.parent = context; // Even a shared context like a cached call only has the first callee as its parent. Others will just observe it. 
+			} else {
+				enteredContext.independent = true;
 			}
             enteredContext.initialized = true;
         }
+		
+		if (enteredContext.independent || independentContext === null) {
+			enteredContext.independentParent = independentContext;
+			independentContext = enteredContext;
+		}
 
 		context = enteredContext;
         updateContextState();
@@ -838,10 +857,10 @@
 
 
     function leaveContext() {
+		if (context.independent) {
+			independentContext = context.independentParent;
+		}
 		context = context.parent;
-		// while(context !== null && typeof(context.isRemoved) !== 'undefined') {			
-			// context = context.parent;
-		// }
         updateContextState();
     }
 
