@@ -745,10 +745,12 @@
      *
      **********************************/
 
+	let independentContext = null;
     let context = null;
 
     let inActiveRecording = false;
 	let activeRecorder = null;
+	
 	let inCachedCall = null;
 	let inReCache = null;
 
@@ -771,39 +773,16 @@
 	
     function removeChildContexts(context) {
 		trace.context && logGroup("removeChildContexts:" + context.type);
-		if (context.child !== null) {
-			if (!context.child.independent) {
-				context.child.removeContextsRecursivley();
-				// context.child = null;
-			}
+		if (context.child !== null && !context.child.independent) {
+			context.child.removeContextsRecursivley();
 		}
 		context.child = null; // always remove
 		if (context.children !== null) {				
-			// let newChildren = [];
 			context.children.forEach(function (child) {
-				if (child.independent) {
-					trace.context && log("...should not be removed with parent:" + child.type);
-					trace.context && log("...emptyObserverSet: " + emptyObserverSet(child.contextObservers));
-					// log("------=======------=======------=======------=======------=======------=======")
-					// contextsScheduledForPossibleDestruction.push(child);
-					// newChildren.push(child);
-				} else {
-					trace.context && log("...removing specific child: " + child.type);
-					trace.context && log(child);
-					// Note: do not remove parent reference, as we could potentially need it to climb past a removed parent?
+				if (!child.independent) {
 					child.removeContextsRecursivley();
 				}
 			});
-			// if (newChildren.length === 0) {
-				// context.child = null;
-				// context.children = null;
-			// } else if (newChildren.length === 1) {
-				// context.child = newChildren[0];
-				// context.children = null;
-			// } else {
-				// context.child = null;
-				// context.children = newChildren;
-			// }
 		}
 		context.children = []; // always clear
 		trace.context && logUngroup();
