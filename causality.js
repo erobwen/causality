@@ -760,29 +760,9 @@
 		
 		inCachedCall = null;
 		inReCache = null;
-		// TODO: do something to replace this scan???
-		// if (context !== null) {
-			// let independentAncestor = context;
-			// while (!independentAncestor.independent && independentAncestor.parent !== null) {
-				// independentAncestor = independentAncestor.parent;
-			// }
-			// if (independentContext !== independentAncestor) {
-				// objectlog.log("different");
-				// objectlog.log(independentContext);
-				// objectlog.log(independentAncestor)
-				// throw new Error("wtf!");
-			// }
-			// inCachedCall = (independentAncestor.type === "cached_call") ? independentAncestor : null; 
-			// inReCache = (independentAncestor.type === "reCache") ? independentAncestor : null;			
-		// }
 		if (independentContext !== null) {
 			inCachedCall = (independentContext.type === "cached_call") ? independentContext : null; 
 			inReCache = (independentContext.type === "reCache") ? independentContext : null;
-			
-			// if (inCachedCall2 !== inCachedCall) throw new Error("wtf");
-			// if (inReCache2 !== inReCache) throw new Error("wtf");
-			// inCachedCall = inCachedCall2;
-			// inReCache = inReCache2;
 		}
     }
 	
@@ -836,7 +816,6 @@
 			enteredContext.child = null;
 			enteredContext.children = null;
             enteredContext.directlyInvokedByApplication = (context === null);
-			// log("enteredContext.directlyInvokedByApplication: " + enteredContext.directlyInvokedByApplication);
 
 			// Connect with parent
 			if (context !== null) {
@@ -886,7 +865,7 @@
 		enterContext("independently", {
 			independent : true,
 			remove : () => {}
-		}); 		
+		});
 	}
 	
 	function leaveIndependentContext() {
