@@ -460,20 +460,13 @@
         } else {
             if (typeof(key) !== 'undefined') {
                 if (inActiveRecording) {
-                    if (key in target) {
-                        if (typeof(this._propertyObservers) ===  'undefined') {
-                            this._propertyObservers = {};
-                        }
-                        if (typeof(this._propertyObservers[key]) ===  'undefined') {
-                            this._propertyObservers[key] = {};
-                        }
-                        registerAnyChangeObserver("_propertyObservers." + key, this._propertyObservers[key]);
-                    } else {
-                        if (typeof(this._enumerateObservers) ===  'undefined') {
-                            this._enumerateObservers = {};
-                        }
-                        registerAnyChangeObserver("_enumerateObservers." + key, this._enumerateObservers);
-                    }
+					if (typeof(this._propertyObservers) ===  'undefined') {
+						this._propertyObservers = {};
+					}
+					if (typeof(this._propertyObservers[key]) ===  'undefined') {
+						this._propertyObservers[key] = {};
+					}
+					registerAnyChangeObserver("_propertyObservers." + key, this._propertyObservers[key]);
                 }
 
                 let scan = target;
@@ -516,15 +509,14 @@
         target[key]      = value;
         let resultValue  = target[key];
         if( resultValue === value || (Number.isNaN(resultValue) && Number.isNaN(value)) ) { // Write protected?
+			if (typeof(this._propertyObservers) !== 'undefined' && typeof(this._propertyObservers[key]) !== 'undefined') {
+				notifyChangeObservers("_propertyObservers." + key, this._propertyObservers[key]);
+			}
             if (undefinedKey) {
                 if (typeof(this._enumerateObservers) !== 'undefined') {
                     notifyChangeObservers("_enumerateObservers", this._enumerateObservers);
                 }
-            } else {
-                if (typeof(this._propertyObservers) !== 'undefined' && typeof(this._propertyObservers[key]) !== 'undefined') {
-                    notifyChangeObservers("_propertyObservers." + key, this._propertyObservers[key]);
-                }
-            }
+            } 
             emitSetEvent(this, key, value, previousValue);
         }
         if (--state.inPulse === 0) postPulseCleanup();
