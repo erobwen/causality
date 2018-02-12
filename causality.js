@@ -31,14 +31,15 @@
 	let trace = {
 		context : 0
 	} 
-	let debug = true;
+	let debug = false;
 	let objectlog;
-	if (debug) {
-		objectlog = require('./test/debug/objectlog.js');		
+	if (debug) { // make sure require function exists
+		objectlog = require('./lib/objectlog.js');		
 	} 
 
 	 // Debugging
 	function log(entity, pattern) {
+        if( !debug ) return;
 		state.recordingPaused++;
 		updateContextState();
 		objectlog.log(entity, pattern);
