@@ -1408,17 +1408,27 @@
         let description = '';
         let repeaterAction;
         let repeaterNonRecordingAction = null;
-        if (typeof(arguments[0]) === 'string') {
-            description = arguments[0];
-            repeaterAction = arguments[1];
-            if (typeof(arguments[2]) !== 'undefined')
-                repeaterNonRecordingAction = arguments[2];
-        } else {
-            repeaterAction = arguments[0];
-            if (typeof(arguments[1]) !== 'undefined')
-                repeaterNonRecordingAction = arguments[1];
+        let options = {};
+
+        const args = (arguments.length === 1 ?
+                      [arguments[0]] :
+                      Array.apply(null, arguments));
+        
+        if (typeof(args[0]) === 'string') {
+            description = args.shift();
         }
 
+        if (typeof(args[0]) === 'function') {
+            repeaterAction = args.shift();
+        }
+
+        if (typeof(args[0]) === 'function') {
+            repeaterNonRecordingAction = args.shift();
+        }
+        
+        if (typeof(args[0]) === 'object') {
+            options = args.shift();
+        }
 
         // Activate!
         return refreshRepeater({
@@ -1427,6 +1437,7 @@
             description: description,
             repeaterAction : repeaterAction,
             nonRecordedAction: repeaterNonRecordingAction,
+            options: options,
             remove: function() {
                 log("remove repeater_refreshing");
                 //" + this.id + "." + this.description);
@@ -1435,11 +1446,26 @@
                 // removeChildContexts(this);
             },
             nextDirty : null,
-            previousDirty : null
+            previousDirty : null,
+            lastRepeatTime: 0,
+            lastCallTime: 0,
+            lastInvokeTime: 0,
         });
     }
 
     function refreshRepeater(repeater) {
+        let time = Date.now();
+        if( !repeater.options ) repeater.options = {};
+        const options = repeater.options;
+        
+        const timeSinceLastRepeat = time - repeater.lastRepeatTime;
+        if( options.wait && options.wait > timeSinceLastRepeat ){
+            const waiting = options.wait - timeSinceLastRepeat;
+            //console.log(`Delayed repeater for ${waiting}`);
+            setTimeout(()=>refreshRepeater(repeater), waiting);
+            return; // come back later
+        }
+        
         enterContext('repeater_refreshing', repeater);
         // log("parent context type: " + repeater.parent.type);
         // log("context type: " + repeater.type);
@@ -1451,12 +1477,60 @@
                 // });
             }
         );
+
+        if (repeater.lastTimerId){
+            clearTimeout(repeater.lastTimerId);
+            repeater.lastTimerId = null;
+            //console.log(`Delayed NRA cancelled`);
+        }
+        
         if (repeater.nonRecordedAction !== null) {
-            enterIndependentContext();
-            repeater.nonRecordedAction();
-            leaveIndependentContext();
+            let waiting = 0;
+            if( options.wait || options.waitInvoke ){
+                const timeSinceLastRepeat = time - repeater.lastRepeatTime;
+                const timeSinceLastCall = time - repeater.lastCallTime;
+                const timeSinceLastInvoke = time - repeater.lastInvokeTime;
+                const waitInvoke = options.waitInvoke || options.wait * 2;
+                //console.log(`lastRepeat ${timeSinceLastRepeat}, lastcall ${timeSinceLastCall}, lastInvoke ${timeSinceLastInvoke}`);
+                if( options.maxWait && timeSinceLastInvoke >= options.maxWait ){
+                    //console.log(`Max wait reached`);
+                }
+                else if( timeSinceLastCall < waitInvoke ){
+                    waiting = waitInvoke - timeSinceLastCall;
+
+                    if( options.maxWait ){
+                        const waitingMax = options.maxWait - timeSinceLastInvoke;
+                        if( waitingMax < waiting ){
+                            waiting = waitingMax;
+                            //console.log(`override to delaying NRA ${waiting}`);
+                        }
+                    }
+                    
+                    //console.log(`Delaying NRA ${waiting}`);
+                    repeater.lastTimerId = setTimeout(()=>{
+                        //console.log(`Running NRA delayed`);
+                        enterIndependentContext();
+                        repeater.nonRecordedAction( repeater.returnValue );
+                        leaveIndependentContext();
+                        repeater.lastInvokeTime = time;
+                    },waiting);
+                }
+
+                //console.log(`NRA lastCallTime updated`);
+                repeater.lastCallTime = time;
+            }
+
+            if( !waiting ){
+                //console.log(`Running NRA directly`);
+                enterIndependentContext();
+                repeater.nonRecordedAction( repeater.returnValue );
+                leaveIndependentContext();
+                repeater.lastInvokeTime = time;
+            }
         }
         leaveContext();
+        repeater.lastRepeatTime = time;
+
         return repeater;
     }
 
