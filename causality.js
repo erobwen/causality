@@ -1459,8 +1459,8 @@
         const options = repeater.options;
         
         const timeSinceLastRepeat = time - repeater.lastRepeatTime;
-        if( options.wait && options.wait > timeSinceLastRepeat ){
-            const waiting = options.wait - timeSinceLastRepeat;
+        if( options.throttle && options.throttle > timeSinceLastRepeat ){
+            const waiting = options.throttle - timeSinceLastRepeat;
             //console.log(`Delayed repeater for ${waiting}`);
             setTimeout(()=>refreshRepeater(repeater), waiting);
             return; // come back later
@@ -1486,20 +1486,24 @@
         
         if (repeater.nonRecordedAction !== null) {
             let waiting = 0;
-            if( options.wait || options.waitInvoke ){
+            if( options.throttle || options.nonRecordedDebounce ){
                 const timeSinceLastRepeat = time - repeater.lastRepeatTime;
                 const timeSinceLastCall = time - repeater.lastCallTime;
                 const timeSinceLastInvoke = time - repeater.lastInvokeTime;
-                const waitInvoke = options.waitInvoke || options.wait * 2;
-                //console.log(`lastRepeat ${timeSinceLastRepeat}, lastcall ${timeSinceLastCall}, lastInvoke ${timeSinceLastInvoke}`);
-                if( options.maxWait && timeSinceLastInvoke >= options.maxWait ){
+                const waitInvoke = options.nonRecordedDebounce || options.throttle * 2;
+                //console.log(`lastRepeat ${timeSinceLastRepeat},
+                //lastcall ${timeSinceLastCall}, lastInvoke ${timeSinceLastInvoke}`);
+                if( options.nonRecordedThrottle &&
+                    timeSinceLastInvoke >= options.nonRecordedThrottle
+                  ){
                     //console.log(`Max wait reached`);
                 }
                 else if( timeSinceLastCall < waitInvoke ){
                     waiting = waitInvoke - timeSinceLastCall;
 
-                    if( options.maxWait ){
-                        const waitingMax = options.maxWait - timeSinceLastInvoke;
+                    if( options.nonRecordedThrottle ){
+                        const waitingMax =
+                              options.nonRecordedThrottle - timeSinceLastInvoke;
                         if( waitingMax < waiting ){
                             waiting = waitingMax;
                             //console.log(`override to delaying NRA ${waiting}`);
