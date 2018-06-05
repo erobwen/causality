@@ -868,6 +868,7 @@
     // occuring types: recording, repeater_refreshing,
     // cached_call, reCache, block_side_effects
     function enterContext(type, enteredContext) {
+        //console.log("enterContext: " + type, enteredContext.id||'');
         // logGroup("enterContext: " + type);
         if (typeof(enteredContext.initialized) === 'undefined') {
             // Initialize context
@@ -918,6 +919,7 @@
 
 
     function leaveContext() {
+        //console.log("leaveContext: " + context.type, context.id||'');
         if (context.independent) {
             independentContext = context.independentParent;
         }
@@ -944,6 +946,17 @@
         });
         action();
         leaveContext();
+    }
+
+    /* exists as a fallback for async recording without active
+     * contexts. Used when not in recording context.
+     */
+    function emptyContext(){
+        return {
+            record( action ){
+                return action()
+            }
+        }
     }
     
     /**********************************
@@ -1143,7 +1156,7 @@
         }
 
         // Recorder context
-        enterContext('recording', {
+        const enteredContext = enterContext('recording', {
             independent : false,
             nextToNotify: null,
             id: recorderId++,
@@ -1214,7 +1227,17 @@
                 trace.context && logUngroup();
             }
         });
-        let returnValue = doFirst();
+
+        // Method for continue async in same context
+        enteredContext.record = function( action ){
+            if( context == enteredContext ) return action();
+            enterContext(enteredContext.type, enteredContext);
+            const value = action();
+            leaveContext();
+            return value;
+        }
+
+        let returnValue = doFirst( enteredContext );
         leaveContext();
 
         return returnValue;
@@ -1330,6 +1353,7 @@
 
     // Recorders is a map from id => recorder
     function notifyChangeObservers(description, observers) {
+        //console.log('notifyChangeObserver', description);
         if (typeof(observers.initialized) !== 'undefined') {
             if (state.observerNotificationNullified > 0) {
                 return;
@@ -2239,6 +2263,7 @@
         enterIndependentContext : enterIndependentContext,
         leaveIndependentContext : leaveIndependentContext,
         independently : independently,
+        emptyContext : emptyContext,
 
         // Debugging and testing
         observeAll:             observeAll,
