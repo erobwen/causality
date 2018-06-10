@@ -828,6 +828,7 @@
     }
     
     function removeChildContexts(context) {
+        //console.warn("removeChildContexts " + context.type, context.id||'');//DEBUG
         trace.context && logGroup("removeChildContexts:" + context.type);
         if (context.child !== null && !context.child.independent) {
             context.child.removeContextsRecursivley();
@@ -868,7 +869,7 @@
     // occuring types: recording, repeater_refreshing,
     // cached_call, reCache, block_side_effects
     function enterContext(type, enteredContext) {
-        //console.log("enterContext: " + type, enteredContext.id||'');
+        //console.log("enterContext: " + type, enteredContext.id||'');//DEBUG
         // logGroup("enterContext: " + type);
         if (typeof(enteredContext.initialized) === 'undefined') {
             // Initialize context
@@ -918,34 +919,49 @@
     }
 
 
-    function leaveContext() {
-        //console.log("leaveContext: " + context.type, context.id||'');
-        if (context.independent) {
-            independentContext = context.independentParent;
+    function leaveContext( activeContext ) {
+        /* // DEBUG
+        if( context !== activeContext ){
+            console.warn("leaveContext mismatch " + activeContext.type, activeContext.id||'');
+            if( !context ) console.log('current context null');
+            else {
+                console.log("current context " + context.type, context.id||'');
+                if( context.parent ){
+                    console.log("parent context " + context.parent.type, context.parent.id||'');
+                }
+            }
         }
-        context = context.parent;
+        */
+        
+        if( context && activeContext === context ) {
+            //console.log("leaveContext " + activeContext.type, activeContext.id||'');//DEBUG
+            if (context.independent) {
+                independentContext = context.independentParent;
+            }
+            context = context.parent;
+        }
         updateContextState();
     }
 
 
     function enterIndependentContext() {
-        enterContext("independently", {
+        return enterContext("independently", {
             independent : true,
             remove : () => {}
         });
     }
     
-    function leaveIndependentContext() {
-        leaveContext();
+    function leaveIndependentContext( activeContext ) {
+        leaveContext( activeContext );
     }
     
     function independently(action) {
-        enterContext("independently", {
+        const activeContext = enterContext("independently", {
             independent : true,
             remove : () => {}
         });
         action();
-        leaveContext();
+        leaveContext( activeContext );
     }
 
     /* exists as a fallback for async recording without active
@@ -1120,12 +1136,12 @@
             }
             // observerFunction : observerFunction, // not needed...
         }
-        enterContext("observe", observer);
+        const activeContext = enterContext("observe", observer);
         if (typeof(handler.observers) === 'undefined') {
             handler.observers = {};
         }
         handler.observers[observer.id] = observerFunction;
-        leaveContext();
+        leaveContext( activeContext );
     }
 
 
@@ -1230,15 +1246,19 @@
 
         // Method for continue async in same context
         enteredContext.record = function( action ){
-            if( context == enteredContext ) return action();
-            enterContext(enteredContext.type, enteredContext);
+            if( context == enteredContext || enteredContext.isRemoved )
+                return action();
+            //console.log('enteredContext.record');//DEBUG
+            const activeContext = enterContext(enteredContext.type, enteredContext);
             const value = action();
-            leaveContext();
+            leaveContext( activeContext );
             return value;
         }
 
+        //console.log("doFirst in context " + enteredContext.type, enteredContext.id||'');//DEBUG
         let returnValue = doFirst( enteredContext );
-        leaveContext();
+        //if( context ) console.log("after doFirst context " + enteredContext.type, enteredContext.id||'');//DEBUG
+        leaveContext( enteredContext );
 
         return returnValue;
     }
@@ -1379,6 +1399,16 @@
 
     function notifyChangeObserver(observer) {
         if (observer != context) {
+            /* // DEBUG
+            console.warn("notifyChangeObserver mismatch " + observer.type, observer.id||'');//DEBUG
+            if( !context ) console.log('current context null');
+            else {
+                console.log("current context " + context.type, context.id||'');
+                if( context.parent ){
+                    console.log("parent context " + context.parent.type, context.parent.id||'');
+                }
+            }
+            */
             observer.remove(); // Cannot be any more dirty than it already is!
             if (state.observerNotificationPostponed > 0) {
                 if (lastObserverToNotifyChange !== null) {
@@ -1490,7 +1520,7 @@
             return; // come back later
         }
         
-        enterContext('repeater_refreshing', repeater);
+        const activeContext = enterContext('repeater_refreshing', repeater);
         // log("parent context type: " + repeater.parent.type);
         // log("context type: " + repeater.type);
         repeater.returnValue = uponChangeDo(
@@ -1537,9 +1567,9 @@
                     //console.log(`Delaying NRA ${waiting}`);
                     repeater.lastTimerId = setTimeout(()=>{
                         //console.log(`Running NRA delayed`);
-                        enterIndependentContext();
+                        const activeContext = enterIndependentContext();
                         repeater.nonRecordedAction( repeater.returnValue );
-                        leaveIndependentContext();
+                        leaveIndependentContext( activeContext );
                         repeater.lastInvokeTime = time;
                     },waiting);
                 }
@@ -1550,13 +1580,13 @@
 
             if( !waiting ){
                 //console.log(`Running NRA directly`);
-                enterIndependentContext();
+                const activeContext = enterIndependentContext();
                 repeater.nonRecordedAction( repeater.returnValue );
-                leaveIndependentContext();
+                leaveIndependentContext( activeContext );
                 repeater.lastInvokeTime = time;
             }
         }
-        leaveContext();
+        leaveContext( activeContext );
         repeater.lastRepeatTime = time;
 
         return repeater;
@@ -1791,15 +1821,15 @@
                     contextsScheduledForPossibleDestruction.push(cacheRecord);
                 }
             };
-            enterContext('cached_repeater', cacheRecord);
-
+            const activeContext = enterContext('cached_repeater', cacheRecord);
+            
             // cacheRecord.remove = function() {};
             // Never removed directly, only when no observers
             // & no direct application call
             cacheRecord.repeaterHandle = repeatOnChange(function() {
                 return this[functionName].apply(this, argumentsList);
             }.bind(this));
-            leaveContext();
+            leaveContext( activeContext );
 
             registerAnyChangeObserver(
                 "functionCache.contextObservers",
@@ -1873,7 +1903,7 @@
             };
 
             cachedCalls++;
-            enterContext('cached_call', cacheRecord);
+            const activeContext = enterContext('cached_call', cacheRecord);
             // Never encountered these arguments before, make a new cache
             let returnValue = uponChangeDo(
                 function () {
@@ -1889,7 +1919,7 @@
                     notifyChangeObservers("functionCache.contextObservers",
                                           cacheRecord.contextObservers);
                 }.bind(this));
-            leaveContext();
+            leaveContext( activeContext );
             cacheRecord.returnValue = returnValue;
             cacheRecord.contextObservers = {
                 noMoreObserversCallback : function() {
@@ -2138,7 +2168,7 @@
             cacheRecord.directlyInvokedByApplication = (context === null);
 
             // Never encountered these arguments before, make a new cache
-            enterContext('reCache', cacheRecord);
+            const activeContext = enterContext('reCache', cacheRecord);
             cacheRecord.contextObservers = {
                 noMoreObserversCallback : function() {
                     contextsScheduledForPossibleDestruction.push(cacheRecord);
@@ -2183,7 +2213,7 @@
                     }
                 }.bind(this)
             );
-            leaveContext();
+            leaveContext( activeContext );
             registerAnyChangeObserver(
                 "functionCache.contextObservers",
                 cacheRecord.contextObservers);
