@@ -1,0 +1,144 @@
+'use strict';
+const assert = require('assert');
+require('../../causality').install();
+const log = console.log.bind(console);
+
+const graph = {
+    1: {a: [2,3,4,5,6] },
+    2: {a: [7,8], b: 10},
+    3: {a: [8], b: 11},
+    4: {a: [9], b: 11},
+    5: {a: [8], b: 12},
+    6: {a: [9], b: 12},
+    7: {},
+    8: {},
+    9: {},
+    10: {b: 13},
+    11: {b: 14},
+    12: {b: 14},
+};
+
+const state = {};
+
+function stateGet( id, o ){
+    if( state[id] ) return state[id];
+    state[id] = o;
+    o.obs = c({id});
+    return o;
+}
+
+class C {
+    constructor( id ){
+        if( state[id] ) return state[id];
+        state[id] = this;
+        this.obs = c({id});
+        return this;
+    }
+
+    async listP( ofClass ){
+        if( this._list ) return this._list;
+        
+        const newlist = c([]);
+        for( let id of graph[this.obs.id].a ){
+            newlist.push( new ofClass( id ) );
+        }
+        
+        return this._list = newlist;
+    }
+
+    async relP( ofClass ){
+        const id = graph[this.obs.id].b;
+        return new ofClass( id );
+    }
+
+    _updateArray( prop, content ){
+		if( !this[prop] ) return this[prop] = c(Array.from(content));
+		this[prop].splice( 0, this[prop].length, ... content );
+		return this[prop];
+	}
+}
+
+class B extends C {
+    get listL(){
+        if( this._listL ) return this._listL;
+        this._listL = c([]);
+        repeat(this.listLP.bind(this));
+        return this._listL;
+    }
+    
+    async listLP(){
+        const newlist = new Map();
+        for( let r of await this.listP( R ) ){
+            const l = await r.relLP();
+            
+            if( newlist.has( l.obs.id ) ) continue;
+            
+            newlist.set( l.obs.id, l );
+        }
+        return this._updateArray('_listL', newlist.values() );
+    }
+
+    async listDP(){
+        const newlist = new Map();
+        for( let r of await this.listP( R ) ){
+            for( let d of await r.listP( D ) ){
+                if( newlist.has( d.obs.id ) ) continue;
+                newlist.set( d.obs.id, d );
+            }
+        }
+        return Array.from( newlist.values() );
+    }
+}
+
+class R extends C {
+    async relLP(){
+        const a = await this.relP( A );
+        const l = await a.relP( L );
+        return l;
+    }
+}
+
+
+class D extends C {}
+
+class A extends C {
+    async listRP(){
+        const b = new B(1);
+        const newlist = new Map();
+        for( let r of await b.listP( R ) ){
+            const a = await r.relP( A );
+
+            if( a.obs.id !== this.obs.id ) continue;
+
+            newlist.set( r.obs.id, r);
+        }
+
+        return Array.from( newlist.values() );        
+    }
+}
+
+class L extends C {
+    get listA(){
+        if( this._listA ) return this._listA;
+        this._listA = c([]);
+        repeat(this.listAP.bind(this));
+        return this._listA;
+    }
+
+    async listAP(){
+        const b = new B(1);
+        const newlist = new Map();
+        for( let r of await b.listP( R ) ){
+            const a = await r.relP( A );
+            const l = await r.relLP();
+
+            if( l.obs.id !== this.obs.id ) continue;
+
+            newlist.set( a.obs.id, a);
+        }
+
+        return this._updateArray('_listA', newlist.values() );
+    }
+}
+
+module.exports.B = B;
