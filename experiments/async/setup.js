@@ -1,5 +1,4 @@
 'use strict';
-const assert = require('assert');
 require('../../causality').install();
 const log = console.log.bind(console);
 
@@ -66,7 +65,7 @@ class B extends C {
         return this._listL;
     }
     
-    async listLP( context = causality.emptyContext() ){
+    async listLP( context = emptyContext() ){
         const newlist = new Map();
         for( let r of await context.record(()=> this.listP( R ) ) ){
             const l = await context.record(()=> r.relLP() );
@@ -125,7 +124,7 @@ class L extends C {
         return this._listA;
     }
 
-    async listAP( context = causality.emptyContext() ){
+    async listAP( context = emptyContext() ){
         const b = new B(1);
         const newlist = new Map();
         for( let r of await context.record(()=> b.listP( R ) ) ){
@@ -137,7 +136,7 @@ class L extends C {
             context.record(()=> newlist.set( a.obs.id, a) );
         }
 
-        log('L listAP', newlist.values() );
+        //log('L listAP', newlist.values() );
         return context.record(()=> this._updateArray('_listA', newlist.values() ) );
     }
 }
