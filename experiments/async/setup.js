@@ -66,16 +66,16 @@ class B extends C {
         return this._listL;
     }
     
-    async listLP(){
+    async listLP( context = causality.emptyContext() ){
         const newlist = new Map();
-        for( let r of await this.listP( R ) ){
-            const l = await r.relLP();
+        for( let r of await context.record(()=> this.listP( R ) ) ){
+            const l = await context.record(()=> r.relLP() );
             
             if( newlist.has( l.obs.id ) ) continue;
             
-            newlist.set( l.obs.id, l );
+            context.record(()=> newlist.set( l.obs.id, l ) );
         }
-        return this._updateArray('_listL', newlist.values() );
+        return context.record(()=> this._updateArray('_listL', newlist.values() ) );
     }
 
     async listDP(){
@@ -125,19 +125,20 @@ class L extends C {
         return this._listA;
     }
 
-    async listAP(){
+    async listAP( context = causality.emptyContext() ){
         const b = new B(1);
         const newlist = new Map();
-        for( let r of await b.listP( R ) ){
-            const a = await r.relP( A );
-            const l = await r.relLP();
+        for( let r of await context.record(()=> b.listP( R ) ) ){
+            const a = await context.record(()=> r.relP( A ) );
+            const l = await context.record(()=> r.relLP() );
 
             if( l.obs.id !== this.obs.id ) continue;
 
-            newlist.set( a.obs.id, a);
+            context.record(()=> newlist.set( a.obs.id, a) );
         }
 
-        return this._updateArray('_listA', newlist.values() );
+        log('L listAP', newlist.values() );
+        return context.record(()=> this._updateArray('_listA', newlist.values() ) );
     }
 }
 

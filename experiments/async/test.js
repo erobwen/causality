@@ -6,18 +6,31 @@ renderL();
 function renderL(){
     const b = new s.B(1);
     repeat(()=>{
-        log("\nB", b.obs.id );
+        let res = "";
+ 
+        res += `B ${b.obs.id}\n`;
         for( let l of b.listL ){
-            log( '  L', l.obs.id );
-            renderA( l );
+            res += `  L ${l.obs.id}\n`;
+            res += renderA( l );
         }
+        log( res );
     });
 }
 
+const state = c({});
+
 function renderA( l ){
+    if( l.obs.id in state ) return state[ l.obs.id ];
+    //log('setup renderA ' + l.obs.id );
+    
     repeat(()=>{
+        let res = "";
         for( let a of l.listA ){
-            log( '    A', a.obs.id );
+            log('a',a);
+            res += '    A' + a.obs.id + "\n";
         }
+        state[ l.obs.id ] = res;
     });
+
+    return state[ l.obs.id ];
 }
