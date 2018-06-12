@@ -1,7 +1,7 @@
 const s = require('./setup.js');
 const log = console.log.bind(console);
 
-//console.info = ()=>{};
+console.info = ()=>{};
 
 let cntL = 0;
 let cntA = 0;
@@ -26,7 +26,7 @@ function renderL(){
             res += `  L ${l.obs.id}\n`;
             res += renderA( l );
         }
-        //process.stdout.write('\033c');
+        process.stdout.write('\033c');
         log( res );
     }, {throttle:10});
 }
