@@ -1,17 +1,22 @@
 const s = require('./setup.js');
 const log = console.log.bind(console);
 
+//console.info = ()=>{};
+
 let cntL = 0;
 let cntA = 0;
 let cntD = 0;
+
+const state = c({});
+
 
 renderL();
 
 function renderL(){
     const b = new s.B(1);
-    repeat(()=>{
+    repeat('renderL', ()=>{
         
-        if( ++cntL > 100 ) process.exit();
+        if( ++cntL > 200 ) process.exit();
         console.info('*renderL repeated', cntL);
 
         let res = "";
@@ -23,17 +28,15 @@ function renderL(){
         }
         //process.stdout.write('\033c');
         log( res );
-    }, {throttle:5});
+    }, {throttle:10});
 }
-
-const state = c({});
 
 function renderA( l ){
     if( l.obs.id in state ) return state[ l.obs.id ];
     //console.info('setup renderA ' + l.obs.id );
     
     setTimeout(()=>{
-        repeat(()=>{
+        repeat('renderA', ()=>{
             console.info('*renderA repeated', ++cntA);
 
             let res = "";
@@ -47,7 +50,7 @@ function renderA( l ){
             }
             state[ l.obs.id ] = res;
         });
-    });
+    },1);
 
     return state[ l.obs.id ] || '';
 }
@@ -58,7 +61,7 @@ function renderD( a ){
     //console.info('setup renderD ' + a.obs.id );
 
     setTimeout(()=>{
-        repeat(()=>{
+        repeat('renderD', ()=>{
             console.info('*renderD repeated', ++cntD);
             const b = new s.B(1);
             let res = "";
@@ -70,7 +73,7 @@ function renderD( a ){
             }
             state[ a.obs.id ] = res;
         });
-    });
+    },1);
 
     return state[ a.obs.id ] || '';
 }

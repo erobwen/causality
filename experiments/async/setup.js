@@ -31,6 +31,31 @@ class C {
         if( state[id] ) return state[id];
         state[id] = this;
         this.obs = c({id});
+
+        const props = this.constructor.properties || {};
+        const name = this.constructor.name;
+        for( let prop of Object.keys( props ) ){
+            const propP = prop+'P';
+            if( this[propP] ){
+                const propS = '_' + prop;
+                const nameR = `${name}.${prop}`;
+
+                this[propS] = c([]);
+                //setTimeout(()=>repeat(nameR, this[propP].bind(this)),1);
+                repeat(nameR, this[propP].bind(this));
+                
+                Object.defineProperty( this, prop, {
+                    value: this[propS],
+                    enumerable: true,
+                    writable: false,
+                });
+                
+                //log('**prop', prop);
+            }
+        }
+                
+        //log( '**props', this.constructor.properties );
+
         return this;
     }
 
@@ -58,18 +83,15 @@ class C {
 }
 
 class B extends C {
-    get listL(){
-        if( this._listL ) return this._listL;
-        this._listL = c([]);
-        //setTimeout(()=>repeat(this.listLP.bind(this)));
-        repeat(this.listLP.bind(this));
-        return this._listL;
-    }
-    
+    static get properties(){return{
+        listL: Array,
+        listD: Array,
+    }}
+
     async listLP( context = emptyContext() ){
         const newlist = new Map();
         for( let r of await context.record(()=> this.listP( R ) ) ){
-            const l = await context.record(()=> r.relLP() );
+            const l = await context.record(()=> r.relLP( context ) );
             
             if( newlist.has( l.obs.id ) ) continue;
             
@@ -78,17 +100,9 @@ class B extends C {
         return context.record(()=> this._updateArray('_listL', newlist.values() ) );
     }
 
-    get listD(){
-        if( this._listD ) return this._listD;
-        this._listD = c([]);
-        //setTimeout(()=>repeat(this.listDP.bind(this)));
-        repeat(this.listDP.bind(this));
-        return this._listD;
-    }
-
     async listDP( context = emptyContext() ){
         const newlist = new Map();
-        for( let r of await this.listP( R ) ){
+        for( let r of await context.record(()=> this.listP( R ) ) ){
             for( let d of await context.record(()=> r.listP( D ) ) ){
                 if( newlist.has( d.obs.id ) ) continue;
                 context.record(()=> newlist.set( d.obs.id, d ) );
@@ -99,9 +113,9 @@ class B extends C {
 }
 
 class R extends C {
-    async relLP(){
-        const a = await this.relP( A );
-        const l = await a.relP( L );
+    async relLP( context = emptyContext() ){
+        const a = await context.record(()=> this.relP( A ) );
+        const l = await context.record(()=> a.relP( L ) );
         return l;
     }
 }
@@ -110,18 +124,15 @@ class R extends C {
 class D extends C {}
 
 class A extends C {
-    get listR(){
-        if( this._listR ) return this._listR;
-        this._listR = c([]);
-        //setTimeout(()=>repeat(this.listRP.bind(this)));
-        repeat(this.listRP.bind(this));
-        return this._listR;
-    }
+    static get properties(){return{
+        listR: Array,
+        listD: Array,
+    }}
 
     async listRP( context = emptyContext() ){
         const b = new B(1);
         const newlist = new Map();
-        for( let r of await b.listP( R ) ){
+        for( let r of await context.record(()=> b.listP( R ) ) ){
             const a = await context.record(()=> r.relP( A ) );
 
             if( a.obs.id !== this.obs.id ) continue;
@@ -132,17 +143,9 @@ class A extends C {
         return context.record(()=> this._updateArray('_listR', newlist.values() ) );
     }
 
-    get listD(){
-        if( this._listD ) return this._listD;
-        this._listD = c([]);
-        //setTimeout(()=>repeat(this.listDP.bind(this)));
-        repeat(this.listDP.bind(this));
-        return this._listD;
-    }
-
     async listDP( context = emptyContext() ){
         const newlist = new Map();
-        for( let r of await this.listRP() ){
+        for( let r of await context.record(()=> this.listRP( context ) ) ){
             for( let d of await context.record(()=> r.listP( D ) ) ){
                 context.record(()=> newlist.set( d.obs.id, d) );
             }
@@ -153,20 +156,16 @@ class A extends C {
 }
 
 class L extends C {
-    get listA(){
-        if( this._listA ) return this._listA;
-        this._listA = c([]);
-        //setTimeout(()=>repeat(this.listAP.bind(this)));
-        repeat(this.listAP.bind(this));
-        return this._listA;
-    }
+    static get properties(){return{
+        listA: Array,
+    }}
 
     async listAP( context = emptyContext() ){
         const b = new B(1);
         const newlist = new Map();
         for( let r of await context.record(()=> b.listP( R ) ) ){
             const a = await context.record(()=> r.relP( A ) );
-            const l = await context.record(()=> r.relLP() );
+            const l = await context.record(()=> r.relLP( context ) );
 
             if( l.obs.id !== this.obs.id ) continue;
 
