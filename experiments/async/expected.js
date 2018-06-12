@@ -15,8 +15,10 @@ async function renderExpected(){
             const r0 = (await a.listRP())[0];
             log( '    R0', r0.obs.id );
             
-            for( let d of await b.listDP() ){
-                log( '      D', d.obs.id );
+            for( let bd of await b.listDP() ){
+                const ad = await a.listDP();
+                const inc = ad.map( d => d.obs.id ).includes( bd.obs.id );
+                log( '      D', inc?'+':'-', bd.obs.id );
             }
         }
     }

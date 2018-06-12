@@ -4,7 +4,7 @@ const log = console.log.bind(console);
 
 const graph = {
     1: {a: [2,3,4,5,6] },
-    2: {a: [7,8], b: 10},
+    2: {a: [7,8,9], b: 10},
     3: {a: [8], b: 11},
     4: {a: [9], b: 11},
     5: {a: [8], b: 12},
@@ -61,6 +61,7 @@ class B extends C {
     get listL(){
         if( this._listL ) return this._listL;
         this._listL = c([]);
+        //setTimeout(()=>repeat(this.listLP.bind(this)));
         repeat(this.listLP.bind(this));
         return this._listL;
     }
@@ -77,15 +78,23 @@ class B extends C {
         return context.record(()=> this._updateArray('_listL', newlist.values() ) );
     }
 
-    async listDP(){
+    get listD(){
+        if( this._listD ) return this._listD;
+        this._listD = c([]);
+        //setTimeout(()=>repeat(this.listDP.bind(this)));
+        repeat(this.listDP.bind(this));
+        return this._listD;
+    }
+
+    async listDP( context = emptyContext() ){
         const newlist = new Map();
         for( let r of await this.listP( R ) ){
-            for( let d of await r.listP( D ) ){
+            for( let d of await context.record(()=> r.listP( D ) ) ){
                 if( newlist.has( d.obs.id ) ) continue;
-                newlist.set( d.obs.id, d );
+                context.record(()=> newlist.set( d.obs.id, d ) );
             }
         }
-        return Array.from( newlist.values() );
+        return context.record(()=> this._updateArray('_listD', newlist.values() ) );
     }
 }
 
@@ -101,18 +110,45 @@ class R extends C {
 class D extends C {}
 
 class A extends C {
-    async listRP(){
+    get listR(){
+        if( this._listR ) return this._listR;
+        this._listR = c([]);
+        //setTimeout(()=>repeat(this.listRP.bind(this)));
+        repeat(this.listRP.bind(this));
+        return this._listR;
+    }
+
+    async listRP( context = emptyContext() ){
         const b = new B(1);
         const newlist = new Map();
         for( let r of await b.listP( R ) ){
-            const a = await r.relP( A );
+            const a = await context.record(()=> r.relP( A ) );
 
             if( a.obs.id !== this.obs.id ) continue;
 
-            newlist.set( r.obs.id, r);
+            context.record(()=> newlist.set( r.obs.id, r) );
         }
 
-        return Array.from( newlist.values() );        
+        return context.record(()=> this._updateArray('_listR', newlist.values() ) );
+    }
+
+    get listD(){
+        if( this._listD ) return this._listD;
+        this._listD = c([]);
+        //setTimeout(()=>repeat(this.listDP.bind(this)));
+        repeat(this.listDP.bind(this));
+        return this._listD;
+    }
+
+    async listDP( context = emptyContext() ){
+        const newlist = new Map();
+        for( let r of await this.listRP() ){
+            for( let d of await context.record(()=> r.listP( D ) ) ){
+                context.record(()=> newlist.set( d.obs.id, d) );
+            }
+        }
+
+        return context.record(()=> this._updateArray('_listD', newlist.values() ) );
     }
 }
 
@@ -120,6 +156,7 @@ class L extends C {
     get listA(){
         if( this._listA ) return this._listA;
         this._listA = c([]);
+        //setTimeout(()=>repeat(this.listAP.bind(this)));
         repeat(this.listAP.bind(this));
         return this._listA;
     }
