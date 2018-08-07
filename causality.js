@@ -1388,7 +1388,7 @@
                 let chainedObserverChunk = observers.first;
                 while(chainedObserverChunk !== null) {
                     let contents = chainedObserverChunk.contents;
-                    for (id in contents) {
+                    for (let id in contents) {
                         notifyChangeObserver(contents[id]);
                     }
                     chainedObserverChunk = chainedObserverChunk.next;

@@ -8,8 +8,11 @@ describe("array-splices", function(){
     
 	var result;
 	var observedArray = c(['a', 'b', 'c']);
+	var observedArray2 = c(['d', 'e', 'f']);
+
     observedArray.observe(
 		function(event) {
+            //console.log('first observer');
 			result = event;
 		}
     );
@@ -33,6 +36,34 @@ describe("array-splices", function(){
         const expected1 = { type: 'splice', index: 2, removed: ['c','last'], added: [], objectId: 1};
         expected1.object = observedArray;
 		assert.deepEqual( result, expected1 );
+    });
+
+    it('chained observers of large arrays', function(){
+        observedArray.observe(
+		    function(event) {
+                repeat(function(){
+                    if( observedArray.length > 20 ) return;
+                });
+
+            }
+        );
+        
+        
+        let result;
+        repeat(function(){
+            if( observedArray.length > 505  )
+            {
+                if( result ) return;
+                result = [... observedArray];
+                
+                assert.equal( result[1], 505 );
+                return;
+            }
+
+            repeat(function(){
+                observedArray.splice(1,0,observedArray.length);
+            });
+        });
     });
 
 });
