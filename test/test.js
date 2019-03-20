@@ -1,6 +1,5 @@
-'use strict';
+import {create,uponChangeDo,repeatOnChange,c} from "../causality.js";
 const assert = require('assert');
-require('../causality').install();
 
 describe("uponChangeDo:", function () {
 

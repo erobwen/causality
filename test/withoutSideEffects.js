@@ -1,6 +1,5 @@
-'use strict';
+import {create,withoutSideEffects} from "../causality.js";
 const assert = require('assert');
-require('../causality').install();
 
 describe("Without side effects", function(){
 

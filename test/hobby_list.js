@@ -1,14 +1,11 @@
-'use strict';
+import {c,repeatOnChange} from "../causality.js";
 const assert = require('assert');
-require('../causality').install();
-
-
-const log = console.log.bind(console);
+//const log = console.log.bind(console);
 
 describe("object tree modifications", function(){
 
 	let cnt = 0;
-	const state = create({});
+	const state = c({});
 	let out = {};
 	
 	repeatOnChange(function(){

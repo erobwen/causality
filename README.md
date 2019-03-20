@@ -4,40 +4,30 @@
 
 ![Alt text](/docs/logotype.png?raw=true "Causality Logotype")
 
-A library for reactive programming based on Javascript proxies (ES6)
+Reactive programming for simple, scalable state management, using ES6 proxies.
 
 
-# Getting started
+# Installation
 
-Installation with npm:
+Installation: npm install causalityjs --save
 
-    npm install causalityjs --save
+# Usage
 
-Causality uses the UMD pattern: https://github.com/umdjs/umd
+    import {create, repeat} from "causality";
 
-## Node.js
-In your file:
-
-    require('causalityjs').install();
-
-This will by install causality in your global environment. This is recommended as causality is more of a programming language augmentation, rather than just a domain specific library. If this is not suitable for your project for some reason, you can access causality in the ordinary way:
-
-    let causality = require('causalityjs');
-
-An alternative way to install, is to simply copy the single file `causality.js` into your project (and run/include it somehow in your project). The whole library (except tests and documentation) is contained within this single file, nothing else is needed.
 
 ## Browser
 Place the file 'causality.js' where it can be served to the client, and then in your HTML:
 
-    <script src="path/to/causality.js"></script>
-    <script>causality.install(); //Optional, to install causality globally</script>
-
+    <script type="module">
+      import {create, repeat} from "path/to/causality.js";
+    </script>
 
 # Quick Example
 
 This is just to show a simple example of what causality is all about, using the simple repeatOnChange primitive.
 
-    require('./causality').install();
+    import {create, repeatOnChange} from "causality";
 
     var x = create({propA: 11});
     var y = create({propB: 11, propC: 100});

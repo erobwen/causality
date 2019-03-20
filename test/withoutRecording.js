@@ -1,6 +1,5 @@
-'use strict';
+import {create,repeat,withoutRecording,enterIndependentContext,leaveIndependentContext} from "../causality.js";
 const assert = require('assert');
-require('../causality').install();
 
 describe("Without recording", function(){
 

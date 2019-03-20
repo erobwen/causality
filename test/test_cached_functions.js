@@ -1,7 +1,5 @@
-'use strict';
+import {c,repeatOnChange,cachedCallCount} from "../causality.js";
 const assert = require('assert');
-require('../causality').install();
-
 
 describe("Test cached functions", function(){
     function buildHeap(value) {

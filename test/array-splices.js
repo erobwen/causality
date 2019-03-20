@@ -1,6 +1,5 @@
-'use strict';
+import {c,resetObjectIds,repeat} from "../causality.js";
 const assert = require('assert');
-require('../causality').install();
 //const log = console.log.bind(console);
 
 describe("array-splices", function(){

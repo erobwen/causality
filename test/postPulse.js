@@ -1,7 +1,5 @@
-'use strict';
+import * as causality, {create} from "../causality.js";
 const assert = require('assert');
-const causality = require('../causality');
-causality.install();
 
 describe("Post pulse", function(){
 

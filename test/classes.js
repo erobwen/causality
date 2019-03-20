@@ -1,8 +1,6 @@
-'use strict';
+import {create,repeatOnChange} from "../causality.js";
 const assert = require('assert');
-require('../causality').install();
-
-const log = console.log.bind(console);
+//const log = console.log.bind(console);
 
 describe("Classes", function () {
 

@@ -1,7 +1,6 @@
-'use strict';
+import {c} from "../causality.js";
 const assert = require('assert');
-require('../causality').install();
-const log = console.log.bind(console);
+//const log = console.log.bind(console);
 
 // Tests based on mobx test/array.js
 describe("arrays", function () {

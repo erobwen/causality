@@ -1,6 +1,5 @@
-'use strict';
+import {create,repeatOnChange} from "../causality.js";
 const assert = require('assert');
-require('../causality').install();
 describe("Observe", function(){
 
     it("Test observe object", function(){

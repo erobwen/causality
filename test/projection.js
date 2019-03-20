@@ -1,6 +1,5 @@
-'use strict';
+import {create,resetObjectIds,observeAll,transaction} from "../causality.js";
 const assert = require('assert');
-require('../causality').install();
 
 describe("Projections", function(){
     var listNodePrototype = {

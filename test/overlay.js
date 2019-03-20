@@ -1,9 +1,5 @@
-'use strict';
+import * as causality from "../causality.js";
 const assert = require('assert');
-const causality = require('../causality');
-causality.install();
-
-
 
 describe("Overlays", function(){
 
