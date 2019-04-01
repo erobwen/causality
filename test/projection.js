@@ -249,7 +249,7 @@ describe("Projections", function(){
     });
 
 
-    it("Testing recursive projection, array version", function(){
+    it("Testing recursive projection, array version", function( done ){
         resetObjectIds();
         var tree = createTreeNode(1, [
             createTreeNode(2, [
@@ -271,27 +271,30 @@ describe("Projections", function(){
         let detectedEvents = [];
         flattened.observe(function(event) {
             detectedEvents.push(event);
-        });
-
-        // Update tree
-        tree.children[0].children.push(createTreeNode(4.5, []));
-
-        // Assert eventws
-        const expected1 = [
+            
+            // Assert eventws
+            const expected1 = [
             { type: 'splice',
               index: 4,
               removed: [],
               added: [ { value: 4.5 } ],
               objectId: 15 } ];
-        expected1[0].object = flattened;
-        assert.deepEqual(detectedEvents, expected1 );
+            expected1[0].object = flattened;
+            assert.deepEqual(detectedEvents, expected1 );
+            
+            // Assert updated
+            assert.deepEqual(flattened.map((object) => { return object.value; }), [1, 2, 3, 4, 4.5, 5, 6, 7]);
+            done();
 
-        // Assert updated
-        assert.deepEqual(flattened.map((object) => { return object.value; }), [1, 2, 3, 4, 4.5, 5, 6, 7]);
+        });
+
+        // Update tree
+        tree.children[0].children.push(createTreeNode(4.5, []));
+
     });
 
 
-    it("Testing recursive projection, linked list version", function(){
+    it("Testing recursive projection, linked list version", function( done ){
         resetObjectIds();
         var tree = createTreeNode(1, [
             createTreeNode(2, [
@@ -326,6 +329,35 @@ describe("Projections", function(){
         }
         observeAll(observedNodes, function(event) {
             detectedEvents.push(event);
+
+            if( !detectedEvents[1] ) return;
+            
+            // Assert eventws
+            assert.equal(detectedEvents[0].type, 'set');
+            assert.equal(detectedEvents[0].property, 'next');
+            assert.equal(detectedEvents[0].newValue.value, 4.5);
+            assert.equal(detectedEvents[0].newValue.__cacheId, '30_node');
+            assert.equal(detectedEvents[0].oldValue.value, 5);
+            assert.equal(detectedEvents[0].oldValue.__cacheId, '12_node');
+            assert.equal(detectedEvents[0].objectId, 22);
+            assert.equal(detectedEvents[1].type, 'set');
+            assert.equal(detectedEvents[1].property, 'previous');
+            assert.equal(detectedEvents[1].newValue.value, 4.5);
+            assert.equal(detectedEvents[1].newValue.__cacheId, '30_node');
+            assert.equal(detectedEvents[1].oldValue.value, 4);
+            assert.equal(detectedEvents[1].oldValue.__cacheId, '4_node');
+            assert.equal(detectedEvents[1].objectId, 24);
+
+            // Assert updated
+            expectedValues = [1, 2, 3, 4, 4.5, 5, 6, 7];
+            flattenedNode = flattened.first;
+            assert.equal(flattenedNode.value, expectedValues.shift());
+            while(typeof(flattenedNode.next) !== 'undefined') {
+                flattenedNode = flattenedNode.next;
+                assert.equal(flattenedNode.value, expectedValues.shift());
+            }
+
+            done();
         });
 
         // Update tree
@@ -333,30 +365,6 @@ describe("Projections", function(){
             tree.children[0].children.push(createTreeNode(4.5, []));
         });
 
-        // Assert eventws
-        assert.equal(detectedEvents[0].type, 'set');
-        assert.equal(detectedEvents[0].property, 'next');
-        assert.equal(detectedEvents[0].newValue.value, 4.5);
-        assert.equal(detectedEvents[0].newValue.__cacheId, '30_node');
-        assert.equal(detectedEvents[0].oldValue.value, 5);
-        assert.equal(detectedEvents[0].oldValue.__cacheId, '12_node');
-        assert.equal(detectedEvents[0].objectId, 22);
-        assert.equal(detectedEvents[1].type, 'set');
-        assert.equal(detectedEvents[1].property, 'previous');
-        assert.equal(detectedEvents[1].newValue.value, 4.5);
-        assert.equal(detectedEvents[1].newValue.__cacheId, '30_node');
-        assert.equal(detectedEvents[1].oldValue.value, 4);
-        assert.equal(detectedEvents[1].oldValue.__cacheId, '4_node');
-        assert.equal(detectedEvents[1].objectId, 24);
-
-        // Assert updated
-        expectedValues = [1, 2, 3, 4, 4.5, 5, 6, 7];
-        flattenedNode = flattened.first;
-        assert.equal(flattenedNode.value, expectedValues.shift());
-        while(typeof(flattenedNode.next) !== 'undefined') {
-            flattenedNode = flattenedNode.next;
-            assert.equal(flattenedNode.value, expectedValues.shift());
-        }
     });
 });
 

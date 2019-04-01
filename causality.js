@@ -908,21 +908,21 @@ function enterContext(type, enteredContext) {
 
 
 function leaveContext( activeContext ) {
-    /* // DEBUG
-       if( context !== activeContext ){
-       console.warn("leaveContext mismatch " + activeContext.type, activeContext.id||'');
-       if( !context ) console.log('current context null');
-       else {
-       console.log("current context " + context.type, context.id||'');
-       if( context.parent ){
-       console.log("parent context " + context.parent.type, context.parent.id||'');
-       }
-       }
-       }
-    */
+    // DEBUG
+    if( context && activeContext && (context !== activeContext) && !context.independent ){
+        console.trace("leaveContext mismatch " + activeContext.type, activeContext.id||'');
+        if( !context ) console.log('current context null');
+        else {
+            console.log("current context " + context.type, context.id||'');
+            if( context.parent ){
+                console.log("parent context " + context.parent.type, context.parent.id||'');
+            }
+        }
+    }
+    
     
     if( context && activeContext === context ) {
-        //console.log("leaveContext " + activeContext.type, activeContext.id||'');//DEBUG
+        //console.log("leaveContext " + activeContext.type, activeContext.id||'', "to", context.parent ? context.parent.id : 'null');//DEBUG
         if (context.independent) {
             independentContext = context.independentParent;
         }
@@ -1505,7 +1505,7 @@ function refreshRepeater(repeater) {
         const waiting = options.throttle - timeSinceLastRepeat;
         //console.log(`Delayed repeater for ${waiting}`);
         setTimeout(()=>refreshRepeater(repeater), waiting);
-        return; // come back later
+      return repeater; // come back later
     }
     
     const activeContext = enterContext('repeater_refreshing', repeater);
@@ -1515,7 +1515,16 @@ function refreshRepeater(repeater) {
         repeater.repeaterAction,
         function () {
             // unlockSideEffects(function() {
-            repeaterDirty(repeater);
+            if( context && !context.independent ){
+                //console.log("deferring repeaterDirty", context.id);
+                // defere repeater if we are in a nested context
+                setTimeout(()=>{
+                    //console.log("deferred repeaterDirty", context.id);
+                    repeaterDirty(repeater);
+                });
+            } else {
+                repeaterDirty(repeater);
+            }
             // });
         }
     );
