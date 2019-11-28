@@ -1,6 +1,7 @@
-import {c,resetObjectIds,repeat} from "../causality.js";
+import {c,resetObjectIds,repeat,trace} from "../causality.js";
 const assert = require('assert');
 //const log = console.log.bind(console);
+trace.nestedRepeater = false;
 
 describe("array-splices", function(){
 	resetObjectIds();
@@ -66,5 +67,3 @@ describe("array-splices", function(){
     });
 
 });
-
-

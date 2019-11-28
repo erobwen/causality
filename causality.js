@@ -17,17 +17,21 @@ let state = {
  ***************************************************************/
 
 let trace = {
-    context : 0
-}
-let debug = false;
-let objectlog;
-if (debug) { // make sure require function exists
-    objectlog = require('./lib/objectlog.js');
+  context: false,
+  contextMismatch: false,
+  nestedRepeater: true,
+};
+
+let objectlog = null;
+function setObjectlog( newObjectLog ){
+  objectlog = newObjectLog;
+  // import {objectlog} from './lib/objectlog.js';
+  // objectlog.configuration.useConsoleDefault = true;  
 }
 
 // Debugging
 function log(entity, pattern) {
-    if( !debug ) return;
+    if( !trace.context ) return;
     state.recordingPaused++;
     updateContextState();
     objectlog.log(entity, pattern);
@@ -36,6 +40,7 @@ function log(entity, pattern) {
 }
 
 function logGroup(entity, pattern) {
+  if( !trace.context ) return;
     state.recordingPaused++;
     updateContextState();
     objectlog.group(entity, pattern);
@@ -44,6 +49,7 @@ function logGroup(entity, pattern) {
 }
 
 function logUngroup() {
+  if( !trace.context ) return;
     objectlog.groupEnd();
 }
 
@@ -817,7 +823,7 @@ function updateContextState() {
 
 function removeChildContexts(context) {
     //console.warn("removeChildContexts " + context.type, context.id||'');//DEBUG
-    trace.context && logGroup("removeChildContexts:" + context.type);
+    trace.context && logGroup(`removeChildContexts: ${context.type} ${context.id}`);
     if (context.child !== null && !context.child.independent) {
         context.child.removeContextsRecursivley();
     }
@@ -835,7 +841,7 @@ function removeChildContexts(context) {
 
 
 function removeContextsRecursivley() {
-    trace.context && logGroup("removeContextsRecursivley");
+    trace.context && logGroup(`removeContextsRecursivley ${this.id}`);
     this.remove();
     this.isRemoved = true;
     removeChildContexts(this);
@@ -857,8 +863,7 @@ function addChild(context, child) {
 // occuring types: recording, repeater_refreshing,
 // cached_call, reCache, block_side_effects
 function enterContext(type, enteredContext) {
-    //console.log("enterContext: " + type, enteredContext.id||'');//DEBUG
-    // logGroup("enterContext: " + type);
+    logGroup(`enterContext: ${type} ${enteredContext.id} ${enteredContext.description}`);
     if (typeof(enteredContext.initialized) === 'undefined') {
         // Initialize context
         enteredContext.removeContextsRecursivley
@@ -902,7 +907,7 @@ function enterContext(type, enteredContext) {
 
     context = enteredContext;
     updateContextState();
-    // logUngroup();
+    logUngroup();
     return enteredContext;
 }
 
@@ -991,9 +996,10 @@ function postponeObserverNotification(callback) {
 let contextsScheduledForPossibleDestruction = [];
 
 function postPulseCleanup() {
-    trace.context && logGroup(
-        "postPulseCleanup: " +
-            contextsScheduledForPossibleDestruction.length);
+    // trace.context && logGroup(
+    //     "postPulseCleanup: " +
+    //         contextsScheduledForPossibleDestruction.length);
+
     // log("post pulse cleanup");
     contextsScheduledForPossibleDestruction.forEach(function(context) {
         // log(context.directlyInvokedByApplication);
@@ -1168,7 +1174,7 @@ function uponChangeDo() {
         sources : [],
         uponChangeAction: doAfterChange,
         remove : function() {
-            trace.context && logGroup("remove recording");
+            trace.context && logGroup(`remove recording ${this.id}`);
             // Clear out previous observations
             this.sources.forEach(function(observerSet) {
                 // From observed object
@@ -1183,9 +1189,9 @@ function uponChangeDo() {
                 delete observerSetContents[this.id];
                 let noMoreObservers = false;
                 observerSet.contentsCounter--;
-                trace.context && log(
-                    "observerSet.contentsCounter: " +
-                        observerSet.contentsCounter);
+                // trace.context && log(
+                //     "observerSet.contentsCounter: " +
+                //         observerSet.contentsCounter);
                 if (observerSet.contentsCounter == 0) {
                     if (observerSet.isRoot) {
                         if (observerSet.first === null &&
@@ -1269,7 +1275,6 @@ function registerAnyChangeObserver(description, observerSet) {
     // object & definition only needed for debugging.
 
     if (activeRecorder !== null) {
-        // log(activeRecorder);
         if (typeof(observerSet.initialized) === 'undefined') {
             observerSet.description = description;
             observerSet.isRoot = true;
@@ -1361,7 +1366,6 @@ function nullifyObserverNotification(callback) {
 
 // Recorders is a map from id => recorder
 function notifyChangeObservers(description, observers) {
-    //console.log('notifyChangeObserver', description);
     if (typeof(observers.initialized) !== 'undefined') {
         if (state.observerNotificationNullified > 0) {
             return;
@@ -1387,16 +1391,17 @@ function notifyChangeObservers(description, observers) {
 
 function notifyChangeObserver(observer) {
     if (observer != context) {
-        /* // DEBUG
-           console.warn("notifyChangeObserver mismatch " + observer.type, observer.id||'');//DEBUG
-           if( !context ) console.log('current context null');
-           else {
-           console.log("current context " + context.type, context.id||'');
-           if( context.parent ){
-           console.log("parent context " + context.parent.type, context.parent.id||'');
-           }
-           }
-        */
+      if( trace.contextMismatch && context && context.id ){
+        console.log("notifyChangeObserver mismatch " + observer.type, observer.id||'');
+        if( !context ) console.log('current context null');
+        else {
+          console.log("current context " + context.type, context.id||'');
+          if( context.parent ){
+            console.log("parent context " + context.parent.type, context.parent.id||'');
+          }
+        }
+      }
+        
         observer.remove(); // Cannot be any more dirty than it already is!
         if (state.observerNotificationPostponed > 0) {
             if (lastObserverToNotifyChange !== null) {
@@ -1472,6 +1477,13 @@ function repeatOnChange() { // description(optional), action
         options = args.shift();
     }
 
+    if( trace.nestedRepeater && inActiveRecording ){
+      let parentDesc = activeRecorder.description;
+      if( !parentDesc && activeRecorder.parent ) parentDesc = activeRecorder.parent.description;
+      if( !parentDesc ) parentDesc = 'unnamed';
+      console.warn(`repeater ${description||'unnamed'} inside active recording ${parentDesc}`);
+    }
+
     // Activate!
     return refreshRepeater({
         independent : false,
@@ -1509,8 +1521,6 @@ function refreshRepeater(repeater) {
     }
     
     const activeContext = enterContext('repeater_refreshing', repeater);
-    // log("parent context type: " + repeater.parent.type);
-    // log("context type: " + repeater.type);
     repeater.returnValue = uponChangeDo(
         repeater.repeaterAction,
         function () {
@@ -2300,6 +2310,9 @@ export {
     logGroup,
     logUngroup,
     logToString,
+    trace,
+    objectlog,
+    setObjectlog,
     
     // Advanced (only if you know what you are doing)
     state,
