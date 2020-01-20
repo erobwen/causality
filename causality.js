@@ -975,7 +975,7 @@ function emptyContext(){
  **********************************/
 
 // A sequence of transactions, end with cleanup.
-function pulse(action) {
+function pulse(callback) {
     state.inPulse++;
     callback();
     if (--state.inPulse === 0) postPulseCleanup();
