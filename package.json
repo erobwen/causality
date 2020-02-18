@@ -1,8 +1,9 @@
 {
     "name": "causalityjs",
-    "version": "2.1.1",
+    "version": "2.1.2",
     "description": "A library for reactive programming based on Javascript proxies.",
     "main": "causality.js",
+    "module": "causality.js",
     "scripts": {
         "test": "mocha --require reify"
     },
