@@ -4,7 +4,7 @@ const {create,uponChangeDo,repeatOnChange,c} = require("../causality.js");
 // import {create,uponChangeDo,repeatOnChange,c} from "../causality.js";
 const assert = require('assert');
 
-describe("uponChangeDo:", function () {
+describe("uponChangeDo", function () {
 
   let cnt = 0;
   const x = create({propA: 11});
@@ -35,7 +35,7 @@ describe("uponChangeDo:", function () {
 });
 
 
-describe("repeatOnChange:", function () {
+describe("repeatOnChange", function () {
 
   let cnt = 0;
   const x = create({propA: 11});

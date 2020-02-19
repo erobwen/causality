@@ -62,20 +62,6 @@ function logToString(entity, pattern) {
   return result;
 }
 
-// Helper to quickly get a child object (this function was a great idea, but caused performance issues in stress-tests)
-function getMap() {
-  let argumentList = argumentsToArray(arguments);
-  let object = argumentList.shift();
-  while (argumentList.length > 0) {
-    let key = argumentList.shift();
-    if (typeof(object[key]) === 'undefined') {
-      object[key] = {};
-    }
-    object = object[key];
-  }
-  return object;
-}
-
 // Helper to quickly get a child array
 function getArray() {
   var argumentList = argumentsToArray(arguments);
@@ -94,32 +80,9 @@ function getArray() {
   return object;
 }
 
-function isDefined(object, property) {
-  return (typeof(object[property]) !== 'undefined');
-}
-
-function setIfNotDefined(object, property, value) {
-  if (typeof(object[property]) === 'undefined') {
-    object[property] = value;
-  }
-}
-
-function lastOfArray(array) {
-  return array[array.length - 1];
-};
-
-function removeFromArray(object, array) {
-  for (let i = 0; i < array.length; i++) {
-    if (array[i] === object) {
-      array.splice(i, 1);
-      break;
-    }
-  }
-}
-
 function argumentsToArray(argumentList) {
   return Array.prototype.slice.call(argumentList);
-};
+}
 
 /***************************************************************
  *
@@ -189,7 +152,6 @@ let staticArrayOverrides = {
         === 'undefined') return;
     state.inPulse++;
 
-    let index = this.target.length;
     let argumentsArray = argumentsToArray(arguments);
     state.observerNotificationNullified++;
     this.target.unshift.apply(this.target, argumentsArray);
@@ -232,6 +194,9 @@ let staticArrayOverrides = {
         === 'undefined') return;
     state.inPulse++;
 
+    if( !start ) start = 0;
+    if( !end ) end = this.target.length;
+
     if (target < 0) { start = this.target.length - target; }
     if (start < 0) { start = this.target.length - start; }
     if (end < 0) { start = this.target.length - end; }
@@ -240,7 +205,8 @@ let staticArrayOverrides = {
     if (start >= end) {
       return;
     }
-    let removed = this.target.slice(index, index + end - start);
+  
+    let removed = this.target.slice(target, target + end - start);
     let added = this.target.slice(start, end);
 
     state.observerNotificationNullified++;
@@ -1339,7 +1305,6 @@ function registerAnyChangeObserver(description, observerSet) {
  *  Upon change
  * -------------- */
 
-let observersToNotifyChange = [];
 let nextObserverToNotifyChange = null;
 let lastObserverToNotifyChange = null;
 
@@ -1430,8 +1395,8 @@ let lastDirtyRepeater = null;
 
 function clearRepeaterLists() {
   recorderId = 0;
-  let firstDirtyRepeater = null;
-  let lastDirtyRepeater = null;
+  firstDirtyRepeater = null;
+  lastDirtyRepeater = null;
 }
 
 function detatchRepeater(repeater) {
@@ -1548,7 +1513,7 @@ function refreshRepeater(repeater) {
   if (repeater.nonRecordedAction !== null) {
     let waiting = 0;
     if( options.throttle || options.nonRecordedDebounce ){
-      const timeSinceLastRepeat = time - repeater.lastRepeatTime;
+      // const timeSinceLastRepeat = time - repeater.lastRepeatTime;
       const timeSinceLastCall = time - repeater.lastCallTime;
       const timeSinceLastInvoke = time - repeater.lastInvokeTime;
       const waitInvoke = options.nonRecordedDebounce || options.throttle * 2;
@@ -1717,7 +1682,6 @@ function getFunctionCacher(object, cacheStoreName,
     object[cacheStoreName][functionName] = {};
   }
   let functionCaches = object[cacheStoreName][functionName];
-  let functionCache = null;
 
   return {
     cacheRecordExists : function() {
@@ -1986,10 +1950,7 @@ function differentialSplices(previous, array) {
 
   let addedRemovedLength = 0;
 
-  let removed;
-  let added;
-
-  function add(sequence) {
+  function add(added) {
     let splice = {
       type:'splice',
       index: previousIndex + addedRemovedLength,
@@ -1999,7 +1960,7 @@ function differentialSplices(previous, array) {
     splices.push(splice);
   }
 
-  function remove(sequence) {
+  function remove(removed) {
     let splice = {
       type:'splice',
       index: previousIndex + addedRemovedLength,
@@ -2034,7 +1995,7 @@ function differentialSplices(previous, array) {
       done = true;
     } else if (newIndex === array.length) {
       // New array is finished
-      removed = [];
+      const removed = [];
       let index = previousIndex;
       while(index < previous.length) {
         removed.push(previous[index++]);
@@ -2043,7 +2004,7 @@ function differentialSplices(previous, array) {
       done = true;
     } else if (previousIndex === previous.length) {
       // Previous array is finished.
-      added = [];
+      const added = [];
       while(newIndex < array.length) {
         added.push(array[newIndex++]);
       }
@@ -2243,7 +2204,6 @@ function genericReCacheFunction() {
  ************************************************************************/
 
 
-let throwErrorUponSideEffect = false;
 let writeRestriction = null;
 let sideEffectBlockStack = [];
 

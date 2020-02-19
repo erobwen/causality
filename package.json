@@ -24,6 +24,7 @@
   "homepage": "https://github.com/erobwen/causality#readme",
   "devDependencies": {
     "bower-json": "^0.8.1",
+    "eslint": "^6.8.0",
     "esm": "^3.2.25",
     "mocha": "^6.2.2"
   }
