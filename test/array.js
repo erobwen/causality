@@ -15,28 +15,28 @@ describe("arrays", function () {
 
         a.push(1);
         assert.equal(a.length, 1);
-        assert.deepEqual(a, [1]);
+        assert.deepEqual([...a], [1]);
 
         a[1] = 2;
         assert.equal(a.length, 2);
-        assert.deepEqual(a, [1, 2]);
+        assert.deepEqual([...a], [1, 2]);
 
         var sum = function () {
             return -1 + a.reduce(function (a, b) {
-                    return a + b;
-                }, 1);
+                return a + b;
+            }, 1);
         };
 
         assert.equal(sum(), 3);
 
         a[1] = 3;
         assert.equal(a.length, 2);
-        assert.deepEqual(a, [1, 3]);
+        assert.deepEqual([...a], [1, 3]);
         assert.equal(sum(), 4);
 
         a.splice(1, 1, 4, 5);
         assert.equal(a.length, 3);
-        assert.deepEqual(a, [1, 4, 5]);
+        assert.deepEqual([...a], [1, 4, 5]);
         assert.equal(sum(), 10);
 
         a.splice(0, a.length, 2, 4);
@@ -45,11 +45,11 @@ describe("arrays", function () {
 
         a.splice(1, 1);
         assert.equal(sum(), 2);
-        assert.deepEqual(a, [2])
+        assert.deepEqual([...a], [2])
 
         a.splice(0, 0, 4, 3);
         assert.equal(sum(), 9);
-        assert.deepEqual(a, [4, 3, 2]);
+        assert.deepEqual([...a], [4, 3, 2]);
 
         a.splice(0, a.length);
         //a.clear();
@@ -64,10 +64,10 @@ describe("arrays", function () {
 
         a.length = 2;
         assert.equal(sum(), 3);
-        assert.deepEqual(a, [1, 2]);
+        assert.deepEqual([...a], [1, 2]);
 
         a.unshift(3);
-        assert.deepEqual(a, [3, 1, 2]);
+        assert.deepEqual([...a], [3, 1, 2]);
 
 
         assert.equal(JSON.stringify(a), "[3,1,2]");
@@ -75,15 +75,15 @@ describe("arrays", function () {
         assert.deepEqual(Object.keys(a), ['0', '1', '2']);
 
         assert( Array.isArray( a ) );
-			
+		
     });
 
     it('should differ undefined from nonexisting', function () {
         var a = c([]);
         var sum = function () {
             return -1 + a.reduce(function (a, b) {
-                    return a + b;
-                }, 1);
+                return a + b;
+            }, 1);
         };
 
         a.length = 4;
@@ -93,18 +93,18 @@ describe("arrays", function () {
         assert.equal(a.slice() + "", ",,,");
         // assert.equal(a + "", ",,,");  // This does not work for some reason. The get-trap gets an unrecognizeable symbol.
 
-        assert.deepEqual(a, [, , ,]);
+        assert.deepEqual( Object.keys(a), []);
 
         a[1] = undefined;
         a[2] = null;
-        assert.deepEqual(a, [, undefined, null,]);
+        assert.deepEqual(Object.keys(a), ['1','2']);
     });
 
     it('should sort', function () {
         var a = c([3, 1, 2]);
 
         assert.deepEqual(a.sort(), [1, 2, 3]);
-        assert.deepEqual(a, [1, 2, 3]);
+        assert.deepEqual([...a], [1, 2, 3]);
     });
 
     it('should find and remove', function () {
