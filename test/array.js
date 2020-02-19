@@ -1,4 +1,6 @@
-import {c} from "../causality.js";
+'use strict';
+require = require("esm")(module);
+const {c} = require("../causality.js");
 const assert = require('assert');
 //const log = console.log.bind(console);
 
@@ -145,5 +147,3 @@ describe("arrays", function () {
         assert.deepEqual(a1.concat(a2), [1, 2, 3, 4])
     });
 });
-
-

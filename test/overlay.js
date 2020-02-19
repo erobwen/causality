@@ -1,4 +1,6 @@
-import * as causality from "../causality.js";
+'use strict';
+require = require("esm")(module);
+const causality = require("../causality.js");
 const assert = require('assert');
 
 describe("Overlays", function(){

@@ -1,4 +1,6 @@
-import {create,repeatOnChange,transaction} from "../causality.js";
+'use strict';
+require = require("esm")(module);
+const {create,repeatOnChange,transaction} = require("../causality.js");
 const assert = require('assert');
 describe("Meta repeaters", function(){
 

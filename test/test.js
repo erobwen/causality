@@ -1,4 +1,7 @@
-import {create,uponChangeDo,repeatOnChange,c} from "../causality.js";
+require = require("esm")(module);
+const {create,uponChangeDo,repeatOnChange,c} = require("../causality.js");
+// console.log(causality);
+// import {create,uponChangeDo,repeatOnChange,c} from "../causality.js";
 const assert = require('assert');
 
 describe("uponChangeDo:", function () {
@@ -141,4 +144,3 @@ describe("heap structure", function () {
     });
 
 });
-

@@ -1,6 +1,7 @@
-import {create,repeatOnChange} from "../causality.js";
+'use strict';
+require = require("esm")(module);
+const {create,repeatOnChange} = require("../causality.js");
 const assert = require('assert');
-//const log = console.log.bind(console);
 
 describe("Classes", function () {
 

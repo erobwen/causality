@@ -1,4 +1,6 @@
-import {create,resetObjectIds,observeAll,transaction} from "../causality.js";
+'use strict';
+require = require("esm")(module);
+const {create,resetObjectIds,observeAll,transaction} = require("../causality.js");
 const assert = require('assert');
 
 describe("Projections", function(){

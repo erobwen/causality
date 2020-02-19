@@ -1,6 +1,7 @@
-import {c,repeatOnChange} from "../causality.js";
+'use strict';
+require = require("esm")(module);
+const {c,repeatOnChange} = require("../causality.js");
 const assert = require('assert');
-//const log = console.log.bind(console);
 
 describe("object tree modifications", function(){
 

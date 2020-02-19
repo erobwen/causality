@@ -1,4 +1,6 @@
-import {create,withoutSideEffects} from "../causality.js";
+'use strict';
+require = require("esm")(module);
+const {create,withoutSideEffects} = require("../causality.js");
 const assert = require('assert');
 
 describe("Without side effects", function(){

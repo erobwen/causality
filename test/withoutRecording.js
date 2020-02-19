@@ -1,4 +1,8 @@
-import {create,repeat,withoutRecording,enterIndependentContext,leaveIndependentContext} from "../causality.js";
+'use strict';
+require = require("esm")(module);
+const {create,repeat,withoutRecording,
+  enterIndependentContext,leaveIndependentContext
+} = require("../causality.js");
 const assert = require('assert');
 
 describe("Without recording", function(){

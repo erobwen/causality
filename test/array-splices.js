@@ -1,4 +1,6 @@
-import {c,resetObjectIds,repeat,trace} from "../causality.js";
+'use strict';
+require = require("esm")(module);
+const {c,resetObjectIds,repeat,trace} = require("../causality.js");
 const assert = require('assert');
 //const log = console.log.bind(console);
 trace.nestedRepeater = false;

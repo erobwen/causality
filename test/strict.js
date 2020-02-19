@@ -1,6 +1,7 @@
-import {create} from "../causality.js";
+'use strict';
+require = require("esm")(module);
+const {create} = require("../causality.js");
 const assert = require('assert');
-//const log = console.log.bind(console);
 
 describe("Proxy object traps", function () {
     const box = create();
@@ -55,4 +56,3 @@ describe("Array object traps", function () {
         delete stack[99];
     });
 });
-

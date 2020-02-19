@@ -1,4 +1,6 @@
-import * as causality, {create} from "../causality.js";
+'use strict';
+require = require("esm")(module);
+const causality = require("../causality.js");
 const assert = require('assert');
 
 describe("Post pulse", function(){
@@ -56,7 +58,7 @@ describe("Post pulse", function(){
 		causality.transaction(function() {
 			x.foo = 42;
 			x.y.bar = 2;
-			x.z = create({});
+			x.z = causality.create({});
 		});
 
         //console.log('cleanup');
@@ -65,4 +67,3 @@ describe("Post pulse", function(){
         //console.log('end');
     });
 });
-

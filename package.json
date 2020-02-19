@@ -5,7 +5,7 @@
     "main": "causality.js",
     "module": "causality.js",
     "scripts": {
-        "test": "mocha --require reify"
+        "test": "mocha"
     },
     "repository": {
         "type": "git",
@@ -24,7 +24,7 @@
     "homepage": "https://github.com/erobwen/causality#readme",
     "devDependencies": {
         "bower-json": "^0.8.1",
-        "mocha": "^6.2.2",
-        "reify": "^0.18.1"
+        "esm": "^3.2.25",
+        "mocha": "^6.2.2"
     }
 }

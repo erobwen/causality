@@ -1,7 +1,9 @@
-import {c,repeatOnChange,cachedCallCount} from "../causality.js";
+'use strict';
+require = require("esm")(module);
+const {c,repeatOnChange,cachedCallCount} = require("../causality.js");
 const assert = require('assert');
 
-describe("Test cached functions", function(){
+describe("Cached functions", function(){
     function buildHeap(value) {
         var childrenStartValue = value - 5;
         var childrenCount = 0;
