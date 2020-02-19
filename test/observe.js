@@ -4,29 +4,29 @@ const {create,repeatOnChange} = require("../causality.js");
 const assert = require('assert');
 describe("Observe", function(){
 
-    it("Test observe object", function(){
-        let events = [];
-        let x = create();
-        x.observe(function(event) {
-            events.push(event);
-        });
-
-        x.a = 10;
-        x.a = 20;
-        x.a = 20;
-        let y = x.a;
-        // console.log(events);
+  it("Test observe object", function(){
+    let events = [];
+    let x = create();
+    x.observe(function(event) {
+      events.push(event);
     });
+
+    x.a = 10;
+    x.a = 20;
+    x.a = 20;
+    let y = x.a;
+    // console.log(events);
+  });
 	
 	
-    it("Test observe activated by repeater removed", function(){
+  it("Test observe activated by repeater removed", function(){
 		let state = 0
 		function toggle() {
 			state = (state === 0) ? 1 : 0;
 			return state;
 		}
 		
-        let controller = create({
+    let controller = create({
 			haveObserver : false
 		});
 
@@ -64,5 +64,5 @@ describe("Observe", function(){
 		
 		// Assert no observation structure left!
 		assert.equal(Object.keys(specimen.__handler.observers).length, 0);
-    });
+  });
 });

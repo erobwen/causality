@@ -1,74 +1,74 @@
 'use strict';
 require = require("esm")(module);
 const {create,repeat,withoutRecording,
-  enterIndependentContext,leaveIndependentContext
-} = require("../causality.js");
+       enterIndependentContext,leaveIndependentContext
+      } = require("../causality.js");
 const assert = require('assert');
 
 describe("Without recording", function(){
 
-    it("Non recording", function(){
-        const x = create({ important: true, irellevant: true});
-        let result = false;
-        let repeatCount = 0;
-        repeat(()=>{
-            repeatCount++;
-            withoutRecording(()=>{
-                // Simulate a log of x that reads x
-                let dummy;
-                for (let property in x) {
-                    dummy = x[property];
-                }
-            });
-            result = x.important;
-        });
+  it("Non recording", function(){
+    const x = create({ important: true, irellevant: true});
+    let result = false;
+    let repeatCount = 0;
+    repeat(()=>{
+      repeatCount++;
+      withoutRecording(()=>{
+        // Simulate a log of x that reads x
+        let dummy;
+        for (let property in x) {
+          dummy = x[property];
+        }
+      });
+      result = x.important;
+    });
 
-        assert.equal(result, true);
-        assert.equal(repeatCount, 1);
+    assert.equal(result, true);
+    assert.equal(repeatCount, 1);
 
-        x.important = false;
+    x.important = false;
 
-        assert.equal(result, false);
-        assert.equal(repeatCount, 2);
+    assert.equal(result, false);
+    assert.equal(repeatCount, 2);
 
-        x.irellevant = false;
+    x.irellevant = false;
 
-        assert.equal(result, false);
-        assert.equal(repeatCount, 2); // No extra repetition!
-    });  
+    assert.equal(result, false);
+    assert.equal(repeatCount, 2); // No extra repetition!
+  });  
 
 
-    it("Recording", function(){
-        const x = create({ important: true, irellevant: true});
-        let result = false;
-        let repeatCount = 0;
-        repeat(()=>{
-            repeatCount++;
+  it("Recording", function(){
+    const x = create({ important: true, irellevant: true});
+    let result = false;
+    let repeatCount = 0;
+    repeat(()=>{
+      repeatCount++;
 
-            // Simulate a log of x that reads x
-            let dummy;
-            for (let property in x) {
-                dummy = x[property];
-            }
+      // Simulate a log of x that reads x
+      let dummy;
+      for (let property in x) {
+        dummy = x[property];
+      }
 
-            result = x.important;
-        });
+      result = x.important;
+    });
 
-        assert.equal(result, true);
-        assert.equal(repeatCount, 1);
+    assert.equal(result, true);
+    assert.equal(repeatCount, 1);
 
-        x.important = false;
+    x.important = false;
 
-        assert.equal(result, false);
-        assert.equal(repeatCount, 2);
+    assert.equal(result, false);
+    assert.equal(repeatCount, 2);
 
-        x.irellevant = false;
+    x.irellevant = false;
 
-        assert.equal(result, false);
-        assert.equal(repeatCount, 3); // Extra repetition
-    });  
+    assert.equal(result, false);
+    assert.equal(repeatCount, 3); // Extra repetition
+  });  
 
-    it("does not remove observers added inside withoutRecording", function(){
+  it("does not remove observers added inside withoutRecording", function(){
     // This should probably be done in some other way instead. By
     // introducing a way to create independent contexts inside other
     // contexts.

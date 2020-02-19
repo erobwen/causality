@@ -4,55 +4,55 @@ const {create} = require("../causality.js");
 const assert = require('assert');
 
 describe("Proxy object traps", function () {
-    const box = create();
+  const box = create();
 
-    it('overlay',  function () {
-        box.__handler.overrides.__overlay = create({ name: "overlay"});
-        box.other = null;
-        box.__overlay = null;
-    });
+  it('overlay',  function () {
+    box.__handler.overrides.__overlay = create({ name: "overlay"});
+    box.other = null;
+    box.__overlay = null;
+  });
 
-    it('nochange',  function () {
-        box.x = 123;
-        box.x = 123;
-    });
+  it('nochange',  function () {
+    box.x = 123;
+    box.x = 123;
+  });
 
-    it('delete nonexisting', function(){
-        delete box.y;
-    });
+  it('delete nonexisting', function(){
+    delete box.y;
+  });
 
-    Object.defineProperty(box, "z", {
-        configurable: false,
-    });
+  Object.defineProperty(box, "z", {
+    configurable: false,
+  });
 
-    it('set nonconfigurable', function(){
-        assert.throws( function(){box.z = false}, TypeError ); 
-    });
+  it('set nonconfigurable', function(){
+    assert.throws( function(){box.z = false}, TypeError ); 
+  });
 
-    it('delete nonconfigurable', function(){
-         assert.throws( function(){ delete box.z }, TypeError ); 
-    });
+  it('delete nonconfigurable', function(){
+    assert.throws( function(){ delete box.z }, TypeError ); 
+  });
 });
 
 describe("Array object traps", function () {
-    const stack = create([]);
+  const stack = create([]);
 
-    it('overlay',  function () {
-        stack.__handler.overrides.__overlay = create(['aa','bb']);
-        stack[2] = false;
-        stack.__overlay = null;
-    });
+  it('overlay',  function () {
+    stack.__handler.overrides.__overlay = create(['aa','bb']);
+    stack[2] = false;
+    stack.__overlay = null;
+  });
 
 
-    it('nochange',  function () {
-        stack[1] = 123;
-        stack[1] = 123;
+  it('nochange',  function () {
+    stack[1] = 123;
+    stack[1] = 123;
 
-        stack.splice(0, stack.length, 'a','b','c','d');
-        stack.length = 4;
-    });
+    stack.splice(0, stack.length, 'a','b','c','d');
+    stack.length = 4;
+  });
 
-    it('delete nonexisting', function(){
-        delete stack[99];
-    });
+  it('delete nonexisting', function(){
+    delete stack[99];
+  });
 });
