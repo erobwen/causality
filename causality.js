@@ -1,3 +1,7 @@
+'use strict'; 
+// require = require("esm")(module);
+const { argumentsToArray, getArray } = require("./lib/utility.js");
+
 /***************************************************************
  *
  *  State
@@ -62,27 +66,6 @@ function logToString(entity, pattern) {
   return result;
 }
 
-// Helper to quickly get a child array
-function getArray() {
-  var argumentList = argumentsToArray(arguments);
-  var object = argumentList.shift();
-  while (argumentList.length > 0) {
-    var key = argumentList.shift();
-    if (typeof(object[key]) === 'undefined') {
-      if (argumentList.length === 0) {
-        object[key] = [];
-      } else {
-        object[key] = {};
-      }
-    }
-    object = object[key];
-  }
-  return object;
-}
-
-function argumentsToArray(argumentList) {
-  return Array.prototype.slice.call(argumentList);
-}
 
 /***************************************************************
  *
