@@ -2,7 +2,7 @@
 require = require("esm")(module);
 const {create,repeat,withoutRecording,
        enterIndependentContext,leaveIndependentContext
-      } = require("../causality.js");
+      } = require("../causality.js").instance();
 const assert = require('assert');
 
 describe("Without recording", function(){

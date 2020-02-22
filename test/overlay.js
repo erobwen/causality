@@ -1,6 +1,6 @@
 'use strict';
 require = require("esm")(module);
-const causality = require("../causality.js");
+const causality = require("../causality.js").instance();
 const assert = require('assert');
 
 describe("Overlays", function(){

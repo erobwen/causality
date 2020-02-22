@@ -1,6 +1,6 @@
 'use strict';
 require = require("esm")(module);
-const {create,resetObjectIds,observeAll,transaction} = require("../causality.js");
+const {create,resetObjectIds,observeAll,transaction} = require("../causality.js").instance();
 const assert = require('assert');
 
 describe("Projections", function(){

@@ -1,5 +1,5 @@
 require = require("esm")(module);
-const {create,uponChangeDo,repeatOnChange,c} = require("../causality.js");
+const {create,uponChangeDo,repeatOnChange,c} = require("../causality.js").instance();
 // console.log(causality);
 // import {create,uponChangeDo,repeatOnChange,c} from "../causality.js";
 const assert = require('assert');

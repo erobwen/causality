@@ -2,6 +2,7 @@
 // require = require("esm")(module);
 const { argumentsToArray, getArray } = require("./lib/utility.js");
 
+
 /***************************************************************
  *
  *  State
@@ -811,7 +812,7 @@ function addChild(context, child) {
 
 // occuring types: recording, repeater_refreshing,
 // cached_call, reCache, block_side_effects
-export function enterContext(type, enteredContext) {
+function enterContext(type, enteredContext) {
   logGroup(`enterContext: ${type} ${enteredContext.id} ${enteredContext.description}`);
   if (typeof(enteredContext.initialized) === 'undefined') {
     // Initialize context
@@ -860,7 +861,7 @@ export function enterContext(type, enteredContext) {
 }
 
 
-export function leaveContext( activeContext ) {
+function leaveContext( activeContext ) {
   // DEBUG
   if( context && activeContext && (context !== activeContext) && !context.independent ){
     console.trace("leaveContext mismatch " + activeContext.type, activeContext.id||'');
@@ -1218,7 +1219,7 @@ function emptyObserverSet(observerSet) {
 }
 
 let sourcesObserverSetChunkSize = 500;
-export function registerAnyChangeObserver(description, observerSet) {
+function registerAnyChangeObserver(description, observerSet) {
   // instance can be a cached method if observing its return value,
   // object & definition only needed for debugging.
 
@@ -2215,49 +2216,87 @@ function withoutSideEffects(action) {
  *
  ************************************************************************/
 
-export {
-  // Main API
-  create,
-  create as c,
-  uponChangeDo,
-  repeatOnChange,
-  repeatOnChange as repeat,
-  withoutSideEffects,
+function createInstance(config) {
+  if (config.foo) return;
+  return {
+    // Main API
+    create: create,
+    c: create,
+    uponChangeDo: uponChangeDo,
+    repeatOnChange: repeatOnChange,
+    repeat: repeatOnChange,
+    withoutSideEffects: withoutSideEffects,
 
-  // Modifiers
-  withoutRecording,
-  nullifyObserverNotification as withoutNotifyChange,
+    // Modifiers
+    withoutRecording,
+    withoutNotifyChange: nullifyObserverNotification,
 
-  // Pulse
-  pulse,
-  transaction,
-  addPostPulseAction,
-  removeAllPostPulseActions,
-  setRecordEvents,
-  
-  // Independently
-  enterIndependentContext,
-  leaveIndependentContext,
-  independently,
-  emptyContext,
+    // Pulse
+    pulse,
+    transaction,
+    addPostPulseAction,
+    removeAllPostPulseActions,
+    setRecordEvents,
 
-  // Debugging and testing
-  observeAll,
-  cachedCallCount,
-  inCachedCall,
-  clearRepeaterLists,
-  resetObjectIds,
+    // Independently
+    enterIndependentContext,
+    leaveIndependentContext,
+    independently,
+    emptyContext,
+
+    // Debugging and testing
+    observeAll,
+    cachedCallCount,
+    inCachedCall,
+    clearRepeaterLists,
+    resetObjectIds,
+    
+    // Logging
+    log,
+    logGroup,
+    logUngroup,
+    logToString,
+    trace,
+    objectlog,
+    setObjectlog,
+    
+    // Advanced (only if you know what you are doing)
+    state,
+    postPulseCleanup,
+    enterContext,
+    leaveContext,
+    registerAnyChangeObserver,
+  }
+}
   
-  // Logging
-  log,
-  logGroup,
-  logUngroup,
-  logToString,
-  trace,
-  objectlog,
-  setObjectlog,
+function normalizeConfig(object) {
+  let keys = Object.keys(object);
+  keys.sort(function(a, b){
+    if(a < b) return -1;
+    if(a > b) return 1;
+    return 0;
+  });
+  let sortedObject = {};
+  keys.forEach(function(key) {
+    let value = object[key];
+    if (typeof(value) === 'object') value = normalizeConfig(value);
+    sortedObject[key] = value;
+  });
+  return sortedObject;
+}
   
-  // Advanced (only if you know what you are doing)
-  state,
-  postPulseCleanup,
-};
+const defaultConfiguration = {}
+
+let instances = {};
+
+export function instance(configuration) {
+  if(!configuration) configuration = {};
+  configuration = {...defaultConfiguration, ...configuration};    
+  configuration = normalizeConfig(defaultConfiguration);
+  let signature = JSON.stringify(configuration);
+  
+  if (typeof(instances[signature]) === 'undefined') {
+    instances[signature] = createInstance(configuration);
+  }
+  return instances[signature];
+}                                                                   
