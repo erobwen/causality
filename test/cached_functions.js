@@ -1,8 +1,9 @@
 'use strict';
 require = require("esm")(module);
-const {c,repeatOnChange,cachedCallCount} = require("../causality.js");
+const {c,repeatOnChange} = require("../causality.js");
 const assert = require('assert');
-const { CausalityObject } = require("../lib/causalityObject.js");
+const { CausalityObject, cachedCallCount } = require("../lib/causalityObject.js");
+const log = console.log;
 
 describe("Cached functions", function(){
   function buildHeap(value) {
@@ -16,7 +17,7 @@ describe("Cached functions", function(){
       }
       childrenCount++;
     }
-    return c({
+    return new CausalityObject({
       summarize : function() {
         // console.log("summarize!");
         var childSum = 0;
@@ -59,9 +60,9 @@ describe("Cached functions", function(){
   it('Test recursive cached call in repeater', function () {
     // console.log('======== Test recursive cached call in repeater ========');
     repeatOnChange(function() {
-      // console.log('--- repeating');
+      // log('--- repeating');
       heapSum = heap.cached('summarize');
-      // console.log('--- ');
+      // log('--- ');
     });
     // console.log('======== Finished Test recursive cached call in repeater ========');
     assert.equal(heapSum, 25);

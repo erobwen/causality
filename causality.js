@@ -702,8 +702,8 @@ function create(createdTarget, cacheId) {
 
     observe: genericObserveFunction,
 
-    cached : genericCallAndCacheFunction,
-    cachedInCache : genericCallAndCacheInCacheFunction,
+    // cached : genericCallAndCacheFunction,
+    // cachedInCache : genericCallAndCacheInCacheFunction,
     reCached : genericReCacheFunction,
     reCachedInCache : genericReCacheInCacheFunction,
     tryUncache : genericUnCacheFunction,
@@ -755,17 +755,17 @@ let context = null;
 let inActiveRecording = false;
 let activeRecorder = null;
 
-let inCachedCall = null;
+let inCachedCall = {value: null};
 let inReCache = null;
 
 function updateContextState() {
   inActiveRecording = (context !== null) ? ((context.type === "recording") && state.recordingPaused === 0) : false;
   activeRecorder = (inActiveRecording) ? context : null;
   
-  inCachedCall = null;
+  inCachedCall.value = null;
   inReCache = null;
   if (independentContext !== null) {
-    inCachedCall = (independentContext.type === "cached_call") ? independentContext : null; 
+    inCachedCall.value = (independentContext.type === "cached_call") ? independentContext : null; 
     inReCache = (independentContext.type === "reCache") ? independentContext : null;
   }
 }
@@ -811,7 +811,7 @@ function addChild(context, child) {
 
 // occuring types: recording, repeater_refreshing,
 // cached_call, reCache, block_side_effects
-function enterContext(type, enteredContext) {
+export function enterContext(type, enteredContext) {
   logGroup(`enterContext: ${type} ${enteredContext.id} ${enteredContext.description}`);
   if (typeof(enteredContext.initialized) === 'undefined') {
     // Initialize context
@@ -833,7 +833,7 @@ function enterContext(type, enteredContext) {
     } else {
       enteredContext.independent = true;
     }
-
+    // console.log(enteredContext)
     if (enteredContext.independent) {
       independentContext = enteredContext;
     }
@@ -853,7 +853,6 @@ function enterContext(type, enteredContext) {
     throw new Error("should be!!");
   }
 
-
   context = enteredContext;
   updateContextState();
   logUngroup();
@@ -861,7 +860,7 @@ function enterContext(type, enteredContext) {
 }
 
 
-function leaveContext( activeContext ) {
+export function leaveContext( activeContext ) {
   // DEBUG
   if( context && activeContext && (context !== activeContext) && !context.independent ){
     console.trace("leaveContext mismatch " + activeContext.type, activeContext.id||'');
@@ -1219,7 +1218,7 @@ function emptyObserverSet(observerSet) {
 }
 
 let sourcesObserverSetChunkSize = 500;
-function registerAnyChangeObserver(description, observerSet) {
+export function registerAnyChangeObserver(description, observerSet) {
   // instance can be a cached method if observing its return value,
   // object & definition only needed for debugging.
 
@@ -1826,71 +1825,71 @@ function genericStopRepeatFunction() {
  * (even if the parent does not actually use/read any return value)
  ************************************************************************/
 
-function genericCallAndCacheInCacheFunction() {
-  let argumentsArray = argumentsToArray(arguments);
-  if (inCachedCall !== null) {
-    return this.cached.apply(this, argumentsArray);
-  } else {
-    let functionName = argumentsArray.shift();
-    return this[functionName].apply(this, argumentsArray);
-  }
-}
+// function genericCallAndCacheInCacheFunction() {
+//   let argumentsArray = argumentsToArray(arguments);
+//   if (inCachedCall !== null) {
+//     return this.cached.apply(this, argumentsArray);
+//   } else {
+//     let functionName = argumentsArray.shift();
+//     return this[functionName].apply(this, argumentsArray);
+//   }
+// }
 
-function genericCallAndCacheFunction() {
-  // Split arguments
-  let argumentsList = argumentsToArray(arguments);
-  let functionName = argumentsList.shift();
-  let functionCacher = getFunctionCacher(this, "_cachedCalls",
-                                         functionName, argumentsList);
-  // wierd, does not work with this inestead of handler...
+// function genericCallAndCacheFunction() {
+//   // Split arguments
+//   let argumentsList = argumentsToArray(arguments);
+//   let functionName = argumentsList.shift();
+//   let functionCacher = getFunctionCacher(this, "_cachedCalls",
+//                                          functionName, argumentsList);
+//   // wierd, does not work with this inestead of handler...
 
-  if (!functionCacher.cacheRecordExists()) {
-    let cacheRecord = functionCacher.createNewRecord();
-    cacheRecord.independent = true;
-    // Do not delete together with parent
+//   if (!functionCacher.cacheRecordExists()) {
+//     let cacheRecord = functionCacher.createNewRecord();
+//     cacheRecord.independent = true;
+//     // Do not delete together with parent
     
-    // Is this call non-automatic
-    cacheRecord.remove = function() {
-      trace.context && log("remove cached_call");
-      functionCacher.deleteExistingRecord();
-      // removeSingleChildContext(cacheRecord);
-    };
+//     // Is this call non-automatic
+//     cacheRecord.remove = function() {
+//       trace.context && log("remove cached_call");
+//       functionCacher.deleteExistingRecord();
+//       // removeSingleChildContext(cacheRecord);
+//     };
 
-    cachedCalls++;
-    const activeContext = enterContext('cached_call', cacheRecord);
-    // Never encountered these arguments before, make a new cache
-    let returnValue = uponChangeDo(
-      function () {
-        let returnValue;
-        // blockSideEffects(function() {
-        returnValue = this[functionName].apply(this, argumentsList);
-        // }.bind(this));
-        return returnValue;
-      }.bind(this),
-      function () {
-        // Delete function cache and notify
-        let cacheRecord = functionCacher.deleteExistingRecord();
-        notifyChangeObservers("functionCache.contextObservers",
-                              cacheRecord.contextObservers);
-      }.bind(this));
-    leaveContext( activeContext );
-    cacheRecord.returnValue = returnValue;
-    cacheRecord.contextObservers = {
-      noMoreObserversCallback : function() {
-        contextsScheduledForPossibleDestruction.push(cacheRecord);
-      }
-    };
-    registerAnyChangeObserver("functionCache.contextObservers",
-                              cacheRecord.contextObservers);
-    return returnValue;
-  } else {
-    // Encountered these arguments before, reuse previous repeater
-    let cacheRecord = functionCacher.getExistingRecord();
-    registerAnyChangeObserver("functionCache.contextObservers",
-                              cacheRecord.contextObservers);
-    return cacheRecord.returnValue;
-  }
-}
+//     cachedCalls++;
+//     const activeContext = enterContext('cached_call', cacheRecord);
+//     // Never encountered these arguments before, make a new cache
+//     let returnValue = uponChangeDo(
+//       function () {
+//         let returnValue;
+//         // blockSideEffects(function() {
+//         returnValue = this[functionName].apply(this, argumentsList);
+//         // }.bind(this));
+//         return returnValue;
+//       }.bind(this),
+//       function () {
+//         // Delete function cache and notify
+//         let cacheRecord = functionCacher.deleteExistingRecord();
+//         notifyChangeObservers("functionCache.contextObservers",
+//                               cacheRecord.contextObservers);
+//       }.bind(this));
+//     leaveContext( activeContext );
+//     cacheRecord.returnValue = returnValue;
+//     cacheRecord.contextObservers = {
+//       noMoreObserversCallback : function() {
+//         contextsScheduledForPossibleDestruction.push(cacheRecord);
+//       }
+//     };
+//     registerAnyChangeObserver("functionCache.contextObservers",
+//                               cacheRecord.contextObservers);
+//     return returnValue;
+//   } else {
+//     // Encountered these arguments before, reuse previous repeater
+//     let cacheRecord = functionCacher.getExistingRecord();
+//     registerAnyChangeObserver("functionCache.contextObservers",
+//                               cacheRecord.contextObservers);
+//     return cacheRecord.returnValue;
+//   }
+// }
 
 function genericUnCacheFunction() {
   // Split arguments
@@ -2245,6 +2244,7 @@ export {
   // Debugging and testing
   observeAll,
   cachedCallCount,
+  inCachedCall,
   clearRepeaterLists,
   resetObjectIds,
   
