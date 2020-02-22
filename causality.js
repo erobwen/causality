@@ -2221,7 +2221,7 @@ function createInstance(config) {
   return {
     // Main API
     create: create,
-    c: create,
+    c: create, 
     uponChangeDo: uponChangeDo,
     repeatOnChange: repeatOnChange,
     repeat: repeatOnChange,
