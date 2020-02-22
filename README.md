@@ -53,7 +53,7 @@ Causality supports the following powerful reactive primitives typically availabl
 
 * create
 * repeatOnChange
-* uponChangeDo
+* invalidateOnChange
 * withoutSideEffects  (prevents side effects on observable objects)
 
 Causality objects also have the following methods.
@@ -64,7 +64,7 @@ Causality objects also have the following methods.
 
 # Causality Global Functions
 
-The basic primitives of causality are create, repeatOnChange, uponChangeDo and withoutSideEffects. With only these, it is possible to create quite powerful reactive abstractions.
+The basic primitives of causality are create, repeatOnChange, invalidateOnChange and withoutSideEffects. With only these, it is possible to create quite powerful reactive abstractions.
 
 ## create
 
@@ -109,11 +109,11 @@ If you think "repeatOnChange" is to cumbersome to type, you can simply write "re
 
 It will however not detect changes in local variables, so for example if local or global variable y is assigned in this example, there will be no reevaluation of x.value. In practice however, this is in general not a limitation as application code typically reacts to changes to a specific model, rather than changes in local variables.
 
-## uponChangeDo
+## invalidateOnChange
 
-Sometimes you do not want to repeat what you did previously upon change in any read data, at least not instantly. For more control, you might want to use uponChangeDo. It works as follows:
+Sometimes you do not want to repeat what you did previously upon change in any read data, at least not instantly. For more control, you might want to use invalidateOnChange. It works as follows:
 
-    uponChangeDo(
+    invalidateOnChange(
         function() {
             x.value = y.value + z.value; xIsValid = true;
         },
@@ -122,7 +122,7 @@ Sometimes you do not want to repeat what you did previously upon change in any r
         }
     );
 
-In this case, if y.value is changed for instance, it will only mean that the second function is run, setting xIsValid to false. uponChangeDo is in particularly useful when integrating causality with other frameworks. For example, rendering code could be run using uponChangeDo, and the second function could simply invalidate a certain view-component. Later, at a secondary stage when all causality code has finished runnig, we could deal with all invalidated view-components in a more rational way. There is a possibility to add functions that will execute when all causality code finishes.
+In this case, if y.value is changed for instance, it will only mean that the second function is run, setting xIsValid to false. invalidateOnChange is in particularly useful when integrating causality with other frameworks. For example, rendering code could be run using invalidateOnChange, and the second function could simply invalidate a certain view-component. Later, at a secondary stage when all causality code has finished runnig, we could deal with all invalidated view-components in a more rational way. There is a possibility to add functions that will execute when all causality code finishes.
 
 
     addPostPulseAction(function() {
@@ -236,7 +236,7 @@ Re Cached is simply put the crown-jewel of causality. If you thought cached was 
 * Conservative change propagation.
 * Stable object identities of created objects.
 
-On the surface, reCached works similar to cached, with a first notable difference. When any value read during a reCache evaluatino is changed, the reCached function will not simply invalidate the cache. It will also re-valuate the cache, compare the new cached return-value to the previously cached return value, and ONLY if the return value has really changed it will signal change to any dependent function cache/reCache, repeatOnChage, uponChangeDo.
+On the surface, reCached works similar to cached, with a first notable difference. When any value read during a reCache evaluatino is changed, the reCached function will not simply invalidate the cache. It will also re-valuate the cache, compare the new cached return-value to the previously cached return value, and ONLY if the return value has really changed it will signal change to any dependent function cache/reCache, repeatOnChage, invalidateOnChange.
 
 But there is more to it. reCached really starts to shine when you start to create objects within the reCached function call. If you do so, you can add a cacheId to the created objects. Created objects will then retain their indentity over several reCachings.
 

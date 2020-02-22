@@ -1096,7 +1096,7 @@ function genericObserveFunction(observerFunction) { //, independent
 
 let recorderId = 0;
 
-function uponChangeDo() {
+function invalidateOnChange() {
   // description(optional), doFirst, doAfterChange. doAfterChange
   // cannot modify model, if needed, use a repeater instead.
   // (for guaranteed consistency)
@@ -1469,7 +1469,7 @@ function refreshRepeater(repeater) {
   }
   
   const activeContext = enterContext('repeater_refreshing', repeater);
-  repeater.returnValue = uponChangeDo(
+  repeater.returnValue = invalidateOnChange(
     repeater.repeaterAction,
     function () {
       // unlockSideEffects(function() {
@@ -1859,7 +1859,7 @@ function genericStopRepeatFunction() {
 //     cachedCalls++;
 //     const activeContext = enterContext('cached_call', cacheRecord);
 //     // Never encountered these arguments before, make a new cache
-//     let returnValue = uponChangeDo(
+//     let returnValue = invalidateOnChange(
 //       function () {
 //         let returnValue;
 //         // blockSideEffects(function() {
@@ -2099,7 +2099,7 @@ function createInstance(config) {
     // Main API
     create: create,
     c: create, 
-    uponChangeDo: uponChangeDo,
+    invalidateOnChange: invalidateOnChange,
     repeatOnChange: repeatOnChange,
     repeat: repeatOnChange,
     withoutSideEffects: withoutSideEffects,
