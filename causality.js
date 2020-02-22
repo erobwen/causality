@@ -697,10 +697,6 @@ function create(createdTarget, cacheId) {
     __handler : handler,
     __proxy : proxy,
 
-    // This inside these functions will be the Proxy. Change to handler?
-    repeat : genericRepeatFunction,
-    tryStopRepeat : genericStopRepeatFunction,
-
     observe: genericObserveFunction,
 
     // cached : genericCallAndCacheFunction,
@@ -1091,7 +1087,7 @@ function genericObserveFunction(observerFunction) { //, independent
 /**********************************
  *  Dependency recording
  *
- *  Upon change do
+ *  invalidateOnChange.
  **********************************/
 
 let recorderId = 0;
@@ -1473,16 +1469,18 @@ function refreshRepeater(repeater) {
     repeater.repeaterAction,
     function () {
       // unlockSideEffects(function() {
-      if( context && !context.independent ){
-        //console.log("deferring repeaterDirty", context.id);
-        // defere repeater if we are in a nested context
-        setTimeout(()=>{
-          //console.log("deferred repeaterDirty", context.id);
-          repeaterDirty(repeater);
-        });
-      } else {
+
+      // Is this needed? Why not mark as dirty directly?  
+      // if( context && !context.independent ){
+      //   //console.log("deferring repeaterDirty", context.id);
+      //   // defere repeater if we are in a nested context
+      //   setTimeout(()=>{
+      //     //console.log("deferred repeaterDirty", context.id);
+      //     repeaterDirty(repeater);
+      //   });
+      // } else {
         repeaterDirty(repeater);
-      }
+      // }
       // });
     }
   );
@@ -1742,155 +1740,6 @@ function getFunctionCacher(object, cacheStoreName,
 }
 
 
-/************************************************************************
- *
- *                    Generic repeat function
- *
- ************************************************************************/
-
-
-function genericRepeatFunction() {
-  trace.context && logGroup("genericRepeatFunction:");
-  // Split arguments
-  let argumentsList = argumentsToArray(arguments);
-  let functionName = argumentsList.shift();
-  let functionCacher = getFunctionCacher(
-    this.__handler, "_repeaters", functionName, argumentsList);
-
-  if (!functionCacher.cacheRecordExists()) {
-    trace.context && log(">>> create new repeater... ");
-    // Never encountered these arguments before, make a new cache
-    let cacheRecord = functionCacher.createNewRecord();
-    cacheRecord.independent = true;
-    // Do not delete together with parent
-
-    cacheRecord.remove = function() {
-      trace.context && log("remove cached_repeater");
-      trace.context && log(this, 2);
-      functionCacher.deleteExistingRecord();
-      // removeSingleChildContext(cacheRecord);
-    }.bind(this);
-    cacheRecord.contextObservers = {
-      noMoreObserversCallback : function() {
-        contextsScheduledForPossibleDestruction.push(cacheRecord);
-      }
-    };
-    const activeContext = enterContext('cached_repeater', cacheRecord);
-    
-    // cacheRecord.remove = function() {};
-    // Never removed directly, only when no observers
-    // & no direct application call
-    cacheRecord.repeaterHandle = repeatOnChange(function() {
-      return this[functionName].apply(this, argumentsList);
-    }.bind(this));
-    leaveContext( activeContext );
-
-    registerAnyChangeObserver(
-      "functionCache.contextObservers",
-      cacheRecord.contextObservers);
-    trace.context && logUngroup();
-    return cacheRecord.repeaterHandle; // return something else...
-  } else {
-    trace.context && log(">>> reusing old repeater... ");
-    let cacheRecord = functionCacher.getExistingRecord();
-    registerAnyChangeObserver(
-      "functionCache.contextObservers",
-      cacheRecord.contextObservers);
-    trace.context && logUngroup();
-    return functionCacher.getExistingRecord().repeaterHandle;
-  }
-}
-
-function genericStopRepeatFunction() {
-  // Split arguments
-  let argumentsList = argumentsToArray(arguments);
-  let functionName = argumentsList.shift();
-  let functionCacher = getFunctionCacher(
-    this, "_repeaters", functionName, argumentsList);
-
-  if (functionCacher.cacheRecordExists()) {
-    let cacheRecord = functionCacher.getExistingRecord();
-    if (emptyObserverSet(cacheRecord.contextObservers)) {
-      functionCacher.deleteExistingRecord();
-    }
-  }
-}
-
-
-/************************************************************************
- *  Cached methods
- *
- * A cached method will not reevaluate for the same arguments, unless
- * some of the data it has read for such a call has changed. If there
- * is a parent cached method, it will be notified upon change.
- * (even if the parent does not actually use/read any return value)
- ************************************************************************/
-
-// function genericCallAndCacheInCacheFunction() {
-//   let argumentsArray = argumentsToArray(arguments);
-//   if (inCachedCall !== null) {
-//     return this.cached.apply(this, argumentsArray);
-//   } else {
-//     let functionName = argumentsArray.shift();
-//     return this[functionName].apply(this, argumentsArray);
-//   }
-// }
-
-// function genericCallAndCacheFunction() {
-//   // Split arguments
-//   let argumentsList = argumentsToArray(arguments);
-//   let functionName = argumentsList.shift();
-//   let functionCacher = getFunctionCacher(this, "_cachedCalls",
-//                                          functionName, argumentsList);
-//   // wierd, does not work with this inestead of handler...
-
-//   if (!functionCacher.cacheRecordExists()) {
-//     let cacheRecord = functionCacher.createNewRecord();
-//     cacheRecord.independent = true;
-//     // Do not delete together with parent
-    
-//     // Is this call non-automatic
-//     cacheRecord.remove = function() {
-//       trace.context && log("remove cached_call");
-//       functionCacher.deleteExistingRecord();
-//       // removeSingleChildContext(cacheRecord);
-//     };
-
-//     cachedCalls++;
-//     const activeContext = enterContext('cached_call', cacheRecord);
-//     // Never encountered these arguments before, make a new cache
-//     let returnValue = invalidateOnChange(
-//       function () {
-//         let returnValue;
-//         // blockSideEffects(function() {
-//         returnValue = this[functionName].apply(this, argumentsList);
-//         // }.bind(this));
-//         return returnValue;
-//       }.bind(this),
-//       function () {
-//         // Delete function cache and notify
-//         let cacheRecord = functionCacher.deleteExistingRecord();
-//         notifyChangeObservers("functionCache.contextObservers",
-//                               cacheRecord.contextObservers);
-//       }.bind(this));
-//     leaveContext( activeContext );
-//     cacheRecord.returnValue = returnValue;
-//     cacheRecord.contextObservers = {
-//       noMoreObserversCallback : function() {
-//         contextsScheduledForPossibleDestruction.push(cacheRecord);
-//       }
-//     };
-//     registerAnyChangeObserver("functionCache.contextObservers",
-//                               cacheRecord.contextObservers);
-//     return returnValue;
-//   } else {
-//     // Encountered these arguments before, reuse previous repeater
-//     let cacheRecord = functionCacher.getExistingRecord();
-//     registerAnyChangeObserver("functionCache.contextObservers",
-//                               cacheRecord.contextObservers);
-//     return cacheRecord.returnValue;
-//   }
-// }
 
 function genericUnCacheFunction() {
   // Split arguments
@@ -2143,6 +1992,7 @@ function createInstance(config) {
     enterContext,
     leaveContext,
     registerAnyChangeObserver,
+    contextsScheduledForPossibleDestruction
   }
 }
   
