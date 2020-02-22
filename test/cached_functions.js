@@ -2,6 +2,7 @@
 require = require("esm")(module);
 const {c,repeatOnChange,cachedCallCount} = require("../causality.js");
 const assert = require('assert');
+const { CausalityObject } = require("../lib/causalityObject.js");
 
 describe("Cached functions", function(){
   function buildHeap(value) {
