@@ -709,11 +709,7 @@ function create(createdTarget, cacheId) {
     project : genericReCacheFunction,
     projectInProjectionOrCache : genericReCacheInCacheFunction,
 
-    // Identity and state
-    mergeFrom : genericMergeFrom,
-    forwardTo : genericForwarder,
-    removeForwarding : genericRemoveForwarding,
-    mergeAndRemoveForwarding: genericMergeAndRemoveForwarding
+
   };
 
   if (inReCache !== null) {
@@ -1776,11 +1772,8 @@ function genericUnCacheFunction() {
  ************************************************************************/
 
 let overlayBypass = {
-  '__overlay' : true,
-  'removeForwarding' : true,
-  'mergeAndRemoveForwarding' : true
+  '__overlay' : true
 };
-
 
 function mergeOverlayIntoObject(object) {
   let overlay = object.__overlay;
@@ -1788,21 +1781,6 @@ function mergeOverlayIntoObject(object) {
   mergeInto(overlay, object);
 }
 
-function genericMergeFrom(otherObject) {
-  return mergeInto(otherObject, this);
-}
-
-function genericForwarder(otherObject) {
-  this.__overlay = otherObject;
-}
-
-function genericRemoveForwarding() {
-  this.__overlay = null;
-}
-
-function genericMergeAndRemoveForwarding() {
-  mergeOverlayIntoObject(this);
-}
 
 /************************************************************************
  *
