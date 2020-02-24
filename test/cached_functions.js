@@ -1,11 +1,7 @@
 'use strict';
 require = require("esm")(module);
 const assert = require('assert');
-
-const causality = require("../causality.js").instance();
-if (!causality.causalityObject) causality.causalityObject = require("../lib/causalityObject.js").bindToInstance(causality);
-const {CausalityObject, cachedCallCount} = causality.causalityObject; 
-const {c, repeatOnChange} = causality;
+const {c, repeatOnChange, CausalityObject, cachedCallCount} = require("../causality.js").instance();
 
 const log = console.log;
 

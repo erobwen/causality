@@ -1,9 +1,6 @@
 'use strict';
 require = require("esm")(module);
-const causality = require("../causality.js").instance();
-if (!causality.causalityObject) causality.causalityObject = require("../lib/causalityObject.js").bindToInstance(causality);
-const {CausalityObject, cachedCallCount} = causality.causalityObject; 
-const {create,repeatOnChange,transaction} = causality;
+const {create, repeatOnChange, transaction, CausalityObject, cachedCallCount} = require("../causality.js").instance();
 const assert = require('assert');
 describe("Meta repeaters", function(){
 

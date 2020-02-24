@@ -3,6 +3,7 @@
 const { argumentsToArray, getArray, mergeInto } = require("./lib/utility.js");
 
 
+
 /***************************************************************
  *
  *  State
@@ -1922,14 +1923,15 @@ function withoutSideEffects(action) {
 
 function createInstance(config) {
   if (config.foo) return;
-  return {
+
+  const instance = {
     // Main API
-    create: create,
+    create,
     c: create, 
-    invalidateOnChange: invalidateOnChange,
-    repeatOnChange: repeatOnChange,
+    invalidateOnChange,
+    repeatOnChange,
     repeat: repeatOnChange,
-    withoutSideEffects: withoutSideEffects,
+    withoutSideEffects,
 
     // Modifiers
     withoutRecording,
@@ -1970,8 +1972,12 @@ function createInstance(config) {
     enterContext,
     leaveContext,
     registerAnyChangeObserver,
-    contextsScheduledForPossibleDestruction
-  }
+    contextsScheduledForPossibleDestruction,
+  } 
+
+  Object.assign(instance, require("./lib/causalityObject.js").instance(instance));
+
+  return instance;
 }
   
 function normalizeConfig(object) {
