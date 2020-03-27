@@ -1,6 +1,6 @@
 'use strict'; 
 // require = require("esm")(module);
-const { argumentsToArray, getArray, mergeInto } = require("./lib/utility.js");
+const { argumentsToArray } = require("./lib/utility.js");
 
 
 
@@ -699,18 +699,6 @@ function create(createdTarget, cacheId) {
     __proxy : proxy,
 
     observe: genericObserveFunction,
-
-    // cached : genericCallAndCacheFunction,
-    // cachedInCache : genericCallAndCacheInCacheFunction,
-    reCached : genericReCacheFunction,
-    reCachedInCache : genericReCacheInCacheFunction,
-    tryUncache : genericUnCacheFunction,
-
-    // reCache aliases
-    project : genericReCacheFunction,
-    projectInProjectionOrCache : genericReCacheInCacheFunction,
-
-
   };
 
   if (inReCache !== null) {
@@ -1578,196 +1566,6 @@ function refreshAllDirtyRepeaters() {
 
 /************************************************************************
  *
- *                    Cached method signatures
- *
- *          (reused by cache, repeat and project)
- ************************************************************************/
-
-function compareArraysShallow(a, b) {
-  if( typeof a !== typeof b )
-    return false;
-  
-  if (a.length === b.length) {
-    for (let i = 0; i < a.length; i++) {
-      if (a[i] !== b[i]) {
-        return false;
-      }
-    }
-    return true;
-  } else {
-    return false;
-  }
-}
-
-function isCachedInBucket(functionArgumentHashCaches, functionArguments) {
-  if (functionArgumentHashCaches.length === 0) {
-    return false;
-  } else {
-    // Search in the bucket!
-    for (let i = 0; i < functionArgumentHashCaches.length; i++) {
-      if (compareArraysShallow(
-        functionArgumentHashCaches[i].functionArguments,
-        functionArguments)) {
-        return true;
-      }
-    }
-    return false;
-  }
-}
-
-// This is purley for testing
-let cachedCalls = 0;
-
-// This is purley for testing
-function cachedCallCount() {
-  return cachedCalls;
-}
-
-// Get cache(s) for this argument hash
-function getFunctionCacher(object, cacheStoreName,
-                           functionName, functionArguments) {
-  let uniqueHash = true;
-  function makeArgumentHash(argumentList) {
-    let hash  = "";
-    let first = true;
-    argumentList.forEach(function (argument) {
-      if (!first) {
-        hash += ",";
-      }
-
-      if (typeof(argument.__id) !== 'undefined') {
-        //typeof(argument) === 'object' &&
-        hash += "{id=" + argument.__id + "}";
-      } else if (typeof(argument) === 'number'
-                 || typeof(argument) === 'string') {
-        // String or integer
-        hash += argument;
-      } else {
-        uniqueHash = false;
-        hash += "{}";
-        // Non-identifiable, we have to rely on the hash-bucket.
-      }
-    });
-    return "(" + hash + ")";
-  }
-  let argumentsHash = makeArgumentHash(functionArguments);
-
-  // let functionCaches = getMap(object, cacheStoreName, functionName);
-  if (typeof(object[cacheStoreName]) === 'undefined') {
-    object[cacheStoreName] = {};
-  }
-  if (typeof(object[cacheStoreName][functionName]) === 'undefined') {
-    object[cacheStoreName][functionName] = {};
-  }
-  let functionCaches = object[cacheStoreName][functionName];
-
-  return {
-    cacheRecordExists : function() {
-      // Figure out if we have a chache or not
-      let result = null;
-      if (uniqueHash) {
-        result = typeof(functionCaches[argumentsHash])
-          !== 'undefined';
-      } else {
-        let functionArgumentHashCaches =
-            getArray(functionCaches,
-                     "_nonpersistent_cacheBuckets" , argumentsHash);
-        result = isCachedInBucket(
-          functionArgumentHashCaches, functionArguments);
-      }
-      return result;
-    },
-
-    deleteExistingRecord : function() {
-      if (uniqueHash) {
-        let result = functionCaches[argumentsHash];
-        delete functionCaches[argumentsHash];
-        return result;
-      } else {
-        let functionArgumentHashCaches =
-            getArray(functionCaches,
-                     "_nonpersistent_cacheBuckets" ,
-                     argumentsHash);
-        for (let i=0; i < functionArgumentHashCaches.length; i++) {
-          if (compareArraysShallow(
-            functionArgumentHashCaches[i].functionArguments,
-            functionArguments)) {
-            let result = functionArgumentHashCaches[i];
-            functionArgumentHashCaches.splice(i, 1);
-            return result;
-          }
-        }
-      }
-    },
-
-    getExistingRecord : function() {
-      if (uniqueHash) {
-        return functionCaches[argumentsHash]
-      } else {
-        let functionArgumentHashCaches =
-            getArray(functionCaches,
-                     "_nonpersistent_cacheBuckets" , argumentsHash);
-        for (let i=0; i < functionArgumentHashCaches.length; i++) {
-          if (compareArraysShallow(
-            functionArgumentHashCaches[i].functionArguments,
-            functionArguments)) {
-            return functionArgumentHashCaches[i];
-          }
-        }
-      }
-    },
-
-    createNewRecord : function() {
-      if (uniqueHash) {
-        if (typeof(functionCaches[argumentsHash]) === 'undefined') {
-          functionCaches[argumentsHash] = {};
-        }
-        return functionCaches[argumentsHash];
-        // return getMap(functionCaches, argumentsHash)
-      } else {
-        let functionArgumentHashCaches =
-            getArray(functionCaches,
-                     "_nonpersistent_cacheBuckets", argumentsHash);
-        let record = {};
-        functionArgumentHashCaches.push(record);
-        return record;
-      }
-    }
-  };
-}
-
-
-
-function genericUnCacheFunction() {
-  // Split arguments
-  let argumentsList = argumentsToArray(arguments);
-  let functionName = argumentsList.shift();
-
-  // Cached
-  let functionCacher = getFunctionCacher(
-    this.__handler, "_cachedCalls", functionName, argumentsList);
-
-  if (functionCacher.cacheRecordExists()) {
-    let cacheRecord = functionCacher.getExistingRecord();
-    cacheRecord.directlyInvokedByApplication = false;
-    contextsScheduledForPossibleDestruction.push(cacheRecord);
-  }
-
-  // Re cached
-  functionCacher = getFunctionCacher(
-    this.__handler, "_reCachedCalls", functionName, argumentsList);
-
-  if (functionCacher.cacheRecordExists()) {
-    let cacheRecord = functionCacher.getExistingRecord();
-    cacheRecord.directlyInvokedByApplication = false;
-    contextsScheduledForPossibleDestruction.push(cacheRecord);
-  }
-}
-
-
-
-/************************************************************************
- *
  *  Merge into & forwarding/overlay
  *
  ************************************************************************/
@@ -1776,113 +1574,6 @@ let overlayBypass = {
   '__overlay' : true
 };
 
-function mergeOverlayIntoObject(object) {
-  let overlay = object.__overlay;
-  object.__overlay = null;
-  mergeInto(overlay, object);
-}
-
-
-/************************************************************************
- *
- *  Projection (continous creation and infusion)
- *
- ************************************************************************/
-
-function genericReCacheInCacheFunction() {
-  let argumentsArray = argumentsToArray(arguments);
-  if (inReCache) {
-    return this.reCached.apply(this, argumentsArray);
-  } else {
-    let functionName = argumentsArray.shift();
-    return this[functionName].apply(this, argumentsArray);
-  }
-}
-
-function genericReCacheFunction() {
-  // log("call reCache");
-  // Split argumentsp
-  let argumentsList = argumentsToArray(arguments);
-  let functionName = argumentsList.shift();
-  let functionCacher = getFunctionCacher(
-    this.__handler, "_reCachedCalls", functionName, argumentsList);
-
-  if (!functionCacher.cacheRecordExists()) {
-    // log("init reCache ");
-    let cacheRecord = functionCacher.createNewRecord();
-    cacheRecord.independent = true;
-    // Do not delete together with parent
-    
-    cacheRecord.cacheIdObjectMap = {};
-    cacheRecord.remove = function() {
-      trace.context && log("remove reCache");
-      functionCacher.deleteExistingRecord();
-      // removeSingleChildContext(cacheRecord); // Remove recorder
-    };
-
-    // Is this call non-automatic
-    cacheRecord.directlyInvokedByApplication = (context === null);
-
-    // Never encountered these arguments before, make a new cache
-    const activeContext = enterContext('reCache', cacheRecord);
-    cacheRecord.contextObservers = {
-      noMoreObserversCallback : function() {
-        contextsScheduledForPossibleDestruction.push(cacheRecord);
-      }
-    };
-    cacheRecord.repeaterHandler = repeatOnChange(
-      function () {
-        cacheRecord.newlyCreated = [];
-        let newReturnValue;
-        // log("better be true");
-        // log(inReCache);
-        newReturnValue = this[functionName].apply(
-          this, argumentsList);
-        // log(cacheRecord.newlyCreated);
-
-        // log("Assimilating:");
-        withoutRecording(function() {
-          // Do not observe reads from the overlays
-          cacheRecord.newlyCreated.forEach(function(created) {
-            if (created.__overlay !== null) {
-              // log("Has overlay!");
-              // log(created.__overlay);
-              mergeOverlayIntoObject(created);
-            } else {
-              // log("Infusion id of newly created:");
-              // log(created.__cacheId);
-              if (created.__cacheId !== null) {
-
-                cacheRecord.cacheIdObjectMap[
-                  created.__cacheId] = created;
-              }
-            }
-          });
-        }.bind(this));
-
-        // See if we need to trigger event on return value
-        if (newReturnValue !== cacheRecord.returnValue) {
-          cacheRecord.returnValue = newReturnValue;
-          notifyChangeObservers(
-            "functionCache.contextObservers",
-            cacheRecord.contextObservers);
-        }
-      }.bind(this)
-    );
-    leaveContext( activeContext );
-    registerAnyChangeObserver(
-      "functionCache.contextObservers",
-      cacheRecord.contextObservers);
-    return cacheRecord.returnValue;
-  } else {
-    // Encountered these arguments before, reuse previous repeater
-    let cacheRecord = functionCacher.getExistingRecord();
-    registerAnyChangeObserver(
-      "functionCache.contextObservers",
-      cacheRecord.contextObservers);
-    return cacheRecord.returnValue;
-  }
-}
 
 
 /************************************************************************
@@ -1923,8 +1614,8 @@ function withoutSideEffects(action) {
 
 function createInstance(config) {
   if (config.foo) return;
-
-  const instance = {
+  const instance = {};
+  Object.assign(instance, {
     // Main API
     create,
     c: create, 
@@ -1952,7 +1643,6 @@ function createInstance(config) {
 
     // Debugging and testing
     observeAll,
-    cachedCallCount,
     inCachedCall,
     clearRepeaterLists,
     resetObjectIds,
@@ -1973,9 +1663,10 @@ function createInstance(config) {
     leaveContext,
     registerAnyChangeObserver,
     contextsScheduledForPossibleDestruction,
-  } 
+    notifyChangeObservers
+  }); 
 
-  Object.assign(instance, require("./lib/causalityObject.js").instance(instance));
+  Object.assign(instance, require("./lib/causalityObject.js").bindToInstance(instance));
 
   return instance;
 }
