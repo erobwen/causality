@@ -1,6 +1,6 @@
 'use strict'; 
 // require = require("esm")(module);
-const { argumentsToArray } = require("./lib/utility.js");
+const { argumentsToArray, normalizeConfig } = require("./lib/utility.js");
 
 
 
@@ -923,35 +923,7 @@ function postponeObserverNotification(callback) {
   if (--state.inPulse === 0) postPulseCleanup();
 }
 
-let contextsScheduledForPossibleDestruction = [];
-
 function postPulseCleanup() {
-  // trace.context && logGroup(
-  //     "postPulseCleanup: " +
-  //         contextsScheduledForPossibleDestruction.length);
-
-  // log("post pulse cleanup");
-  contextsScheduledForPossibleDestruction.forEach(function(context) {
-    // log(context.directlyInvokedByApplication);
-    trace.context && logGroup(
-      "... consider remove context: " + context.type);
-    if (!context.directlyInvokedByApplication) {
-      trace.context && log(
-        "... not directly invoked by application... ");
-      if (emptyObserverSet(context.contextObservers)) {
-        trace.context && log("... empty observer set... ");
-        trace.context && log(
-          "Remove a context since it has no more observers, " +
-            "and is not directly invoked by application: " +
-            context.type);
-        context.removeContextsRecursivley();
-      } else {
-        trace.context && log("... not empty observer set");
-      }
-    }
-    trace.context && logUngroup();
-  });
-  contextsScheduledForPossibleDestruction = [];
   postPulseHooks.forEach(function(callback) {
     callback(events);
   });
@@ -1195,9 +1167,6 @@ function withoutRecording(action) {
   updateContextState();
 }
 
-function emptyObserverSet(observerSet) {
-  return observerSet.contentsCounter === 0 && observerSet.first === null;
-}
 
 let sourcesObserverSetChunkSize = 500;
 function registerAnyChangeObserver(description, observerSet) {
@@ -1662,29 +1631,12 @@ function createInstance(config) {
     enterContext,
     leaveContext,
     registerAnyChangeObserver,
-    contextsScheduledForPossibleDestruction,
     notifyChangeObservers
   }); 
 
   Object.assign(instance, require("./lib/causalityObject.js").bindToInstance(instance));
 
   return instance;
-}
-  
-function normalizeConfig(object) {
-  let keys = Object.keys(object);
-  keys.sort(function(a, b){
-    if(a < b) return -1;
-    if(a > b) return 1;
-    return 0;
-  });
-  let sortedObject = {};
-  keys.forEach(function(key) {
-    let value = object[key];
-    if (typeof(value) === 'object') value = normalizeConfig(value);
-    sortedObject[key] = value;
-  });
-  return sortedObject;
 }
   
 const defaultConfiguration = {}
