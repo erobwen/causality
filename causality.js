@@ -3,71 +3,24 @@
 const { argumentsToArray, configSignature } = require("./lib/utility.js");
 
 
-function createInstance(config) {
+function createInstance(configuration) {
+
+  const {
+    requireRepeaterName
+  } = configuration; 
 
   /***************************************************************
    *
    *  State
    *
    ***************************************************************/
+
   let state = {
     inPulse : 0,
     recordingPaused : 0,
     observerNotificationNullified : 0,
     observerNotificationPostponed : 0
   };
-
-  /***************************************************************
-   *
-   *  Debug & helpers
-   *
-   ***************************************************************/
-
-  let trace = {
-    context: false,
-    contextMismatch: false,
-    nestedRepeater: true,
-  };
-
-  let objectlog = null;
-  function setObjectlog( newObjectLog ){
-    objectlog = newObjectLog;
-    // import {objectlog} from './lib/objectlog.js';
-    // objectlog.configuration.useConsoleDefault = true;  
-  }
-
-  // Debugging
-  function log(entity, pattern) {
-    if( !trace.context ) return;
-    state.recordingPaused++;
-    updateContextState();
-    objectlog.log(entity, pattern);
-    state.recordingPaused--;
-    updateContextState();
-  }
-
-  function logGroup(entity, pattern) {
-    if( !trace.context ) return;
-    state.recordingPaused++;
-    updateContextState();
-    objectlog.group(entity, pattern);
-    state.recordingPaused--;
-    updateContextState();
-  }
-
-  function logUngroup() {
-    if( !trace.context ) return;
-    objectlog.groupEnd();
-  }
-
-  function logToString(entity, pattern) {
-    state.recordingPaused++;
-    updateContextState();
-    let result = objectlog.logToString(entity, pattern);
-    state.recordingPaused--;
-    updateContextState();
-    return result;
-  }
 
 
   /***************************************************************
@@ -78,9 +31,6 @@ function createInstance(config) {
 
   let staticArrayOverrides = {
     pop : function() {
-      if (writeRestriction !== null &&
-          typeof(writeRestriction[this.overrides.__id])
-          === 'undefined') return;
       state.inPulse++;
 
       let index = this.target.length - 1;
@@ -96,9 +46,6 @@ function createInstance(config) {
     },
 
     push : function() {
-      if (writeRestriction !== null &&
-          typeof(writeRestriction[this.overrides.__id])
-          === 'undefined') return;
       state.inPulse++;
 
       let index = this.target.length;
@@ -115,9 +62,6 @@ function createInstance(config) {
     },
 
     shift : function() {
-      if (writeRestriction !== null &&
-          typeof(writeRestriction[this.overrides.__id])
-          === 'undefined') return;
       state.inPulse++;
 
       state.observerNotificationNullified++;
@@ -133,9 +77,6 @@ function createInstance(config) {
     },
 
     unshift : function() {
-      if (writeRestriction !== null &&
-          typeof(writeRestriction[this.overrides.__id])
-          === 'undefined') return;
       state.inPulse++;
 
       let argumentsArray = argumentsToArray(arguments);
@@ -151,9 +92,6 @@ function createInstance(config) {
     },
 
     splice : function() {
-      if (writeRestriction !== null &&
-          typeof(writeRestriction[this.overrides.__id])
-          === 'undefined') return;
       state.inPulse++;
 
       let argumentsArray = argumentsToArray(arguments);
@@ -175,9 +113,6 @@ function createInstance(config) {
     },
 
     copyWithin: function(target, start, end) {
-      if (writeRestriction !== null &&
-          typeof(writeRestriction[this.overrides.__id])
-          === 'undefined') return;
       state.inPulse++;
 
       if( !start ) start = 0;
@@ -210,9 +145,6 @@ function createInstance(config) {
 
   ['reverse', 'sort', 'fill'].forEach(function(functionName) {
     staticArrayOverrides[functionName] = function() {
-      if (writeRestriction !== null &&
-          typeof(writeRestriction[this.overrides.__id])
-          === 'undefined') return;
       state.inPulse++;
 
       let argumentsArray = argumentsToArray(arguments);
@@ -289,9 +221,6 @@ function createInstance(config) {
       }
     }
 
-    if (writeRestriction !== null &&
-        typeof(writeRestriction[this.overrides.__id])
-        === 'undefined') return;
     state.inPulse++;
 
     if (!isNaN(key)) {
@@ -341,9 +270,6 @@ function createInstance(config) {
     if (!(key in target)) {
       return true;
     }
-    if (writeRestriction !== null &&
-        typeof(writeRestriction[this.overrides.__id])
-        === 'undefined') return true;
     state.inPulse++;
 
     let previousValue = target[key];
@@ -397,9 +323,6 @@ function createInstance(config) {
       return overlayHandler.defineProperty.apply(
         overlayHandler, [overlayHandler.target, key, oDesc]);
     }
-    if (writeRestriction !== null &&
-        typeof(writeRestriction[this.overrides.__id])
-        === 'undefined') return;
     state.inPulse++;
 
     if (this._arrayObservers !== null) {
@@ -483,9 +406,6 @@ function createInstance(config) {
           overlayHandler, [overlayHandler.target, key, value]);
       }
     }
-    if (writeRestriction !== null &&
-        typeof(writeRestriction[this.overrides.__id])
-        === 'undefined') return;
 
     let previousValue = target[key];
 
@@ -532,10 +452,6 @@ function createInstance(config) {
         overlayHandler, [overlayHandler.target, key]);
       return true;
     }
-
-    if (writeRestriction !== null &&
-        typeof(writeRestriction[this.overrides.__id])
-        === 'undefined') return true;
 
     if (!(key in target)) {
       return true;
@@ -599,9 +515,6 @@ function createInstance(config) {
         overlayHandler, [overlayHandler.target, key]);
     }
 
-    if (writeRestriction !== null &&
-        typeof(writeRestriction[this.overrides.__id])
-        === 'undefined') return;
     state.inPulse++;
 
     if (typeof(this._enumerateObservers) !== 'undefined') {
@@ -715,9 +628,6 @@ function createInstance(config) {
       }
     }
 
-    if (writeRestriction !== null) {
-      writeRestriction[proxy.__id] = true;
-    }
 
     emitCreationEvent(handler);
     if (--state.inPulse === 0) postPulseCleanup();
@@ -755,7 +665,7 @@ function createInstance(config) {
 
   function removeChildContexts(context) {
     //console.warn("removeChildContexts " + context.type, context.id||'');//DEBUG
-    trace.context && logGroup(`removeChildContexts: ${context.type} ${context.id}`);
+    // trace.context && logGroup(`removeChildContexts: ${context.type} ${context.id}`);
     if (context.child !== null && !context.child.independent) {
       context.child.removeContextsRecursivley();
     }
@@ -768,16 +678,16 @@ function createInstance(config) {
       });
     }
     context.children = []; // always clear
-    trace.context && logUngroup();
+    // trace.context && logUngroup();
   }
 
 
   function removeContextsRecursivley() {
-    trace.context && logGroup(`removeContextsRecursivley ${this.id}`);
+    // trace.context && logGroup(`removeContextsRecursivley ${this.id}`);
     this.remove();
     this.isRemoved = true;
     removeChildContexts(this);
-    trace.context && logUngroup();
+    // trace.context && logUngroup();
   }
 
   // Optimization, do not create array if not needed.
@@ -795,7 +705,7 @@ function createInstance(config) {
   // occuring types: recording, repeater_refreshing,
   // cached_call, reCache, block_side_effects
   function enterContext(type, enteredContext) {
-    logGroup(`enterContext: ${type} ${enteredContext.id} ${enteredContext.description}`);
+    // logGroup(`enterContext: ${type} ${enteredContext.id} ${enteredContext.description}`);
     if (typeof(enteredContext.initialized) === 'undefined') {
       // Initialize context
       enteredContext.removeContextsRecursivley
@@ -838,7 +748,7 @@ function createInstance(config) {
 
     context = enteredContext;
     updateContextState();
-    logUngroup();
+    // logUngroup();
     return enteredContext;
   }
 
@@ -846,10 +756,10 @@ function createInstance(config) {
   function leaveContext( activeContext ) {
     // DEBUG
     if( context && activeContext && (context !== activeContext) && !context.independent ){
-      console.trace("leaveContext mismatch " + activeContext.type, activeContext.id||'');
+      // console.trace("leaveContext mismatch " + activeContext.type, activeContext.id||'');
       if( !context ) console.log('current context null');
       else {
-        console.log("current context " + context.type, context.id||'');
+        // console.log("current context " + context.type, context.id||'');
         if( context.parent ){
           console.log("parent context " + context.parent.type, context.parent.id||'');
         }
@@ -928,7 +838,7 @@ function createInstance(config) {
     postPulseHooks.forEach(function(callback) {
       callback(events);
     });
-    trace.context && logUngroup();
+    // trace.context && logUngroup();
     if (recordEvents) events = [];
   }
 
@@ -1028,7 +938,7 @@ function createInstance(config) {
       id : nextObserverId++,
       handler : handler,
       remove : function() {
-        trace.context && log("remove observe...");
+        // trace.context && log("remove observe...");
         delete this.handler.observers[this.id];
       }
       // observerFunction : observerFunction, // not needed...
@@ -1077,7 +987,7 @@ function createInstance(config) {
       sources : [],
       uponChangeAction: doAfterChange,
       remove : function() {
-        trace.context && logGroup(`remove recording ${this.id}`);
+        // trace.context && logGroup(`remove recording ${this.id}`);
         // Clear out previous observations
         this.sources.forEach(function(observerSet) {
           // From observed object
@@ -1137,7 +1047,7 @@ function createInstance(config) {
           }
         }.bind(this));
         this.sources.length = 0;  // From repeater itself.
-        trace.context && logUngroup();
+        // trace.context && logUngroup();
       }
     });
 
@@ -1290,16 +1200,16 @@ function createInstance(config) {
 
   function notifyChangeObserver(observer) {
     if (observer != context) {
-      if( trace.contextMismatch && context && context.id ){
-        console.log("notifyChangeObserver mismatch " + observer.type, observer.id||'');
-        if( !context ) console.log('current context null');
-        else {
-          console.log("current context " + context.type, context.id||'');
-          if( context.parent ){
-            console.log("parent context " + context.parent.type, context.parent.id||'');
-          }
-        }
-      }
+      // if( trace.contextMismatch && context && context.id ){
+      //   console.log("notifyChangeObserver mismatch " + observer.type, observer.id||'');
+      //   if( !context ) console.log('current context null');
+      //   else {
+      //     console.log("current context " + context.type, context.id||'');
+      //     if( context.parent ){
+      //       console.log("parent context " + context.parent.type, context.parent.id||'');
+      //     }
+      //   }
+      // }
       
       observer.remove(); // Cannot be any more dirty than it already is!
       if (state.observerNotificationPostponed > 0) {
@@ -1362,6 +1272,8 @@ function createInstance(config) {
     
     if (typeof(args[0]) === 'string') {
       description = args.shift();
+    } else if (requireRepeaterName) {
+      throw new Error("Every repeater has to be given a name as first argument. Note: This requirement can be removed in the configuration.");
     }
 
     if (typeof(args[0]) === 'function') {
@@ -1376,12 +1288,12 @@ function createInstance(config) {
       options = args.shift();
     }
 
-    if( trace.nestedRepeater && inActiveRecording ){
-      let parentDesc = activeRecorder.description;
-      if( !parentDesc && activeRecorder.parent ) parentDesc = activeRecorder.parent.description;
-      if( !parentDesc ) parentDesc = 'unnamed';
-      console.warn(`repeater ${description||'unnamed'} inside active recording ${parentDesc}`);
-    }
+    // if( trace.nestedRepeater && inActiveRecording ){
+    //   let parentDesc = activeRecorder.description;
+    //   if( !parentDesc && activeRecorder.parent ) parentDesc = activeRecorder.parent.description;
+    //   if( !parentDesc ) parentDesc = 'unnamed';
+    //   console.warn(`repeater ${description||'unnamed'} inside active recording ${parentDesc}`);
+    // }
 
     // Activate!
     return refreshRepeater({
@@ -1392,7 +1304,7 @@ function createInstance(config) {
       nonRecordedAction: repeaterNonRecordingAction,
       options: options,
       remove: function() {
-        log("remove repeater_refreshing");
+        // log("remove repeater_refreshing");
         //" + this.id + "." + this.description);
         detatchRepeater(this);
         // removeSingleChildContext(this); // Remove recorder!
@@ -1545,38 +1457,13 @@ function createInstance(config) {
   };
 
 
-
   /************************************************************************
    *
-   *  Block side effects
+   *  Instance
    *
    ************************************************************************/
 
 
-  let writeRestriction = null;
-  let sideEffectBlockStack = [];
-
-  /**
-   * Block side effects
-   */
-  function withoutSideEffects(action) {
-    // enterContext('block_side_effects', {
-    //    createdObjects : {}
-    // });
-    let restriction = {};
-    sideEffectBlockStack.push({});
-    writeRestriction = restriction
-    let returnValue = action();
-    // leaveContext();
-    sideEffectBlockStack.pop();
-    if (sideEffectBlockStack.length > 0) {
-      writeRestriction = sideEffectBlockStack[
-        sideEffectBlockStack.length - 1];
-    }
-    return returnValue;
-  }
-
-  if (config.foo) return;
   const instance = {};
   Object.assign(instance, {
     // Main API
@@ -1585,7 +1472,6 @@ function createInstance(config) {
     invalidateOnChange,
     repeatOnChange,
     repeat: repeatOnChange,
-    withoutSideEffects,
 
     // Modifiers
     withoutRecording,
@@ -1611,13 +1497,13 @@ function createInstance(config) {
     resetObjectIds,
     
     // Logging
-    log,
-    logGroup,
-    logUngroup,
-    logToString,
-    trace,
-    objectlog,
-    setObjectlog,
+    // log,
+    // logGroup,
+    // logUngroup,
+    // logToString,
+    // trace,
+    // objectlog,
+    // setObjectlog,
     
     // Advanced (only if you know what you are doing)
     state,
@@ -1633,7 +1519,9 @@ function createInstance(config) {
   return instance;
 }
   
-const defaultConfiguration = {}
+const defaultConfiguration = {
+  requireRepeaterName: false
+}
 
 let instances = {};
 

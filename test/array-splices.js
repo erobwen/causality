@@ -3,7 +3,7 @@ require = require("esm")(module);
 const {c,resetObjectIds,repeat,trace} = require("../causality.js").instance();
 const assert = require('assert');
 //const log = console.log.bind(console);
-trace.nestedRepeater = false;
+// trace.nestedRepeater = false;
 
 describe("array-splices", function(){
 	resetObjectIds();
