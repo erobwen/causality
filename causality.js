@@ -1,6 +1,6 @@
 'use strict'; 
 // require = require("esm")(module);
-const { argumentsToArray, normalizeConfig } = require("./lib/utility.js");
+const { argumentsToArray, configSignature } = require("./lib/utility.js");
 
 
 function createInstance(config) {
@@ -1639,9 +1639,8 @@ let instances = {};
 
 export function instance(configuration) {
   if(!configuration) configuration = {};
-  configuration = {...defaultConfiguration, ...configuration};    
-  configuration = normalizeConfig(defaultConfiguration);
-  let signature = JSON.stringify(configuration);
+  configuration = {...defaultConfiguration, ...configuration};
+  const signature = configSignature(configuration);
   
   if (typeof(instances[signature]) === 'undefined') {
     instances[signature] = createInstance(configuration);
