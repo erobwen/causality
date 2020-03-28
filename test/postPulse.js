@@ -36,34 +36,34 @@ describe("Post pulse", function(){
   ];
 
   
-  it("Test events", function(){
-    let i = 0;
-    causality.resetObjectIds();
-    //console.log('setup');
-		causality.setRecordEvents(true);
-		causality.addPostPulseAction(function(events) {
-      //console.log( events );
-      assert.deepEqual( events, expected[i++] );
-		});
+  // it("Test events", function(){
+  //   let i = 0;
+  //   causality.resetObjectIds();
+  //   //console.log('setup');
+		// causality.setRecordEvents(true);
+		// causality.addPostPulseAction(function(events) {
+  //     //console.log( events );
+  //     assert.deepEqual( events, expected[i++] );
+		// });
 
-    //console.log('start');
-    let x = causality.create({});
-		x.y = causality.create({});
+  //   //console.log('start');
+  //   let x = causality.create({});
+		// x.y = causality.create({});
 
-    // Set up for comparison
-    expected[3][0].object.y = x.y;
-    expected[3][3].object.y = x.y;
+  //   // Set up for comparison
+  //   expected[3][0].object.y = x.y;
+  //   expected[3][3].object.y = x.y;
     
-    //console.log('transaction');
-		causality.transaction(function() {
-			x.foo = 42;
-			x.y.bar = 2;
-			x.z = causality.create({});
-		});
+  //   //console.log('transaction');
+		// causality.transaction(function() {
+		// 	x.foo = 42;
+		// 	x.y.bar = 2;
+		// 	x.z = causality.create({});
+		// });
 
-    //console.log('cleanup');
-    causality.removeAllPostPulseActions();
-		causality.setRecordEvents(false);
-    //console.log('end');
-  });
+  //   //console.log('cleanup');
+  //   causality.removeAllPostPulseActions();
+		// causality.setRecordEvents(false);
+  //   //console.log('end');
+  // });
 });

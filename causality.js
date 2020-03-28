@@ -6,7 +6,8 @@ const { argumentsToArray, configSignature } = require("./lib/utility.js");
 function createInstance(configuration) {
 
   const {
-    requireRepeaterName
+    requireRepeaterName, 
+    emitEvents
   } = configuration; 
 
   /***************************************************************
@@ -15,7 +16,7 @@ function createInstance(configuration) {
    *
    ***************************************************************/
 
-  let state = {
+  const state = {
     inPulse : 0,
     recordingPaused : 0,
     observerNotificationNullified : 0,
@@ -600,9 +601,10 @@ function createInstance(configuration) {
       };
     }
 
-    handler.target = createdTarget;
-
     let proxy = new Proxy(createdTarget, handler);
+    
+    handler.target = createdTarget;
+    handler.proxy = proxy;
 
     handler.overrides = {
       __id: nextId++,
@@ -612,7 +614,7 @@ function createInstance(configuration) {
       __handler : handler,
       __proxy : proxy,
 
-      observe: genericObserveFunction,
+      // observe: genericObserveFunction,
     };
 
     if (inReCache !== null) {
@@ -638,7 +640,7 @@ function createInstance(configuration) {
 
   /**********************************
    *
-   *   Causality Global stack
+   *   Causality Global stacklets
    *
    **********************************/
 
@@ -839,7 +841,7 @@ function createInstance(configuration) {
       callback(events);
     });
     // trace.context && logUngroup();
-    if (recordEvents) events = [];
+    if (emitEvents) events = [];
   }
 
   let postPulseHooks = [];
@@ -858,19 +860,15 @@ function createInstance(configuration) {
    *
    **********************************/
 
-  let recordEvents = false;
-  function setRecordEvents(value) {
-    recordEvents = value; 
-  } 
 
   function emitSpliceEvent(handler, index, removed, added) {
-    if (recordEvents || typeof(handler.observers) !== 'undefined') {
+    if (emitEvents) {
       emitEvent(handler, {type: 'splice', index, removed, added});
     }
   }
 
   function emitSpliceReplaceEvent(handler, key, value, previousValue) {
-    if (recordEvents || typeof(handler.observers) !== 'undefined') {
+    if (emitEvents) {
       emitEvent(handler, {
         type: 'splice',
         index: key,
@@ -880,7 +878,7 @@ function createInstance(configuration) {
   }
 
   function emitSetEvent(handler, key, value, previousValue) {
-    if (recordEvents || typeof(handler.observers) !== 'undefined') {
+    if (emitEvents) {
       emitEvent(handler, {
         type: 'set',
         property: key,
@@ -890,7 +888,7 @@ function createInstance(configuration) {
   }
 
   function emitDeleteEvent(handler, key, previousValue) {
-    if (recordEvents || typeof(handler.observers) !== 'undefined') {
+    if (emitEvents) {
       emitEvent(handler, {
         type: 'delete',
         property: key,
@@ -899,7 +897,7 @@ function createInstance(configuration) {
   }
 
   function emitCreationEvent(handler) {
-    if (recordEvents) {
+    if (emitEvents) {
       emitEvent(handler, {type: 'create'})
     }
   }
@@ -908,48 +906,45 @@ function createInstance(configuration) {
 
   function emitEvent(handler, event) {
     event.object = handler.overrides.__proxy;
+    event.objectId = handler.overrides.__id;
 
-    if (recordEvents) {
+    if (emitEvents) {
       events.push(event);
     }
-    
-    // log(event);
-    event.objectId = handler.overrides.__id;
-    if (typeof(handler.observers) !== 'undefined') {
-      for (let id in handler.observers)  {
-        handler.observers[id](event);
-      }
+
+    if (typeof(handler.target.onChange) === 'function') { // Consider. Put on queue and fire on end of reaction? onReactionEnd onTransactionEnd 
+      handler.target.onChange(event);
     }
   }
 
-  function observeAll(array, callback) {
-    array.forEach(function(element) {
-      element.observe(callback);
-    });
-  }
+  // function observeAll(array, callback) {
+  //   array.forEach(function(element) {
+  //     element.observe(callback);
+  //   });
+  // }
 
-  let nextObserverId = 0;
-  function genericObserveFunction(observerFunction) { //, independent
-    let handler = this.__handler;
-    let observer = {
-      // independent : independent,
-      //! wrap with independent context instead!
+  // let nextObserverId = 0;
+  // function genericObserveFunction(observerFunction) { //, independent
+  //   let handler = this.__handler;
+  //   let observer = {
+  //     // independent : independent,
+  //     //! wrap with independent context instead!
 
-      id : nextObserverId++,
-      handler : handler,
-      remove : function() {
-        // trace.context && log("remove observe...");
-        delete this.handler.observers[this.id];
-      }
-      // observerFunction : observerFunction, // not needed...
-    }
-    const activeContext = enterContext("observe", observer);
-    if (typeof(handler.observers) === 'undefined') {
-      handler.observers = {};
-    }
-    handler.observers[observer.id] = observerFunction;
-    leaveContext( activeContext );
-  }
+  //     id : nextObserverId++,
+  //     handler : handler,
+  //     remove : function() {
+  //       // trace.context && log("remove observe...");
+  //       delete this.handler.observers[this.id];
+  //     }
+  //     // observerFunction : observerFunction, // not needed...
+  //   }
+  //   const activeContext = enterContext("observe", observer);
+  //   if (typeof(handler.observers) === 'undefined') {
+  //     handler.observers = {};
+  //   }
+  //   handler.observers[observer.id] = observerFunction;
+  //   leaveContext( activeContext );
+  // }
 
 
   /**********************************
@@ -1482,7 +1477,6 @@ function createInstance(configuration) {
     transaction,
     addPostPulseAction,
     removeAllPostPulseActions,
-    setRecordEvents,
 
     // Independently
     enterIndependentContext,
@@ -1491,7 +1485,7 @@ function createInstance(configuration) {
     emptyContext,
 
     // Debugging and testing
-    observeAll,
+    // observeAll,
     inCachedCall,
     clearRepeaterLists,
     resetObjectIds,
