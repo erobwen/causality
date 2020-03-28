@@ -6,8 +6,10 @@ const { argumentsToArray, configSignature } = require("./lib/utility.js");
 function createInstance(configuration) {
 
   const {
-    requireRepeaterName, 
-    emitEvents
+    onPulseEnd,
+    requireRepeaterName,
+    emitEvents,
+    onChange,
   } = configuration; 
 
   /***************************************************************
@@ -824,39 +826,25 @@ function createInstance(configuration) {
     if (--state.inPulse === 0) postPulseCleanup();
   }
 
-  // Single transaction, end with cleanup.
-  const transaction = postponeObserverNotification;
-
-  function postponeObserverNotification(callback) {
+  function postponeReactions(callback) {
     state.inPulse++;
-    state.observerNotificationPostponed++;
+    state.postponeReactions++;
     callback();
-    state.observerNotificationPostponed--;
+    state.postponeReactions--;
     proceedWithPostponedNotifications();
     if (--state.inPulse === 0) postPulseCleanup();
   }
 
   function postPulseCleanup() {
-    postPulseHooks.forEach(function(callback) {
-      callback(events);
-    });
-    // trace.context && logUngroup();
+    if (onPulseEnd) onPulseEnd(events);
     if (emitEvents) events = [];
   }
 
-  let postPulseHooks = [];
-  function addPostPulseAction(callback) {
-    postPulseHooks.push(callback);
-  }
-
-  function removeAllPostPulseActions() {
-    postPulseHooks = [];
-  }
 
 
   /**********************************
    *
-   *  Observe
+   *  Emit events & onChange
    *
    **********************************/
 
@@ -912,39 +900,14 @@ function createInstance(configuration) {
       events.push(event);
     }
 
+    if (onChange) {
+      onChange(event);
+    }
+
     if (typeof(handler.target.onChange) === 'function') { // Consider. Put on queue and fire on end of reaction? onReactionEnd onTransactionEnd 
       handler.target.onChange(event);
     }
   }
-
-  // function observeAll(array, callback) {
-  //   array.forEach(function(element) {
-  //     element.observe(callback);
-  //   });
-  // }
-
-  // let nextObserverId = 0;
-  // function genericObserveFunction(observerFunction) { //, independent
-  //   let handler = this.__handler;
-  //   let observer = {
-  //     // independent : independent,
-  //     //! wrap with independent context instead!
-
-  //     id : nextObserverId++,
-  //     handler : handler,
-  //     remove : function() {
-  //       // trace.context && log("remove observe...");
-  //       delete this.handler.observers[this.id];
-  //     }
-  //     // observerFunction : observerFunction, // not needed...
-  //   }
-  //   const activeContext = enterContext("observe", observer);
-  //   if (typeof(handler.observers) === 'undefined') {
-  //     handler.observers = {};
-  //   }
-  //   handler.observers[observer.id] = observerFunction;
-  //   leaveContext( activeContext );
-  // }
 
 
   /**********************************
@@ -1148,7 +1111,7 @@ function createInstance(configuration) {
   let lastObserverToNotifyChange = null;
 
   function proceedWithPostponedNotifications() {
-    if (state.observerNotificationPostponed == 0) {
+    if (state.postponeReactions == 0) {
       while (nextObserverToNotifyChange !== null) {
         let recorder = nextObserverToNotifyChange;
         nextObserverToNotifyChange =
@@ -1207,7 +1170,7 @@ function createInstance(configuration) {
       // }
       
       observer.remove(); // Cannot be any more dirty than it already is!
-      if (state.observerNotificationPostponed > 0) {
+      if (state.postponeReactions > 0) {
         if (lastObserverToNotifyChange !== null) {
           lastObserverToNotifyChange.nextToNotify = observer;
         } else {
@@ -1474,9 +1437,10 @@ function createInstance(configuration) {
 
     // Pulse
     pulse,
-    transaction,
-    addPostPulseAction,
-    removeAllPostPulseActions,
+
+    // Transaction
+    transaction : postponeReactions,
+    postponeReactions,
 
     // Independently
     enterIndependentContext,
