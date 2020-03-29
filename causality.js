@@ -959,11 +959,11 @@ function createInstance(configuration) {
     }
 
     //console.log("doFirst in context " + enteredContext.type, enteredContext.id||'');//DEBUG
-    let returnValue = doFirst( enteredContext );
+    enteredContext.returnValue = doFirst( enteredContext );
     //if( context ) console.log("after doFirst context " + enteredContext.type, enteredContext.id||'');//DEBUG
     leaveContext( enteredContext );
 
-    return returnValue;
+    return enteredContext;
   }
 
   function withoutRecording(action) {
@@ -1227,7 +1227,7 @@ function createInstance(configuration) {
       function () {
         repeaterDirty(repeater);
       }
-    );
+    ).returnValue;
 
     if (repeater.lastTimerId){
       clearTimeout(repeater.lastTimerId);
