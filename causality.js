@@ -635,7 +635,7 @@ function createInstance(configuration) {
     if (context.child !== null && !context.child.independent) {
       context.child.disposeContextsRecursivley();
     }
-    context.child = null; // always remove
+    context.child = null; // always dispose
     if (context.children !== null) {
       context.children.forEach(function (child) {
         if (!child.independent) {
@@ -650,7 +650,7 @@ function createInstance(configuration) {
 
   function disposeContextsRecursivley() {
     // trace.context && logGroup(`disposeContextsRecursivley ${this.id}`);
-    this.remove();
+    this.dispose();
     this.isRemoved = true;
     disposeChildContexts(this);
     // trace.context && logUngroup();
@@ -747,7 +747,7 @@ function createInstance(configuration) {
   function independently(action) { 
     const activeContext = enterContext("independently", {
       independent : true,
-      remove : () => {}
+      dispose : () => {}
     });
     action();
     leaveContext( activeContext );
@@ -882,7 +882,7 @@ function createInstance(configuration) {
       description: description,
       sources : [],
       uponChangeAction: doAfterChange,
-      remove : function() {
+      dispose : function() {
         // trace.context && logGroup(`remove recording ${this.id}`);
         // Clear out previous observations
         this.sources.forEach(function(observerSet) {
@@ -1107,7 +1107,7 @@ function createInstance(configuration) {
       //   }
       // }
       
-      observer.remove(); // Cannot be any more dirty than it already is!
+      observer.dispose(); // Cannot be any more dirty than it already is!
       if (state.postponeInvalidation > 0) {
         if (lastObserverToInvalidate !== null) {
           lastObserverToInvalidate.nextToNotify = observer;
@@ -1193,11 +1193,11 @@ function createInstance(configuration) {
       nonRecordedAction: repeaterNonRecordingAction,
       options: options,
       remove: function() {
-        // log("remove repeater_context");
+        // log("dispose repeater_context");
         //" + this.id + "." + this.description);
         detatchRepeater(this);
         disposeChildContexts(this);
-        // removeSingleChildContext(this); // Remove recorder!
+        // disposeSingleChildContext(this); // Remove recorder!
       },
       nextDirty : null,
       previousDirty : null,
@@ -1248,7 +1248,7 @@ function createInstance(configuration) {
 
   function repeaterDirty(repeater) { // TODO: Add update block on this stage?
     disposeChildContexts(repeater);
-    // removeSingleChildContext(repeater);
+    // disposeSingleChildContext(repeater);
 
     if (lastDirtyRepeater === null) {
       lastDirtyRepeater = repeater;
