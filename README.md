@@ -144,7 +144,7 @@ What if you want to build a framwork, where you for example want to enforce that
 
 This way it becomes easy to enforce one-directional data flows while still allowing general Javascript code.
 
-## withoutRecording and withoutNotifyChange
+## withoutRecording and withoutReactions
 
 When working with causality it could be useful to sometimes break the rules. Reading data without creating a dependency could for example be useful for debug printouts. In the following code, the debug printout itself would create a false dependency on `z.value`  if it wasnt for the withoutRecording clause.
 
@@ -166,11 +166,11 @@ When working with causality it could be useful to sometimes break the rules. Rea
     }
 
     // No one is going to notice!
-    withoutNotifyChange(function() {
+    withoutReactions(function() {
         y.value = true;
     });
 
-There are probably less use cases for beeing able to change data without triggering any reactions, using withoutNotifyChange, it is available nevertheless.
+There are probably less use cases for beeing able to change data without triggering any reactions, using withoutReactions, it is available nevertheless.
 
 
 # Causality Object Functions

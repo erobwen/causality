@@ -7,9 +7,10 @@ function createInstance(configuration) {
 
   const {
     objectCallbacks = true, // reserve onChange, onBuildCreate, onBuildRemove 
-    notifyChange = false,
+    notifyChange = false, // either set onChangeGlobal or define onChange on individual objects.
     onChangeGlobal = null,
     requireRepeaterName = false,
+    requireInvalidatorName = false,
   } = configuration; 
 
   /***************************************************************
@@ -20,8 +21,8 @@ function createInstance(configuration) {
 
   const state = {
     recordingPaused : 0,
-    observerNotificationNullified : 0,
-    observerNotificationPostponed : 0
+    blockInvalidation : 0,
+    postponeInvalidation : 0
   };
 
 
@@ -34,9 +35,9 @@ function createInstance(configuration) {
   let staticArrayOverrides = {
     pop : function() {
       let index = this.target.length - 1;
-      state.observerNotificationNullified++;
+      state.blockInvalidation++;
       let result = this.target.pop();
-      state.observerNotificationNullified--;
+      state.blockInvalidation--;
       if (this._arrayObservers !== null) {
         invalidateObservers("_arrayObservers", this._arrayObservers);
       }
@@ -47,9 +48,9 @@ function createInstance(configuration) {
     push : function() {
       let index = this.target.length;
       let argumentsArray = argumentsToArray(arguments);
-      state.observerNotificationNullified++;
+      state.blockInvalidation++;
       this.target.push.apply(this.target, argumentsArray);
-      state.observerNotificationNullified--;
+      state.blockInvalidation--;
       if (this._arrayObservers !== null) {
         invalidateObservers("_arrayObservers", this._arrayObservers);
       }
@@ -58,9 +59,9 @@ function createInstance(configuration) {
     },
 
     shift : function() {
-      state.observerNotificationNullified++;
+      state.blockInvalidation++;
       let result = this.target.shift();
-      state.observerNotificationNullified--;
+      state.blockInvalidation--;
       if (this._arrayObservers !== null) {
         invalidateObservers("_arrayObservers", this._arrayObservers);
       }
@@ -71,9 +72,9 @@ function createInstance(configuration) {
 
     unshift : function() {
       let argumentsArray = argumentsToArray(arguments);
-      state.observerNotificationNullified++;
+      state.blockInvalidation++;
       this.target.unshift.apply(this.target, argumentsArray);
-      state.observerNotificationNullified--;
+      state.blockInvalidation--;
       if (this._arrayObservers !== null) {
         invalidateObservers("_arrayObservers", this._arrayObservers);
       }
@@ -89,9 +90,9 @@ function createInstance(configuration) {
         removedCount = this.target.length - index;
       let added = argumentsArray.slice(2);
       let removed = this.target.slice(index, index + removedCount);
-      state.observerNotificationNullified++;
+      state.blockInvalidation++;
       let result = this.target.splice.apply(this.target, argumentsArray);
-      state.observerNotificationNullified--;
+      state.blockInvalidation--;
       if (this._arrayObservers !== null) {
         invalidateObservers("_arrayObservers", this._arrayObservers);
       }
@@ -115,9 +116,9 @@ function createInstance(configuration) {
       let removed = this.target.slice(target, target + end - start);
       let added = this.target.slice(start, end);
 
-      state.observerNotificationNullified++;
+      state.blockInvalidation++;
       let result = this.target.copyWithin(target, start, end);
-      state.observerNotificationNullified--;
+      state.blockInvalidation--;
       if (this._arrayObservers !== null) {
         invalidateObservers("_arrayObservers", this._arrayObservers);
       }
@@ -133,10 +134,10 @@ function createInstance(configuration) {
       let argumentsArray = argumentsToArray(arguments);
       let removed = this.target.slice(0);
 
-      state.observerNotificationNullified++;
+      state.blockInvalidation++;
       let result = this.target[functionName]
           .apply(this.target, argumentsArray);
-      state.observerNotificationNullified--;
+      state.blockInvalidation--;
       if (this._arrayObservers !== null) {
         invalidateObservers("_arrayObservers", this._arrayObservers);
       }
@@ -516,12 +517,12 @@ function createInstance(configuration) {
    *
    ***************************************************************/
 
-  function create(createdTarget, cacheId) {
+  function create(createdTarget, buildId) {
     if (typeof(createdTarget) === 'undefined') {
       createdTarget = {};
     }
-    if (typeof(cacheId) === 'undefined') {
-      cacheId = null;
+    if (typeof(buildId) === 'undefined') {
+      buildId = null;
     }
 
     let handler;
@@ -543,10 +544,6 @@ function createInstance(configuration) {
         getOwnPropertyDescriptor: getOwnPropertyDescriptorHandlerArray
       };
     } else {
-      // let _propertyObservers = {};
-      // for (property in createdTarget) {
-      //     _propertyObservers[property] = {};
-      // }
       handler = {
         // getPrototypeOf: function () {},
         // setPrototypeOf: function () {},
@@ -554,8 +551,6 @@ function createInstance(configuration) {
         // preventExtensions: function () {},
         // apply: function () {},
         // construct: function () {},
-        // _enumerateObservers : {},
-        // _propertyObservers: _propertyObservers,
         get: getHandlerObject,
         set: setHandlerObject,
         deleteProperty: deletePropertyHandlerObject,
@@ -573,13 +568,13 @@ function createInstance(configuration) {
 
     handler.overrides = {
       __id: nextId++,
-      __buildId : cacheId,
+      __buildId : buildId,
       __overlay : null,
       __target: createdTarget,
       __handler : handler,
       __proxy : proxy,
 
-      // Reserved properties that you can override
+      // Reserved properties that you can override IF objectCallbacks is set to true. 
       // onChange
       // onBuildChange // Only responds to changes during build / rebuild.
       // onBuildCreate
@@ -587,9 +582,9 @@ function createInstance(configuration) {
     };
 
     if (inReCache !== null) {
-      if (cacheId !== null &&  typeof(inReCache.cacheIdObjectMap[cacheId]) !== 'undefined') {
+      if (buildId !== null &&  typeof(inReCache.buildIdObjectMap[buildId]) !== 'undefined') {
         // Overlay previously created
-        let infusionTarget = inReCache.cacheIdObjectMap[cacheId];
+        let infusionTarget = inReCache.buildIdObjectMap[buildId];
         infusionTarget.__handler.overrides.__overlay = proxy;
         inReCache.newlyCreated.push(infusionTarget);
         return infusionTarget;   // Borrow identity of infusion target.
@@ -786,9 +781,9 @@ function createInstance(configuration) {
    **********************************/
 
   function postponeReactions(callback) {
-    state.postponeReactions++;
+    state.postponeInvalidation++;
     callback();
-    state.postponeReactions--;
+    state.postponeInvalidation--;
     proceedWithPostponedInvalidations();
   }
 
@@ -884,6 +879,7 @@ function createInstance(configuration) {
       doFirst       = arguments[1];
       doAfterChange = arguments[2];
     } else {
+      if (requireInvalidatorName) throw new Error("Missing description for 'invalidateOnChange'")
       doFirst       = arguments[0];
       doAfterChange = arguments[1];
     }
@@ -1063,7 +1059,7 @@ function createInstance(configuration) {
   let lastObserverToInvalidate = null;
 
   function proceedWithPostponedInvalidations() {
-    if (state.postponeReactions == 0) {
+    if (state.postponeInvalidation == 0) {
       while (nextObserverToInvalidate !== null) {
         let recorder = nextObserverToInvalidate;
         nextObserverToInvalidate =
@@ -1076,17 +1072,17 @@ function createInstance(configuration) {
     }
   }
 
-  function nullifyObserverInvalidation(callback) {
-    state.observerNotificationNullified++;
+  function withoutReactions(callback) {
+    state.blockInvalidation++;
     callback();
-    state.observerNotificationNullified--;
+    state.blockInvalidation--;
   }
 
 
   // Recorders is a map from id => recorder
   function invalidateObservers(description, observers) {
     if (typeof(observers.initialized) !== 'undefined') {
-      if (state.observerNotificationNullified > 0) {
+      if (state.blockInvalidation > 0) {
         return;
       }
 
@@ -1122,7 +1118,7 @@ function createInstance(configuration) {
       // }
       
       observer.remove(); // Cannot be any more dirty than it already is!
-      if (state.postponeReactions > 0) {
+      if (state.postponeInvalidation > 0) {
         if (lastObserverToInvalidate !== null) {
           lastObserverToInvalidate.nextToNotify = observer;
         } else {
@@ -1385,7 +1381,7 @@ function createInstance(configuration) {
 
     // Modifiers
     withoutRecording,
-    withoutNotifyChange: nullifyObserverInvalidation,
+    withoutReactions,
 
     // Transaction
     postponeReactions,
