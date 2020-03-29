@@ -108,7 +108,7 @@ function createX(object) {
 
     defineProperty: function (target, key, oDesc) {
       console.log("defineProperty");
-      notifyChangeObservers("_enumerateObservers", target._enumerateObservers);
+      invalidateObservers("_enumerateObservers", target._enumerateObservers);
       return target;
     },
 

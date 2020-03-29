@@ -38,7 +38,7 @@ function createInstance(configuration) {
       let result = this.target.pop();
       state.observerNotificationNullified--;
       if (this._arrayObservers !== null) {
-        notifyChangeObservers("_arrayObservers", this._arrayObservers);
+        invalidateObservers("_arrayObservers", this._arrayObservers);
       }
       emitSpliceEvent(this, index, [result], null);
       return result;
@@ -51,7 +51,7 @@ function createInstance(configuration) {
       this.target.push.apply(this.target, argumentsArray);
       state.observerNotificationNullified--;
       if (this._arrayObservers !== null) {
-        notifyChangeObservers("_arrayObservers", this._arrayObservers);
+        invalidateObservers("_arrayObservers", this._arrayObservers);
       }
       emitSpliceEvent(this, index, null, argumentsArray);
       return this.target.length;
@@ -62,7 +62,7 @@ function createInstance(configuration) {
       let result = this.target.shift();
       state.observerNotificationNullified--;
       if (this._arrayObservers !== null) {
-        notifyChangeObservers("_arrayObservers", this._arrayObservers);
+        invalidateObservers("_arrayObservers", this._arrayObservers);
       }
       emitSpliceEvent(this, 0, [result], null);
       return result;
@@ -75,7 +75,7 @@ function createInstance(configuration) {
       this.target.unshift.apply(this.target, argumentsArray);
       state.observerNotificationNullified--;
       if (this._arrayObservers !== null) {
-        notifyChangeObservers("_arrayObservers", this._arrayObservers);
+        invalidateObservers("_arrayObservers", this._arrayObservers);
       }
       emitSpliceEvent(this, 0, null, argumentsArray);
       return this.target.length;
@@ -93,7 +93,7 @@ function createInstance(configuration) {
       let result = this.target.splice.apply(this.target, argumentsArray);
       state.observerNotificationNullified--;
       if (this._arrayObservers !== null) {
-        notifyChangeObservers("_arrayObservers", this._arrayObservers);
+        invalidateObservers("_arrayObservers", this._arrayObservers);
       }
       emitSpliceEvent(this, index, removed, added);
       return result; // equivalent to removed
@@ -119,7 +119,7 @@ function createInstance(configuration) {
       let result = this.target.copyWithin(target, start, end);
       state.observerNotificationNullified--;
       if (this._arrayObservers !== null) {
-        notifyChangeObservers("_arrayObservers", this._arrayObservers);
+        invalidateObservers("_arrayObservers", this._arrayObservers);
       }
 
       emitSpliceEvent(this, target, added, removed);
@@ -138,7 +138,7 @@ function createInstance(configuration) {
           .apply(this.target, argumentsArray);
       state.observerNotificationNullified--;
       if (this._arrayObservers !== null) {
-        notifyChangeObservers("_arrayObservers", this._arrayObservers);
+        invalidateObservers("_arrayObservers", this._arrayObservers);
       }
       emitSpliceEvent(this, 0, removed, this.target.slice(0));
       return result;
@@ -215,7 +215,7 @@ function createInstance(configuration) {
         // Write protected?
         emitSpliceReplaceEvent(this, key, value, previousValue);
         if (this._arrayObservers !== null) {
-          notifyChangeObservers("_arrayObservers",
+          invalidateObservers("_arrayObservers",
                                 this._arrayObservers);
         }
       }
@@ -227,7 +227,7 @@ function createInstance(configuration) {
         // Write protected?
         emitSetEvent(this, key, value, previousValue);
         if (this._arrayObservers !== null) {
-          notifyChangeObservers("_arrayObservers",
+          invalidateObservers("_arrayObservers",
                                 this._arrayObservers);
         }
       }
@@ -254,7 +254,7 @@ function createInstance(configuration) {
     if(!( key in target )) { // Write protected?
       emitDeleteEvent(this, key, previousValue);
       if (this._arrayObservers !== null) {
-        notifyChangeObservers("_arrayObservers", this._arrayObservers);
+        invalidateObservers("_arrayObservers", this._arrayObservers);
       }
     }
     if( key in target ) return false; // Write protected?
@@ -301,7 +301,7 @@ function createInstance(configuration) {
     }
 
     if (this._arrayObservers !== null) {
-      notifyChangeObservers("_arrayObservers", this._arrayObservers);
+      invalidateObservers("_arrayObservers", this._arrayObservers);
     }
     return target;
   }
@@ -399,12 +399,12 @@ function createInstance(configuration) {
       // Write protected?
       if (typeof(this._propertyObservers) !== 'undefined' &&
           typeof(this._propertyObservers[key]) !== 'undefined') {
-        notifyChangeObservers("_propertyObservers." + key,
+        invalidateObservers("_propertyObservers." + key,
                               this._propertyObservers[key]);
       }
       if (undefinedKey) {
         if (typeof(this._enumerateObservers) !== 'undefined') {
-          notifyChangeObservers("_enumerateObservers",
+          invalidateObservers("_enumerateObservers",
                                 this._enumerateObservers);
         }
       }
@@ -433,7 +433,7 @@ function createInstance(configuration) {
       if(!( key in target )) { // Write protected?
         emitDeleteEvent(this, key, previousValue);
         if (typeof(this._enumerateObservers) !== 'undefined') {
-          notifyChangeObservers("_enumerateObservers",
+          invalidateObservers("_enumerateObservers",
                                 this._enumerateObservers);
         }
       }
@@ -486,7 +486,7 @@ function createInstance(configuration) {
     }
 
     if (typeof(this._enumerateObservers) !== 'undefined') {
-      notifyChangeObservers("_enumerateObservers",
+      invalidateObservers("_enumerateObservers",
                             this._enumerateObservers);
     }
     return Reflect.defineProperty(target, key, descriptor);
@@ -1059,20 +1059,20 @@ function createInstance(configuration) {
    *  Upon change
    * -------------- */
 
-  let nextObserverToNotifyChange = null;
-  let lastObserverToNotifyChange = null;
+  let nextObserverToInvalidate = null;
+  let lastObserverToInvalidate = null;
 
   function proceedWithPostponedNotifications() {
     if (state.postponeReactions == 0) {
-      while (nextObserverToNotifyChange !== null) {
-        let recorder = nextObserverToNotifyChange;
-        nextObserverToNotifyChange =
-          nextObserverToNotifyChange.nextToNotify;
+      while (nextObserverToInvalidate !== null) {
+        let recorder = nextObserverToInvalidate;
+        nextObserverToInvalidate =
+          nextObserverToInvalidate.nextToNotify;
         // blockSideEffects(function() {
         recorder.uponChangeAction();
         // });
       }
-      lastObserverToNotifyChange = null;
+      lastObserverToInvalidate = null;
     }
   }
 
@@ -1084,7 +1084,7 @@ function createInstance(configuration) {
 
 
   // Recorders is a map from id => recorder
-  function notifyChangeObservers(description, observers) {
+  function invalidateObservers(description, observers) {
     if (typeof(observers.initialized) !== 'undefined') {
       if (state.observerNotificationNullified > 0) {
         return;
@@ -1092,7 +1092,7 @@ function createInstance(configuration) {
 
       let contents = observers.contents;
       for (let id in contents) {
-        notifyChangeObserver(contents[id]);
+        invalidateObserver(contents[id]);
       }
 
       if (typeof(observers.first) !== 'undefined') {
@@ -1100,7 +1100,7 @@ function createInstance(configuration) {
         while(chainedObserverChunk !== null) {
           let contents = chainedObserverChunk.contents;
           for (let id in contents) {
-            notifyChangeObserver(contents[id]);
+            invalidateObserver(contents[id]);
           }
           chainedObserverChunk = chainedObserverChunk.next;
         }
@@ -1108,10 +1108,10 @@ function createInstance(configuration) {
     }
   }
 
-  function notifyChangeObserver(observer) {
+  function invalidateObserver(observer) {
     if (observer != context) {
       // if( trace.contextMismatch && context && context.id ){
-      //   console.log("notifyChangeObserver mismatch " + observer.type, observer.id||'');
+      //   console.log("invalidateObserver mismatch " + observer.type, observer.id||'');
       //   if( !context ) console.log('current context null');
       //   else {
       //     console.log("current context " + context.type, context.id||'');
@@ -1123,12 +1123,12 @@ function createInstance(configuration) {
       
       observer.remove(); // Cannot be any more dirty than it already is!
       if (state.postponeReactions > 0) {
-        if (lastObserverToNotifyChange !== null) {
-          lastObserverToNotifyChange.nextToNotify = observer;
+        if (lastObserverToInvalidate !== null) {
+          lastObserverToInvalidate.nextToNotify = observer;
         } else {
-          nextObserverToNotifyChange = observer;
+          nextObserverToInvalidate = observer;
         }
-        lastObserverToNotifyChange = observer;
+        lastObserverToInvalidate = observer;
       } else {
         // blockSideEffects(function() {
         observer.uponChangeAction();
@@ -1417,7 +1417,7 @@ function createInstance(configuration) {
     enterContext,
     leaveContext,
     registerAnyChangeObserver,
-    notifyChangeObservers
+    invalidateObservers
   }); 
 
   Object.assign(instance, require("./lib/causalityObject.js").bindToInstance(instance));
