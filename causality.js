@@ -6,10 +6,11 @@ const { argumentsToArray, configSignature } = require("./lib/utility.js");
 function createInstance(configuration) {
 
   const {
+    objectCallbacks = true,
     onPulseEnd,
-    requireRepeaterName,
     emitEvents,
-    onChange,
+    onChangeGlobal,
+    requireRepeaterName = false,
   } = configuration; 
 
   /***************************************************************
@@ -615,6 +616,12 @@ function createInstance(configuration) {
       __target: createdTarget,
       __handler : handler,
       __proxy : proxy,
+
+      // Reserved properties that you can override
+      // onChange
+      // onBuildChange // Only responds to changes during build / rebuild.
+      // onBuildCreate
+      // onBuildRemove
     };
 
     if (inReCache !== null) {
@@ -898,11 +905,11 @@ function createInstance(configuration) {
       events.push(event);
     }
 
-    if (onChange) {
-      onChange(event);
+    if (onChangeGlobal) {
+      onChangeGlobal(event);
     }
 
-    if (typeof(handler.target.onChange) === 'function') { // Consider. Put on queue and fire on end of reaction? onReactionEnd onTransactionEnd 
+    if (objectCallbacks && typeof(handler.target.onChange) === 'function') { // Consider. Put on queue and fire on end of reaction? onReactionEnd onTransactionEnd 
       handler.target.onChange(event);
     }
   }
@@ -1475,15 +1482,10 @@ function createInstance(configuration) {
   return instance;
 }
   
-const defaultConfiguration = {
-  requireRepeaterName: false
-}
-
 let instances = {};
 
 export function instance(configuration) {
   if(!configuration) configuration = {};
-  configuration = {...defaultConfiguration, ...configuration};
   const signature = configSignature(configuration);
   
   if (typeof(instances[signature]) === 'undefined') {
