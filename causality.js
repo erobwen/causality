@@ -610,13 +610,11 @@ function createInstance(configuration) {
 
     handler.overrides = {
       __id: nextId++,
-      __cacheId : cacheId,
+      __buildId : cacheId,
       __overlay : null,
       __target: createdTarget,
       __handler : handler,
       __proxy : proxy,
-
-      // observe: genericObserveFunction,
     };
 
     if (inReCache !== null) {

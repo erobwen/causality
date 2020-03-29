@@ -192,16 +192,16 @@ describe("Projections", function(){
   //   assert.equal(detectedEvents[0].type, 'set');
   //   assert.equal(detectedEvents[0].property, 'next');
   //   assert.equal(detectedEvents[0].newValue.value, 4.5);
-  //   assert.equal(detectedEvents[0].newValue.__cacheId, '23_list');
+  //   assert.equal(detectedEvents[0].newValue.__buildId, '23_list');
   //   assert.equal(detectedEvents[0].oldValue.value, 5);
-  //   assert.equal(detectedEvents[0].oldValue.__cacheId, '12_list');
+  //   assert.equal(detectedEvents[0].oldValue.__buildId, '12_list');
   //   assert.equal(detectedEvents[0].objectId, 18);
   //   assert.equal(detectedEvents[1].type, 'set');
   //   assert.equal(detectedEvents[1].property, 'previous');
   //   assert.equal(detectedEvents[1].newValue.value, 4.5);
-  //   assert.equal(detectedEvents[1].newValue.__cacheId, '23_list');
+  //   assert.equal(detectedEvents[1].newValue.__buildId, '23_list');
   //   assert.equal(detectedEvents[1].oldValue.value, 4);
-  //   assert.equal(detectedEvents[1].oldValue.__cacheId, '4_list');
+  //   assert.equal(detectedEvents[1].oldValue.__buildId, '4_list');
   //   assert.equal(detectedEvents[1].objectId, 19);
 
   //   // Assert updated
@@ -345,16 +345,16 @@ describe("Projections", function(){
   //     assert.equal(detectedEvents[0].type, 'set');
   //     assert.equal(detectedEvents[0].property, 'next');
   //     assert.equal(detectedEvents[0].newValue.value, 4.5);
-  //     assert.equal(detectedEvents[0].newValue.__cacheId, '30_node');
+  //     assert.equal(detectedEvents[0].newValue.__buildId, '30_node');
   //     assert.equal(detectedEvents[0].oldValue.value, 5);
-  //     assert.equal(detectedEvents[0].oldValue.__cacheId, '12_node');
+  //     assert.equal(detectedEvents[0].oldValue.__buildId, '12_node');
   //     assert.equal(detectedEvents[0].objectId, 22);
   //     assert.equal(detectedEvents[1].type, 'set');
   //     assert.equal(detectedEvents[1].property, 'previous');
   //     assert.equal(detectedEvents[1].newValue.value, 4.5);
-  //     assert.equal(detectedEvents[1].newValue.__cacheId, '30_node');
+  //     assert.equal(detectedEvents[1].newValue.__buildId, '30_node');
   //     assert.equal(detectedEvents[1].oldValue.value, 4);
-  //     assert.equal(detectedEvents[1].oldValue.__cacheId, '4_node');
+  //     assert.equal(detectedEvents[1].oldValue.__buildId, '4_node');
   //     assert.equal(detectedEvents[1].objectId, 24);
 
   //     // Assert updated
