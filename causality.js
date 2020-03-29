@@ -6,9 +6,9 @@ const { argumentsToArray, configSignature } = require("./lib/utility.js");
 function createInstance(configuration) {
 
   const {
-    objectCallbacks = true,
-    emitEvents,
-    onChangeGlobal,
+    objectCallbacks = true, // reserve onChange, onBuildCreate, onBuildRemove 
+    notifyChange = false,
+    onChangeGlobal = null,
     requireRepeaterName = false,
   } = configuration; 
 
@@ -789,7 +789,7 @@ function createInstance(configuration) {
     state.postponeReactions++;
     callback();
     state.postponeReactions--;
-    proceedWithPostponedNotifications();
+    proceedWithPostponedInvalidations();
   }
 
 
@@ -802,13 +802,13 @@ function createInstance(configuration) {
 
 
   function emitSpliceEvent(handler, index, removed, added) {
-    if (emitEvents) {
+    if (notifyChange) {
       emitEvent(handler, {type: 'splice', index, removed, added});
     }
   }
 
   function emitSpliceReplaceEvent(handler, key, value, previousValue) {
-    if (emitEvents) {
+    if (notifyChange) {
       emitEvent(handler, {
         type: 'splice',
         index: key,
@@ -818,7 +818,7 @@ function createInstance(configuration) {
   }
 
   function emitSetEvent(handler, key, value, previousValue) {
-    if (emitEvents) {
+    if (notifyChange) {
       emitEvent(handler, {
         type: 'set',
         property: key,
@@ -828,7 +828,7 @@ function createInstance(configuration) {
   }
 
   function emitDeleteEvent(handler, key, previousValue) {
-    if (emitEvents) {
+    if (notifyChange) {
       emitEvent(handler, {
         type: 'delete',
         property: key,
@@ -837,7 +837,7 @@ function createInstance(configuration) {
   }
 
   function emitCreationEvent(handler) {
-    if (emitEvents) {
+    if (notifyChange) {
       emitEvent(handler, {type: 'create'})
     }
   }
@@ -848,7 +848,7 @@ function createInstance(configuration) {
     event.object = handler.overrides.__proxy;
     event.objectId = handler.overrides.__id;
 
-    if (emitEvents) {
+    if (notifyChange) {
       events.push(event);
     }
 
@@ -1062,7 +1062,7 @@ function createInstance(configuration) {
   let nextObserverToInvalidate = null;
   let lastObserverToInvalidate = null;
 
-  function proceedWithPostponedNotifications() {
+  function proceedWithPostponedInvalidations() {
     if (state.postponeReactions == 0) {
       while (nextObserverToInvalidate !== null) {
         let recorder = nextObserverToInvalidate;
@@ -1076,7 +1076,7 @@ function createInstance(configuration) {
     }
   }
 
-  function nullifyObserverNotification(callback) {
+  function nullifyObserverInvalidation(callback) {
     state.observerNotificationNullified++;
     callback();
     state.observerNotificationNullified--;
@@ -1385,7 +1385,7 @@ function createInstance(configuration) {
 
     // Modifiers
     withoutRecording,
-    withoutNotifyChange: nullifyObserverNotification,
+    withoutNotifyChange: nullifyObserverInvalidation,
 
     // Transaction
     postponeReactions,
