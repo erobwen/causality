@@ -7,7 +7,6 @@ function createInstance(configuration) {
 
   const {
     objectCallbacks = true,
-    onPulseEnd,
     emitEvents,
     onChangeGlobal,
     requireRepeaterName = false,
@@ -20,7 +19,6 @@ function createInstance(configuration) {
    ***************************************************************/
 
   const state = {
-    inPulse : 0,
     recordingPaused : 0,
     observerNotificationNullified : 0,
     observerNotificationPostponed : 0
@@ -35,8 +33,6 @@ function createInstance(configuration) {
 
   let staticArrayOverrides = {
     pop : function() {
-      state.inPulse++;
-
       let index = this.target.length - 1;
       state.observerNotificationNullified++;
       let result = this.target.pop();
@@ -45,13 +41,10 @@ function createInstance(configuration) {
         notifyChangeObservers("_arrayObservers", this._arrayObservers);
       }
       emitSpliceEvent(this, index, [result], null);
-      if (--state.inPulse === 0) postPulseCleanup();
       return result;
     },
 
     push : function() {
-      state.inPulse++;
-
       let index = this.target.length;
       let argumentsArray = argumentsToArray(arguments);
       state.observerNotificationNullified++;
@@ -61,13 +54,10 @@ function createInstance(configuration) {
         notifyChangeObservers("_arrayObservers", this._arrayObservers);
       }
       emitSpliceEvent(this, index, null, argumentsArray);
-      if (--state.inPulse === 0) postPulseCleanup();
       return this.target.length;
     },
 
     shift : function() {
-      state.inPulse++;
-
       state.observerNotificationNullified++;
       let result = this.target.shift();
       state.observerNotificationNullified--;
@@ -75,14 +65,11 @@ function createInstance(configuration) {
         notifyChangeObservers("_arrayObservers", this._arrayObservers);
       }
       emitSpliceEvent(this, 0, [result], null);
-      if (--state.inPulse === 0) postPulseCleanup();
       return result;
 
     },
 
     unshift : function() {
-      state.inPulse++;
-
       let argumentsArray = argumentsToArray(arguments);
       state.observerNotificationNullified++;
       this.target.unshift.apply(this.target, argumentsArray);
@@ -91,13 +78,10 @@ function createInstance(configuration) {
         notifyChangeObservers("_arrayObservers", this._arrayObservers);
       }
       emitSpliceEvent(this, 0, null, argumentsArray);
-      if (--state.inPulse === 0) postPulseCleanup();
       return this.target.length;
     },
 
     splice : function() {
-      state.inPulse++;
-
       let argumentsArray = argumentsToArray(arguments);
       let index = argumentsArray[0];
       let removedCount = argumentsArray[1];
@@ -112,13 +96,10 @@ function createInstance(configuration) {
         notifyChangeObservers("_arrayObservers", this._arrayObservers);
       }
       emitSpliceEvent(this, index, removed, added);
-      if (--state.inPulse === 0) postPulseCleanup();
       return result; // equivalent to removed
     },
 
     copyWithin: function(target, start, end) {
-      state.inPulse++;
-
       if( !start ) start = 0;
       if( !end ) end = this.target.length;
 
@@ -142,14 +123,12 @@ function createInstance(configuration) {
       }
 
       emitSpliceEvent(this, target, added, removed);
-      if (--state.inPulse === 0) postPulseCleanup();
       return result;
     }
   };
 
   ['reverse', 'sort', 'fill'].forEach(function(functionName) {
     staticArrayOverrides[functionName] = function() {
-      state.inPulse++;
 
       let argumentsArray = argumentsToArray(arguments);
       let removed = this.target.slice(0);
@@ -162,7 +141,6 @@ function createInstance(configuration) {
         notifyChangeObservers("_arrayObservers", this._arrayObservers);
       }
       emitSpliceEvent(this, 0, removed, this.target.slice(0));
-      if (--state.inPulse === 0) postPulseCleanup();
       return result;
     };
   });
@@ -225,8 +203,6 @@ function createInstance(configuration) {
       }
     }
 
-    state.inPulse++;
-
     if (!isNaN(key)) {
       // Number index
       if (typeof(key) === 'string') {
@@ -257,8 +233,6 @@ function createInstance(configuration) {
       }
     }
 
-    if (--state.inPulse === 0) postPulseCleanup();
-
     if( target[key] !== value && !(Number.isNaN(target[key]) &&
                                    Number.isNaN(value)) )
       return false; // Write protected?
@@ -274,7 +248,6 @@ function createInstance(configuration) {
     if (!(key in target)) {
       return true;
     }
-    state.inPulse++;
 
     let previousValue = target[key];
     delete target[key];
@@ -284,7 +257,6 @@ function createInstance(configuration) {
         notifyChangeObservers("_arrayObservers", this._arrayObservers);
       }
     }
-    if (--state.inPulse === 0) postPulseCleanup();
     if( key in target ) return false; // Write protected?
     return true;
   }
@@ -327,12 +299,10 @@ function createInstance(configuration) {
       return overlayHandler.defineProperty.apply(
         overlayHandler, [overlayHandler.target, key, oDesc]);
     }
-    state.inPulse++;
 
     if (this._arrayObservers !== null) {
       notifyChangeObservers("_arrayObservers", this._arrayObservers);
     }
-    if (--state.inPulse === 0) postPulseCleanup();
     return target;
   }
 
@@ -421,8 +391,6 @@ function createInstance(configuration) {
       }
     }
 
-    state.inPulse++;
-
     let undefinedKey = !(key in target);
     target[key]      = value;
     let resultValue  = target[key];
@@ -442,7 +410,7 @@ function createInstance(configuration) {
       }
       emitSetEvent(this, key, value, previousValue);
     }
-    if (--state.inPulse === 0) postPulseCleanup();
+
     if( resultValue !== value  && !(Number.isNaN(resultValue) &&
                                     Number.isNaN(value))) return false;
     // Write protected?
@@ -460,7 +428,6 @@ function createInstance(configuration) {
     if (!(key in target)) {
       return true;
     } else {
-      state.inPulse++;
       let previousValue = target[key];
       delete target[key];
       if(!( key in target )) { // Write protected?
@@ -470,7 +437,6 @@ function createInstance(configuration) {
                                 this._enumerateObservers);
         }
       }
-      if (--state.inPulse === 0) postPulseCleanup();
       if( key in target ) return false; // Write protected?
       return true;
     }
@@ -519,13 +485,10 @@ function createInstance(configuration) {
         overlayHandler, [overlayHandler.target, key]);
     }
 
-    state.inPulse++;
-
     if (typeof(this._enumerateObservers) !== 'undefined') {
       notifyChangeObservers("_enumerateObservers",
                             this._enumerateObservers);
     }
-    if (--state.inPulse === 0) postPulseCleanup();
     return Reflect.defineProperty(target, key, descriptor);
   }
 
@@ -554,7 +517,6 @@ function createInstance(configuration) {
    ***************************************************************/
 
   function create(createdTarget, cacheId) {
-    state.inPulse++;
     if (typeof(createdTarget) === 'undefined') {
       createdTarget = {};
     }
@@ -639,7 +601,6 @@ function createInstance(configuration) {
 
 
     emitCreationEvent(handler);
-    if (--state.inPulse === 0) postPulseCleanup();
     return proxy;
   }
 
@@ -819,30 +780,16 @@ function createInstance(configuration) {
   }
 
   /**********************************
-   *  Pulse & Transactions
    *
-   *  Upon change do
+   *  Postpone reactions / Transactions
+   *
    **********************************/
 
-  // A sequence of transactions, end with cleanup.
-  function pulse(callback) {
-    state.inPulse++;
-    callback();
-    if (--state.inPulse === 0) postPulseCleanup();
-  }
-
   function postponeReactions(callback) {
-    state.inPulse++;
     state.postponeReactions++;
     callback();
     state.postponeReactions--;
     proceedWithPostponedNotifications();
-    if (--state.inPulse === 0) postPulseCleanup();
-  }
-
-  function postPulseCleanup() {
-    if (onPulseEnd) onPulseEnd(events);
-    if (emitEvents) events = [];
   }
 
 
@@ -1440,12 +1387,9 @@ function createInstance(configuration) {
     withoutRecording,
     withoutNotifyChange: nullifyObserverNotification,
 
-    // Pulse
-    pulse,
-
     // Transaction
-    transaction : postponeReactions,
     postponeReactions,
+    transaction : postponeReactions,
 
     // Independently
     // enterIndependentContext,
@@ -1470,7 +1414,6 @@ function createInstance(configuration) {
     
     // Advanced (only if you know what you are doing)
     state,
-    postPulseCleanup,
     enterContext,
     leaveContext,
     registerAnyChangeObserver,
