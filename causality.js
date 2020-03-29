@@ -11,7 +11,7 @@ function createInstance(configuration) {
     onChangeGlobal = null,
     requireRepeaterName = false,
     requireInvalidatorName = false,
-  } = configuration; 
+  } = configuration;  
 
   /***************************************************************
    *
@@ -175,7 +175,7 @@ function createInstance(configuration) {
         if (this._arrayObservers === null) {
           this._arrayObservers = {};
         }
-        registerAnyChangeObserver("_arrayObservers",
+        recordDependency("_arrayObservers",
                                   this._arrayObservers);//object
       }
       return target[key];
@@ -273,7 +273,7 @@ function createInstance(configuration) {
       if (this._arrayObservers === null) {
         this._arrayObservers = {};
       }
-      registerAnyChangeObserver("_arrayObservers", this._arrayObservers);
+      recordDependency("_arrayObservers", this._arrayObservers);
     }
     let result   = Object.keys(target);
     result.push('length');
@@ -289,7 +289,7 @@ function createInstance(configuration) {
       if (this._arrayObservers === null) {
         this._arrayObservers = {};
       }
-      registerAnyChangeObserver("_arrayObservers", this._arrayObservers);
+      recordDependency("_arrayObservers", this._arrayObservers);
     }
     return key in target;
   }
@@ -318,7 +318,7 @@ function createInstance(configuration) {
       if (this._arrayObservers === null) {
         this._arrayObservers = {};
       }
-      registerAnyChangeObserver("_arrayObservers", this._arrayObservers);
+      recordDependency("_arrayObservers", this._arrayObservers);
     }
     return Object.getOwnPropertyDescriptor(target, key);
   }
@@ -351,7 +351,7 @@ function createInstance(configuration) {
           if (typeof(this._propertyObservers[key]) ===  'undefined') {
             this._propertyObservers[key] = {};
           }
-          registerAnyChangeObserver("_propertyObservers." + key,
+          recordDependency("_propertyObservers." + key,
                                     this._propertyObservers[key]);
         }
 
@@ -454,7 +454,7 @@ function createInstance(configuration) {
       if (typeof(this._enumerateObservers) === 'undefined') {
         this._enumerateObservers = {};
       }
-      registerAnyChangeObserver("_enumerateObservers",
+      recordDependency("_enumerateObservers",
                                 this._enumerateObservers);
     }
     let keys = Object.keys(target);
@@ -473,7 +473,7 @@ function createInstance(configuration) {
       if (typeof(this._enumerateObservers) === 'undefined') {
         this._enumerateObservers = {};
       }
-      registerAnyChangeObserver("_enumerateObservers",
+      recordDependency("_enumerateObservers",
                                 this._enumerateObservers);
     }
     return key in target;
@@ -504,7 +504,7 @@ function createInstance(configuration) {
       if (typeof(this._enumerateObservers) === 'undefined') {
         this._enumerateObservers = {};
       }
-      registerAnyChangeObserver("_enumerateObservers",
+      recordDependency("_enumerateObservers",
                                 this._enumerateObservers);
     }
     return Object.getOwnPropertyDescriptor(target, key);
@@ -582,18 +582,19 @@ function createInstance(configuration) {
     };
 
     if (inRepeater !== null) {
-      if (buildId !== null &&  typeof(inRepeater.buildIdObjectMap[buildId]) !== 'undefined') {
-        // Overlay previously created
-        let infusionTarget = inRepeater.buildIdObjectMap[buildId];
-        infusionTarget.__handler.overrides.__overlay = proxy;
-        inRepeater.newlyCreated.push(infusionTarget);
-        return infusionTarget;   // Borrow identity of infusion target.
-      } else {
-        // Newly created in this reCache cycle. Including overlaid ones.
-        inRepeater.newlyCreated.push(proxy);
+      if (buildId !== null) {
+        if (typeof(inRepeater.buildIdObjectMap[buildId]) !== 'undefined') {
+          // Overlay previously created
+          let infusionTarget = inRepeater.buildIdObjectMap[buildId];
+          infusionTarget.__handler.overrides.__overlay = proxy;
+          inRepeater.newlyCreated.push(infusionTarget);
+          return infusionTarget;   // Borrow identity of infusion target.
+        } else {
+          // Newly created in this reCache cycle. Including overlaid ones.
+          inRepeater.newlyCreated.push(proxy);
+        }
       }
     }
-
 
     emitCreationEvent(handler);
     return proxy;
@@ -628,17 +629,17 @@ function createInstance(configuration) {
     }
   }
 
-  function removeChildContexts(context) {
-    //console.warn("removeChildContexts " + context.type, context.id||'');//DEBUG
-    // trace.context && logGroup(`removeChildContexts: ${context.type} ${context.id}`);
+  function disposeChildContexts(context) {
+    //console.warn("disposeChildContexts " + context.type, context.id||'');//DEBUG
+    // trace.context && logGroup(`disposeChildContexts: ${context.type} ${context.id}`);
     if (context.child !== null && !context.child.independent) {
-      context.child.removeContextsRecursivley();
+      context.child.disposeContextsRecursivley();
     }
     context.child = null; // always remove
     if (context.children !== null) {
       context.children.forEach(function (child) {
         if (!child.independent) {
-          child.removeContextsRecursivley();
+          child.disposeContextsRecursivley();
         }
       });
     }
@@ -647,11 +648,11 @@ function createInstance(configuration) {
   }
 
 
-  function removeContextsRecursivley() {
-    // trace.context && logGroup(`removeContextsRecursivley ${this.id}`);
+  function disposeContextsRecursivley() {
+    // trace.context && logGroup(`disposeContextsRecursivley ${this.id}`);
     this.remove();
     this.isRemoved = true;
-    removeChildContexts(this);
+    disposeChildContexts(this);
     // trace.context && logUngroup();
   }
 
@@ -673,8 +674,8 @@ function createInstance(configuration) {
     // logGroup(`enterContext: ${type} ${enteredContext.id} ${enteredContext.description}`);
     if (typeof(enteredContext.initialized) === 'undefined') {
       // Initialize context
-      enteredContext.removeContextsRecursivley
-        = removeContextsRecursivley;
+      enteredContext.disposeContextsRecursivley
+        = disposeContextsRecursivley;
       enteredContext.parent = null;
       enteredContext.independentParent = independentContext;
       enteredContext.type = type;
@@ -683,7 +684,7 @@ function createInstance(configuration) {
       enteredContext.directlyInvokedByApplication = (context === null);
 
       // Connect with parent
-      if (context !== null) {
+      if (context !== null && !enteredContext.independent) {
         addChild(context, enteredContext)
         enteredContext.parent = context;
         // Even a shared context like a cached call only has
@@ -742,19 +743,8 @@ function createInstance(configuration) {
     updateContextState();
   }
 
-
-  function enterIndependentContext() {
-    return enterContext("independently", {
-      independent : true,
-      remove : () => {}
-    });
-  }
-
-  function leaveIndependentContext( activeContext ) {
-    leaveContext( activeContext );
-  }
-
-  function independently(action) {
+  // An independent context: has no parent/child relation to its parent. 
+  function independently(action) { 
     const activeContext = enterContext("independently", {
       independent : true,
       remove : () => {}
@@ -986,7 +976,7 @@ function createInstance(configuration) {
 
 
   let sourcesObserverSetChunkSize = 500;
-  function registerAnyChangeObserver(description, observerSet) {
+  function recordDependency(description, observerSet) {
     // instance can be a cached method if observing its return value,
     // object & definition only needed for debugging.
 
@@ -1194,13 +1184,6 @@ function createInstance(configuration) {
       options = args.shift();
     }
 
-    // if( trace.nestedRepeater && inActiveRecording ){
-    //   let parentDesc = activeRecorder.description;
-    //   if( !parentDesc && activeRecorder.parent ) parentDesc = activeRecorder.parent.description;
-    //   if( !parentDesc ) parentDesc = 'unnamed';
-    //   console.warn(`repeater ${description||'unnamed'} inside active recording ${parentDesc}`);
-    // }
-
     // Activate!
     return refreshRepeater({
       independent : false,
@@ -1213,8 +1196,8 @@ function createInstance(configuration) {
         // log("remove repeater_context");
         //" + this.id + "." + this.description);
         detatchRepeater(this);
+        disposeChildContexts(this);
         // removeSingleChildContext(this); // Remove recorder!
-        // removeChildContexts(this);
       },
       nextDirty : null,
       previousDirty : null,
@@ -1232,29 +1215,17 @@ function createInstance(configuration) {
     const timeSinceLastRepeat = time - repeater.lastRepeatTime;
     if( options.throttle && options.throttle > timeSinceLastRepeat ){
       const waiting = options.throttle - timeSinceLastRepeat;
-      //console.log(`Delayed repeater for ${waiting}`);
-      setTimeout(()=>refreshRepeater(repeater), waiting);
+      setTimeout(() => refreshRepeater(repeater), waiting);
       return repeater; // come back later
+    } else {
+      repeater.lastRepeatTime = time; 
     }
     
     const activeContext = enterContext('repeater_context', repeater);
     repeater.returnValue = invalidateOnChange(
       repeater.repeaterAction,
       function () {
-        // unlockSideEffects(function() {
-
-        // Is this needed? Why not mark as dirty directly?  
-        // if( context && !context.independent ){
-        //   //console.log("deferring repeaterDirty", context.id);
-        //   // defere repeater if we are in a nested context
-        //   setTimeout(()=>{
-        //     //console.log("deferred repeaterDirty", context.id);
-        //     repeaterDirty(repeater);
-        //   });
-        // } else {
-          repeaterDirty(repeater);
-        // }
-        // });
+        repeaterDirty(repeater);
       }
     );
 
@@ -1265,52 +1236,9 @@ function createInstance(configuration) {
     }
     
     if (repeater.nonRecordedAction !== null) {
-      let waiting = 0;
-      if( options.throttle || options.nonRecordedDebounce ){
-        // const timeSinceLastRepeat = time - repeater.lastRepeatTime;
-        const timeSinceLastCall = time - repeater.lastCallTime;
-        const timeSinceLastInvoke = time - repeater.lastInvokeTime;
-        const waitInvoke = options.nonRecordedDebounce || options.throttle * 2;
-        //console.log(`lastRepeat ${timeSinceLastRepeat},
-        //lastcall ${timeSinceLastCall}, lastInvoke ${timeSinceLastInvoke}`);
-        if( options.nonRecordedThrottle &&
-            timeSinceLastInvoke >= options.nonRecordedThrottle
-          ){
-          //console.log(`Max wait reached`);
-        }
-        else if( timeSinceLastCall < waitInvoke ){
-          waiting = waitInvoke - timeSinceLastCall;
-
-          if( options.nonRecordedThrottle ){
-            const waitingMax =
-                  options.nonRecordedThrottle - timeSinceLastInvoke;
-            if( waitingMax < waiting ){
-              waiting = waitingMax;
-              //console.log(`override to delaying NRA ${waiting}`);
-            }
-          }
-          
-          //console.log(`Delaying NRA ${waiting}`);
-          repeater.lastTimerId = setTimeout(()=>{
-            //console.log(`Running NRA delayed`);
-            const activeContext = enterIndependentContext();
-            repeater.nonRecordedAction( repeater.returnValue );
-            leaveIndependentContext( activeContext );
-            repeater.lastInvokeTime = time;
-          },waiting);
-        }
-
-        //console.log(`NRA lastCallTime updated`);
-        repeater.lastCallTime = time;
-      }
-
-      if( !waiting ){
-        //console.log(`Running NRA directly`);
-        const activeContext = enterIndependentContext();
+      independently(() => { // Do not own repeaters & such started in
         repeater.nonRecordedAction( repeater.returnValue );
-        leaveIndependentContext( activeContext );
-        repeater.lastInvokeTime = time;
-      }
+      })
     }
     leaveContext( activeContext );
     repeater.lastRepeatTime = time;
@@ -1319,7 +1247,7 @@ function createInstance(configuration) {
   }
 
   function repeaterDirty(repeater) { // TODO: Add update block on this stage?
-    removeChildContexts(repeater);
+    disposeChildContexts(repeater);
     // removeSingleChildContext(repeater);
 
     if (lastDirtyRepeater === null) {
@@ -1412,7 +1340,7 @@ function createInstance(configuration) {
     state,
     enterContext,
     leaveContext,
-    registerAnyChangeObserver,
+    recordDependency,
     invalidateObservers
   }); 
 
