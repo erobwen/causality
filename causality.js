@@ -1443,8 +1443,8 @@ function createInstance(configuration) {
     postponeReactions,
 
     // Independently
-    enterIndependentContext,
-    leaveIndependentContext,
+    // enterIndependentContext,
+    // leaveIndependentContext,
     independently,
     emptyContext,
 
