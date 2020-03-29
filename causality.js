@@ -581,16 +581,16 @@ function createInstance(configuration) {
       // onBuildRemove
     };
 
-    if (inReCache !== null) {
-      if (buildId !== null &&  typeof(inReCache.buildIdObjectMap[buildId]) !== 'undefined') {
+    if (inRepeater !== null) {
+      if (buildId !== null &&  typeof(inRepeater.buildIdObjectMap[buildId]) !== 'undefined') {
         // Overlay previously created
-        let infusionTarget = inReCache.buildIdObjectMap[buildId];
+        let infusionTarget = inRepeater.buildIdObjectMap[buildId];
         infusionTarget.__handler.overrides.__overlay = proxy;
-        inReCache.newlyCreated.push(infusionTarget);
+        inRepeater.newlyCreated.push(infusionTarget);
         return infusionTarget;   // Borrow identity of infusion target.
       } else {
         // Newly created in this reCache cycle. Including overlaid ones.
-        inReCache.newlyCreated.push(proxy);
+        inRepeater.newlyCreated.push(proxy);
       }
     }
 
@@ -614,17 +614,17 @@ function createInstance(configuration) {
   let activeRecorder = null;
 
   let inCachedCall = {value: null};
-  let inReCache = null;
+  let inRepeater = null;
 
   function updateContextState() {
     inActiveRecording = (context !== null) ? ((context.type === "recording") && state.recordingPaused === 0) : false;
     activeRecorder = (inActiveRecording) ? context : null;
     
     inCachedCall.value = null;
-    inReCache = null;
+    inRepeater = null;
     if (independentContext !== null) {
       inCachedCall.value = (independentContext.type === "cached_call") ? independentContext : null; 
-      inReCache = (independentContext.type === "reCache") ? independentContext : null;
+      inRepeater = (independentContext.type === "repeater_context") ? independentContext : null;
     }
   }
 
@@ -667,7 +667,7 @@ function createInstance(configuration) {
     }
   }
 
-  // occuring types: recording, repeater_refreshing,
+  // occuring types: recording, repeater_context,
   // cached_call, reCache, block_side_effects
   function enterContext(type, enteredContext) {
     // logGroup(`enterContext: ${type} ${enteredContext.id} ${enteredContext.description}`);
@@ -1210,7 +1210,7 @@ function createInstance(configuration) {
       nonRecordedAction: repeaterNonRecordingAction,
       options: options,
       remove: function() {
-        // log("remove repeater_refreshing");
+        // log("remove repeater_context");
         //" + this.id + "." + this.description);
         detatchRepeater(this);
         // removeSingleChildContext(this); // Remove recorder!
@@ -1237,7 +1237,7 @@ function createInstance(configuration) {
       return repeater; // come back later
     }
     
-    const activeContext = enterContext('repeater_refreshing', repeater);
+    const activeContext = enterContext('repeater_context', repeater);
     repeater.returnValue = invalidateOnChange(
       repeater.repeaterAction,
       function () {
