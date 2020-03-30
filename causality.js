@@ -1,6 +1,6 @@
 'use strict'; 
 // require = require("esm")(module);
-const { argumentsToArray, configSignature } = require("./lib/utility.js");
+const { argumentsToArray, configSignature, mergeInto } = require("./lib/utility.js");
 
 
 function createInstance(configuration) {
@@ -1244,7 +1244,9 @@ function createInstance(configuration) {
           created.onBuildCreate();
         }
         if (created.__overlay !== null) {
-          mergeOverlayIntoObject(created);
+          let overlay = created.__overlay;
+          created.__overlay = null;
+          mergeInto(created, overlay);
         } else {
           if (created.__buildId !== null) {
             repeater.buildIdObjectMap[created.__buildId] = created;
