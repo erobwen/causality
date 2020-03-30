@@ -1222,6 +1222,7 @@ function createInstance(configuration) {
     }
     
     // Recorded action
+    if (options.onRefresh) options.onRefresh();
     const activeContext = enterContext('repeater_context', repeater);
     repeater.returnValue = invalidateOnChange(
       repeater.repeaterAction,
@@ -1238,6 +1239,7 @@ function createInstance(configuration) {
     }
 
     // Finish any rebuild
+    if (options.onStartUpdateBuild) options.onStartUpdateBuild();
     if (repeater.buildIdObjectMap) {
       repeater.newlyCreated.forEach(function(created) {
         if (objectCallbacks && created.onBuildCreate) {
@@ -1254,6 +1256,7 @@ function createInstance(configuration) {
         }
       });
     }
+    if (options.onStartUpdateBuild) options.onFinishUpdateBuild();
     leaveContext( activeContext );
     repeater.lastRepeatTime = time;
 
