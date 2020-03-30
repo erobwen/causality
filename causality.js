@@ -583,6 +583,7 @@ function createInstance(configuration) {
 
     if (inRepeater !== null) {
       if (buildId !== null) {
+        if (!inRepeater.newlyCreated) inRepeater.newlyCreated = [];
         if (typeof(inRepeater.buildIdObjectMap[buildId]) !== 'undefined') {
           // Overlay previously created
           let infusionTarget = inRepeater.buildIdObjectMap[buildId];
@@ -1192,7 +1193,7 @@ function createInstance(configuration) {
       repeaterAction : repeaterAction,
       nonRecordedAction: repeaterNonRecordingAction,
       options: options,
-      remove: function() {
+      dispose: function() {
         // log("dispose repeater_context");
         //" + this.id + "." + this.description);
         detatchRepeater(this);
@@ -1202,8 +1203,6 @@ function createInstance(configuration) {
       nextDirty : null,
       previousDirty : null,
       lastRepeatTime: 0,
-      lastCallTime: 0,
-      lastInvokeTime: 0,
     });
   }
 
@@ -1212,15 +1211,17 @@ function createInstance(configuration) {
     if( !repeater.options ) repeater.options = {};
     const options = repeater.options;
     
+    // Throttle
     const timeSinceLastRepeat = time - repeater.lastRepeatTime;
     if( options.throttle && options.throttle > timeSinceLastRepeat ){
-      const waiting = options.throttle - timeSinceLastRepeat;
-      setTimeout(() => refreshRepeater(repeater), waiting);
+      repeater.waiting = options.throttle - timeSinceLastRepeat;
+      setTimeout(() => refreshRepeater(repeater), repeater.waiting);
       return repeater; // come back later
     } else {
       repeater.lastRepeatTime = time; 
     }
     
+    // Recorded action
     const activeContext = enterContext('repeater_context', repeater);
     repeater.returnValue = invalidateOnChange(
       repeater.repeaterAction,
@@ -1229,16 +1230,27 @@ function createInstance(configuration) {
       }
     ).returnValue;
 
-    if (repeater.lastTimerId){
-      clearTimeout(repeater.lastTimerId);
-      repeater.lastTimerId = null;
-      //console.log(`Delayed NRA cancelled`);
-    }
-    
+    // Non recorded action
     if (repeater.nonRecordedAction !== null) {
       independently(() => { // Do not own repeaters & such started in
         repeater.nonRecordedAction( repeater.returnValue );
       })
+    }
+
+    // Finish any rebuild
+    if (repeater.buildIdObjectMap) {
+      repeater.newlyCreated.forEach(function(created) {
+        if (objectCallbacks && created.onBuildCreate) {
+          created.onBuildCreate();
+        }
+        if (created.__overlay !== null) {
+          mergeOverlayIntoObject(created);
+        } else {
+          if (created.__buildId !== null) {
+            repeater.buildIdObjectMap[created.__buildId] = created;
+          }
+        }
+      });
     }
     leaveContext( activeContext );
     repeater.lastRepeatTime = time;
