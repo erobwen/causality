@@ -882,7 +882,7 @@ function createInstance(configuration) {
       id: recorderId++,
       description: description,
       sources : [],
-      uponChangeAction: doAfterChange,
+      invalidateAction: doAfterChange,
       dispose : function() {
         // trace.context && logGroup(`remove recording ${this.id}`);
         // Clear out previous observations
@@ -1056,7 +1056,7 @@ function createInstance(configuration) {
         nextObserverToInvalidate =
           nextObserverToInvalidate.nextToNotify;
         // blockSideEffects(function() {
-        recorder.uponChangeAction();
+        recorder.invalidateAction();
         // });
       }
       lastObserverToInvalidate = null;
@@ -1118,7 +1118,7 @@ function createInstance(configuration) {
         lastObserverToInvalidate = observer;
       } else {
         // blockSideEffects(function() {
-        observer.uponChangeAction();
+        observer.invalidateAction();
         // });
       }
     }
@@ -1193,8 +1193,11 @@ function createInstance(configuration) {
       repeaterAction : repeaterAction,
       nonRecordedAction: repeaterNonRecordingAction,
       options: options,
+      restart: function() {
+        this.invalidator.dispose();
+        repeaterDirty(this);
+      },
       dispose: function() {
-        // log("dispose repeater_context");
         //" + this.id + "." + this.description);
         detatchRepeater(this);
         disposeChildContexts(this);
@@ -1224,12 +1227,11 @@ function createInstance(configuration) {
     // Recorded action
     if (options.onRefresh) options.onRefresh();
     const activeContext = enterContext('repeater_context', repeater);
-    repeater.returnValue = invalidateOnChange(
-      repeater.repeaterAction,
-      function () {
-        repeaterDirty(repeater);
-      }
-    ).returnValue;
+    repeater.invalidator = invalidateOnChange(
+      () => { repeater.repeaterAction(repeater) },
+      repeater.restart.bind(repeater)
+    );
+    repeater.returnValue = repeater.invalidator.returnValue;
 
     // Non recorded action
     if (repeater.nonRecordedAction !== null) {
@@ -1238,8 +1240,8 @@ function createInstance(configuration) {
       })
     }
 
-    // Finish any rebuild
-    if (options.onStartUpdateBuild) options.onStartUpdateBuild();
+    // Finish any merge into build
+    if (options.onStartBuildUpdate) options.onStartUpdateBuild();
     if (repeater.buildIdObjectMap) {
       repeater.newlyCreated.forEach(function(created) {
         if (objectCallbacks && created.onBuildCreate) {
@@ -1256,7 +1258,7 @@ function createInstance(configuration) {
         }
       });
     }
-    if (options.onStartUpdateBuild) options.onFinishUpdateBuild();
+    if (options.onEndBuildUpdate) options.onFinishUpdateBuild();
     leaveContext( activeContext );
     repeater.lastRepeatTime = time;
 
