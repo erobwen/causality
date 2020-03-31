@@ -1155,13 +1155,35 @@ function createInstance(configuration) {
     }
   }
 
+  function modifyRepeaterAction(repeaterAction, {throttle=0, debounce=0}) {
+    if (throttle > 0) {
+      return function(repeater) {
+        let time = Date.now();
+        const timeSinceLastRepeat = time - repeater.lastRepeatTime;
+        if (throttle > timeSinceLastRepeat) {
+          const waiting = throttle - timeSinceLastRepeat
+          setTimeout(() => { repeater.restart() }, waiting);
+        } else {
+          repeater.lastRepeatTime = time;
+          return repeaterAction();
+        }
+      }
+    } 
+
+    if (debounce > 0) {
+      // TODO
+    }
+
+    return repeaterAction;
+  }
+
   let repeaterId = 0;
   function repeatOnChange() { // description(optional), action
     // Arguments
     let description = '';
     let repeaterAction;
     let repeaterNonRecordingAction = null;
-    let options = {};
+    let options;
 
     const args = (arguments.length === 1 ?
                   [arguments[0]] :
@@ -1184,15 +1206,16 @@ function createInstance(configuration) {
     if (typeof(args[0]) === 'object') {
       options = args.shift();
     }
+    if (!options) options = {};
 
     // Activate!
     return refreshRepeater({
       independent : false,
       id: repeaterId++,
       description: description,
-      repeaterAction : repeaterAction,
+      repeaterAction : modifyRepeaterAction(repeaterAction, options),
       nonRecordedAction: repeaterNonRecordingAction,
-      options: options,
+      options: options ? options : {},
       restart: function() {
         this.invalidator.dispose();
         repeaterDirty(this);
@@ -1210,20 +1233,8 @@ function createInstance(configuration) {
   }
 
   function refreshRepeater(repeater) {
-    let time = Date.now();
-    if( !repeater.options ) repeater.options = {};
     const options = repeater.options;
-    
-    // Throttle
-    const timeSinceLastRepeat = time - repeater.lastRepeatTime;
-    if( options.throttle && options.throttle > timeSinceLastRepeat ){
-      repeater.waiting = options.throttle - timeSinceLastRepeat;
-      setTimeout(() => refreshRepeater(repeater), repeater.waiting);
-      return repeater; // come back later
-    } else {
-      repeater.lastRepeatTime = time; 
-    }
-    
+        
     // Recorded action
     if (options.onRefresh) options.onRefresh();
     const activeContext = enterContext('repeater_context', repeater);
@@ -1240,9 +1251,9 @@ function createInstance(configuration) {
       })
     }
 
-    // Finish any merge into build
-    if (options.onStartBuildUpdate) options.onStartUpdateBuild();
+    // Finish rebuilding
     if (repeater.buildIdObjectMap) {
+      if (options.onStartBuildUpdate) options.onStartUpdateBuild();
       repeater.newlyCreated.forEach(function(created) {
         if (objectCallbacks && created.onBuildCreate) {
           created.onBuildCreate();
@@ -1257,11 +1268,10 @@ function createInstance(configuration) {
           }
         }
       });
+      if (options.onEndBuildUpdate) options.onFinishUpdateBuild();
     }
-    if (options.onEndBuildUpdate) options.onFinishUpdateBuild();
-    leaveContext( activeContext );
-    repeater.lastRepeatTime = time;
 
+    leaveContext( activeContext );
     return repeater;
   }
 
