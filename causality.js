@@ -1234,9 +1234,9 @@ function createInstance(configuration) {
 
   function refreshRepeater(repeater) {
     const options = repeater.options;
+    if (options.onRefresh) options.onRefresh(repeater);
         
     // Recorded action
-    if (options.onRefresh) options.onRefresh();
     const activeContext = enterContext('repeater_context', repeater);
     repeater.invalidator = invalidateOnChange(
       () => { repeater.repeaterAction(repeater) },

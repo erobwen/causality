@@ -59,23 +59,31 @@ describe("Re Build", function(){
       } else {
         result.insert(node);
       }
-    })
+    }); 
+    return result; 
   }
 
 
   it("Test rebuild", function(){
     const source = create([3, 4, 3, 1, 3]);
+    let updateBuildEvents = [];
+    let tree; 
 
     repeat(
       () => {
-        const tree = buildTree(source);
+        tree = buildTree(source);
       },
       null, 
       { 
         onStartBuildUpdate: () => { events.length = 0 },
-        onEndBuildUpdate: () => { events.length = 0 }
+        onEndBuildUpdate: () => { updateBuildEvents = events.slice(); events.length = 0; }
       }
     );
+
+    console.log(tree)
+    source.push(5);
+    console.log(updateBuildEvents);
+    console.log(tree)
 
     
     // assert.equal(, );
