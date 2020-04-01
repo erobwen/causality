@@ -35,50 +35,50 @@ function createInstance(configuration) {
   let staticArrayOverrides = {
     pop : function() {
       let index = this.target.length - 1;
-      state.blockInvalidation++;
       let result = this.target.pop();
-      state.blockInvalidation--;
+
+      if (notifyChange) emitSpliceEvent(this, index, [result], null);
       if (this._arrayObservers !== null) {
         invalidateObservers("_arrayObservers", this._arrayObservers);
       }
-      emitSpliceEvent(this, index, [result], null);
+
       return result;
     },
 
     push : function() {
       let index = this.target.length;
       let argumentsArray = argumentsToArray(arguments);
-      state.blockInvalidation++;
       this.target.push.apply(this.target, argumentsArray);
-      state.blockInvalidation--;
+
+      if (notifyChange) emitSpliceEvent(this, index, null, argumentsArray);
       if (this._arrayObservers !== null) {
         invalidateObservers("_arrayObservers", this._arrayObservers);
       }
-      emitSpliceEvent(this, index, null, argumentsArray);
+
       return this.target.length;
     },
 
     shift : function() {
-      state.blockInvalidation++;
       let result = this.target.shift();
-      state.blockInvalidation--;
+      
+      if (notifyChange) emitSpliceEvent(this, 0, [result], null);
       if (this._arrayObservers !== null) {
         invalidateObservers("_arrayObservers", this._arrayObservers);
       }
-      emitSpliceEvent(this, 0, [result], null);
+
       return result;
 
     },
 
     unshift : function() {
       let argumentsArray = argumentsToArray(arguments);
-      state.blockInvalidation++;
       this.target.unshift.apply(this.target, argumentsArray);
-      state.blockInvalidation--;
+
+      if (notifyChange) emitSpliceEvent(this, 0, null, argumentsArray);
       if (this._arrayObservers !== null) {
         invalidateObservers("_arrayObservers", this._arrayObservers);
       }
-      emitSpliceEvent(this, 0, null, argumentsArray);
+
       return this.target.length;
     },
 
@@ -90,20 +90,19 @@ function createInstance(configuration) {
         removedCount = this.target.length - index;
       let added = argumentsArray.slice(2);
       let removed = this.target.slice(index, index + removedCount);
-      state.blockInvalidation++;
       let result = this.target.splice.apply(this.target, argumentsArray);
-      state.blockInvalidation--;
+
+      if (notifyChange) emitSpliceEvent(this, index, removed, added);
       if (this._arrayObservers !== null) {
         invalidateObservers("_arrayObservers", this._arrayObservers);
       }
-      emitSpliceEvent(this, index, removed, added);
+
       return result; // equivalent to removed
     },
 
     copyWithin: function(target, start, end) {
       if( !start ) start = 0;
       if( !end ) end = this.target.length;
-
       if (target < 0) { start = this.target.length - target; }
       if (start < 0) { start = this.target.length - start; }
       if (end < 0) { start = this.target.length - end; }
@@ -112,44 +111,34 @@ function createInstance(configuration) {
       if (start >= end) {
         return;
       }
-    
       let removed = this.target.slice(target, target + end - start);
       let added = this.target.slice(start, end);
-
-      state.blockInvalidation++;
       let result = this.target.copyWithin(target, start, end);
-      state.blockInvalidation--;
+
+      if (notifyChange) emitSpliceEvent(this, target, added, removed);
       if (this._arrayObservers !== null) {
         invalidateObservers("_arrayObservers", this._arrayObservers);
       }
 
-      emitSpliceEvent(this, target, added, removed);
       return result;
     }
   };
 
   ['reverse', 'sort', 'fill'].forEach(function(functionName) {
     staticArrayOverrides[functionName] = function() {
-
       let argumentsArray = argumentsToArray(arguments);
       let removed = this.target.slice(0);
-
-      state.blockInvalidation++;
       let result = this.target[functionName]
           .apply(this.target, argumentsArray);
-      state.blockInvalidation--;
+
+      if (notifyChange)emitSpliceEvent(this, 0, removed, this.target.slice(0));
       if (this._arrayObservers !== null) {
         invalidateObservers("_arrayObservers", this._arrayObservers);
       }
-      emitSpliceEvent(this, 0, removed, this.target.slice(0));
+
       return result;
     };
   });
-
-  let nextId = 1;
-  function resetObjectIds() {
-    nextId = 1;
-  }
 
 
   /***************************************************************
@@ -158,7 +147,7 @@ function createInstance(configuration) {
    *
    ***************************************************************/
 
-  function getHandlerArray(target, key) {
+  function getHandlerArray(dummyTarget, key) {
     if (this.overrides.__overlay !== null &&
         (typeof(overlayBypass[key]) === 'undefined')) {
       let overlayHandler = this.overrides.__overlay.__handler;
@@ -178,7 +167,7 @@ function createInstance(configuration) {
         recordDependency("_arrayObservers",
                                   this._arrayObservers);//object
       }
-      return target[key];
+      return this.target[key];
     }
   }
 
@@ -391,6 +380,7 @@ function createInstance(configuration) {
         return true;
       }
     }
+    emitSetEvent(this, key, value, previousValue);
 
     let undefinedKey = !(key in target);
     target[key]      = value;
@@ -409,7 +399,6 @@ function createInstance(configuration) {
                                 this._enumerateObservers);
         }
       }
-      emitSetEvent(this, key, value, previousValue);
     }
 
     if( resultValue !== value  && !(Number.isNaN(resultValue) &&
@@ -510,13 +499,14 @@ function createInstance(configuration) {
     return Object.getOwnPropertyDescriptor(target, key);
   }
 
-
+ 
   /***************************************************************
    *
    *  Create
    *
    ***************************************************************/
 
+  let nextId = 1;
   function create(createdTarget, buildId) {
     if (typeof(createdTarget) === 'undefined') {
       createdTarget = {};
@@ -535,7 +525,6 @@ function createInstance(configuration) {
         // preventExtensions: function () {},
         // apply: function () {},
         // construct: function () {},
-        get: getHandlerArray,
         set: setHandlerArray,
         deleteProperty: deletePropertyHandlerArray,
         ownKeys: ownKeysHandlerArray,
@@ -543,6 +532,7 @@ function createInstance(configuration) {
         defineProperty: definePropertyHandlerArray,
         getOwnPropertyDescriptor: getOwnPropertyDescriptorHandlerArray
       };
+      handler.get = getHandlerArray.bind(handler);
     } else {
       handler = {
         // getPrototypeOf: function () {},
@@ -1354,7 +1344,6 @@ function createInstance(configuration) {
     // observeAll,
     inCachedCall,
     clearRepeaterLists,
-    resetObjectIds,
     
     // Logging
     // log,

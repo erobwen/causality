@@ -1,12 +1,12 @@
 'use strict';
 require = require("esm")(module);
-const {c,resetObjectIds,repeat,trace} = require("../causality.js").instance({name: "array-splices", notifyChange: true});
+const {c, repeat,trace} = require("../causality.js").instance({name: "array-splices", notifyChange: true});
 const assert = require('assert');
 //const log = console.log.bind(console);
 // trace.nestedRepeater = false;
 
 describe("array-splices", function(){
-	resetObjectIds();
+	// resetObjectIds();
   
 	var result;
   const arrayTarget = ['a', 'b', 'c'];
