@@ -148,6 +148,7 @@ function createInstance(configuration) {
    ***************************************************************/
 
   function getHandlerArray(dummyTarget, key) {
+    const target = this.target; dummyTarget;
     if (this.overrides.__overlay !== null &&
         (typeof(overlayBypass[key]) === 'undefined')) {
       let overlayHandler = this.overrides.__overlay.__handler;
@@ -167,11 +168,12 @@ function createInstance(configuration) {
         recordDependency("_arrayObservers",
                                   this._arrayObservers);//object
       }
-      return this.target[key];
+      return target[key];
     }
   }
 
-  function setHandlerArray(target, key, value) {
+  function setHandlerArray(dummyTarget, key, value) {
+    const target = this.target; dummyTarget;
     if (this.overrides.__overlay !== null) {
       if (key === "__overlay") {
         this.overrides.__overlay = value;
@@ -229,7 +231,8 @@ function createInstance(configuration) {
     return true;
   }
 
-  function deletePropertyHandlerArray(target, key) {
+  function deletePropertyHandlerArray(dummyTarget, key) {
+    const target = this.target; dummyTarget;
     if (this.overrides.__overlay !== null) {
       let overlayHandler = this.overrides.__overlay.__handler;
       return overlayHandler.deleteProperty.apply(
@@ -251,7 +254,8 @@ function createInstance(configuration) {
     return true;
   }
 
-  function ownKeysHandlerArray(target) {
+  function ownKeysHandlerArray(dummyTarget) {
+    const target = this.target; dummyTarget;
     if (this.overrides.__overlay !== null) {
       let overlayHandler = this.overrides.__overlay.__handler;
       return overlayHandler.ownKeys.apply(
@@ -269,7 +273,8 @@ function createInstance(configuration) {
     return result;
   }
 
-  function hasHandlerArray(target, key) {
+  function hasHandlerArray(dummyTarget, key) {
+    const target = this.target; dummyTarget;
     if (this.overrides.__overlay !== null) {
       let overlayHandler = this.overrides.__overlay.__handler;
       return overlayHandler.has.apply(overlayHandler, [target, key]);
@@ -283,7 +288,8 @@ function createInstance(configuration) {
     return key in target;
   }
 
-  function definePropertyHandlerArray(target, key, oDesc) {
+  function definePropertyHandlerArray(dummyTarget, key, oDesc) {
+    const target = this.target; dummyTarget;
     if (this.overrides.__overlay !== null) {
       let overlayHandler = this.overrides.__overlay.__handler;
       return overlayHandler.defineProperty.apply(
@@ -296,7 +302,8 @@ function createInstance(configuration) {
     return target;
   }
 
-  function getOwnPropertyDescriptorHandlerArray(target, key) {
+  function getOwnPropertyDescriptorHandlerArray(dummyTarget, key) {
+    const target = this.target; dummyTarget;
     if (this.overrides.__overlay !== null) {
       let overlayHandler = this.overrides.__overlay.__handler;
       return overlayHandler.getOwnPropertyDescriptor.apply(
@@ -499,7 +506,7 @@ function createInstance(configuration) {
     return Object.getOwnPropertyDescriptor(target, key);
   }
 
- 
+
   /***************************************************************
    *
    *  Create
@@ -525,14 +532,14 @@ function createInstance(configuration) {
         // preventExtensions: function () {},
         // apply: function () {},
         // construct: function () {},
-        set: setHandlerArray,
-        deleteProperty: deletePropertyHandlerArray,
-        ownKeys: ownKeysHandlerArray,
-        has: hasHandlerArray,
-        defineProperty: definePropertyHandlerArray,
-        getOwnPropertyDescriptor: getOwnPropertyDescriptorHandlerArray
       };
       handler.get = getHandlerArray.bind(handler);
+      handler.set = setHandlerArray.bind(handler);
+      handler.deleteProperty = deletePropertyHandlerArray.bind(handler);
+      handler.ownKeys = ownKeysHandlerArray.bind(handler);
+      handler.has = hasHandlerArray.bind(handler);
+      handler.defineProperty = definePropertyHandlerArray.bind(handler);
+      handler.getOwnPropertyDescriptor = getOwnPropertyDescriptorHandlerArray.bind(handler);
     } else {
       handler = {
         // getPrototypeOf: function () {},
