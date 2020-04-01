@@ -326,7 +326,8 @@ function createInstance(configuration) {
    *
    ***************************************************************/
 
-  function getHandlerObject(target, key) {
+  function getHandlerObject(dummyTarget, key) {
+    const target = this.target; dummyTarget; 
     key = key.toString();
     if (this.overrides.__overlay !== null && key !== "__overlay" &&
         (typeof(overlayBypass[key]) === 'undefined')) {
@@ -365,7 +366,8 @@ function createInstance(configuration) {
     }
   }
 
-  function setHandlerObject(target, key, value) {
+  function setHandlerObject(dummyTarget, key, value) {
+    const target = this.target; dummyTarget; 
     if (this.overrides.__overlay !== null) {
       if (key === "__overlay") {
         this.overrides.__overlay = value;
@@ -414,7 +416,8 @@ function createInstance(configuration) {
     return true;
   }
 
-  function deletePropertyHandlerObject(target, key) {
+  function deletePropertyHandlerObject(dummyTarget, key) {
+    const target = this.target; dummyTarget; 
     if (this.overrides.__overlay !== null) {
       let overlayHandler = this.overrides.__overlay.__handler;
       overlayHandler.deleteProperty.apply(
@@ -439,7 +442,8 @@ function createInstance(configuration) {
     }
   }
 
-  function ownKeysHandlerObject(target, key) { // Not inherited?
+  function ownKeysHandlerObject(dummyTarget, key) { // Not inherited?
+    const target = this.target; dummyTarget; 
     if (this.overrides.__overlay !== null) {
       let overlayHandler = this.overrides.__overlay.__handler;
       return overlayHandler.ownKeys.apply(
@@ -458,7 +462,8 @@ function createInstance(configuration) {
     return keys;
   }
 
-  function hasHandlerObject(target, key) {
+  function hasHandlerObject(dummyTarget, key) {
+    const target = this.target; dummyTarget; 
     if (this.overrides.__overlay !== null) {
       let overlayHandler = this.overrides.__overlay.__handler;
       return overlayHandler.has.apply(
@@ -475,7 +480,8 @@ function createInstance(configuration) {
     return key in target;
   }
 
-  function definePropertyHandlerObject(target, key, descriptor) {
+  function definePropertyHandlerObject(dummyTarget, key, descriptor) {
+    const target = this.target; dummyTarget; 
     if (this.overrides.__overlay !== null) {
       let overlayHandler = this.overrides.__overlay.__handler;
       return overlayHandler.defineProperty.apply(
@@ -489,7 +495,8 @@ function createInstance(configuration) {
     return Reflect.defineProperty(target, key, descriptor);
   }
 
-  function getOwnPropertyDescriptorHandlerObject(target, key) {
+  function getOwnPropertyDescriptorHandlerObject(dummyTarget, key) {
+    const target = this.target; dummyTarget; 
     if (this.overrides.__overlay !== null) {
       let overlayHandler = this.overrides.__overlay.__handler;
       return overlayHandler.getOwnPropertyDescriptor
@@ -532,14 +539,14 @@ function createInstance(configuration) {
         // preventExtensions: function () {},
         // apply: function () {},
         // construct: function () {},
+        get: getHandlerArray,
+        set: setHandlerArray,
+        deleteProperty: deletePropertyHandlerArray,
+        ownKeys: ownKeysHandlerArray,
+        has: hasHandlerArray,
+        defineProperty: definePropertyHandlerArray,
+        getOwnPropertyDescriptor: getOwnPropertyDescriptorHandlerArray
       };
-      handler.get = getHandlerArray.bind(handler);
-      handler.set = setHandlerArray.bind(handler);
-      handler.deleteProperty = deletePropertyHandlerArray.bind(handler);
-      handler.ownKeys = ownKeysHandlerArray.bind(handler);
-      handler.has = hasHandlerArray.bind(handler);
-      handler.defineProperty = definePropertyHandlerArray.bind(handler);
-      handler.getOwnPropertyDescriptor = getOwnPropertyDescriptorHandlerArray.bind(handler);
     } else {
       handler = {
         // getPrototypeOf: function () {},
