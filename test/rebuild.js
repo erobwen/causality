@@ -9,13 +9,21 @@ const instance = causality.instance({
   name: "rebuild", 
   notifyChange: true, 
   onChangeGlobal: (event) => {
+    log(events);
     events.push(event);
   }
 });
 const {create, withoutSideEffects, repeat } = instance;
 const c = create; 
 
-
+const log = console.log;
+const logg = (string) => {
+  if (string) {
+    console.log("-------------" + string + "-------------");
+  } else {
+    console.log("--------------------------");
+  }
+};
 
 describe("Re Build", function(){
 
@@ -53,7 +61,7 @@ describe("Re Build", function(){
   function buildTree(source) {
     let result;
     source.forEach((value, index) => {
-      const node = create(new Node(value), "node_" + value);
+      const node = create(new Node(value), "node_" + index);
       if (index === 0) {
         result = node; 
       } else {
@@ -81,7 +89,9 @@ describe("Re Build", function(){
     );
 
     console.log(tree)
+    logg();
     source.push(3.5);
+    logg();
     console.log(updateBuildEvents);
     console.log(tree)
 

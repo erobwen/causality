@@ -2,6 +2,9 @@
 // require = require("esm")(module);
 const { argumentsToArray, configSignature, mergeInto } = require("./lib/utility.js");
 const log = console.log;
+const logg = (string) => {
+  console.log("-------------" + string + "-------------");
+};
 
 function createInstance(configuration) {
 
@@ -279,6 +282,7 @@ function createInstance(configuration) {
       return cannotAccessPropertyValue;
     }
     key = key.toString();
+    
     if (this.overrides.__forwardTo !== null && key !== "__forwardTo") {
       let forwardToHandler = this.overrides.__forwardTo.__handler;
       let result = forwardToHandler.get.apply(forwardToHandler, [forwardToHandler.target, key]);
@@ -306,14 +310,13 @@ function createInstance(configuration) {
   }
 
   function setHandlerObject(target, key, value) {
-    if (this.overrides.__forwardTo !== null) {
-      if (key === "__forwardTo") {
-        this.overrides.__forwardTo = value;
-        return true;
-      } else {
-        let forwardToHandler = this.overrides.__forwardTo.__handler;
-        return forwardToHandler.set.apply(forwardToHandler, [forwardToHandler.target, key, value]);
-      }
+    log("set!")
+    if (key === "__forwardTo") {
+      this.overrides.__forwardTo = value;
+      return true;
+    } else if (this.overrides.__forwardTo !== null) {
+      let forwardToHandler = this.overrides.__forwardTo.__handler;
+      return forwardToHandler.set.apply(forwardToHandler, [forwardToHandler.target, key, value]);
     }
 
     let previousValue = target[key];
@@ -325,6 +328,7 @@ function createInstance(configuration) {
         return true;
       }
     }
+    log("new value")
     emitSetEvent(this, key, value, previousValue);
 
     let undefinedKey = !(key in target);
@@ -491,14 +495,20 @@ function createInstance(configuration) {
     if (inRepeater !== null) {
       if (buildId !== null) {
         if (!inRepeater.newlyCreated) inRepeater.newlyCreated = [];
-        inRepeater.newlyCreated.push(proxy);
+        log("create with id...")
         
         if (inRepeater.buildIdObjectMap && typeof(inRepeater.buildIdObjectMap[buildId]) !== 'undefined') {
+          log("reuse...")
           // Object identity previously created
           let establishedObject = inRepeater.buildIdObjectMap[buildId];
           establishedObject.__forwardTo = proxy;
+
+          log(establishedObject.__forwardTo === proxy)
+          inRepeater.newlyCreated.push(establishedObject);
           emitCreationEvent(handler);
           return establishedObject;
+        } else {
+          inRepeater.newlyCreated.push(proxy);
         }
       }
     }
@@ -710,6 +720,7 @@ function createInstance(configuration) {
   }
 
   function emitSetEvent(handler, key, value, previousValue) {
+      log(notifyChange)
     if (notifyChange) {
       emitEvent(handler, {
         type: 'set',
@@ -734,17 +745,13 @@ function createInstance(configuration) {
     }
   }
 
-  let events = [];
-
   function emitEvent(handler, event) {
+    log("EMIT EVENT")
     event.object = handler.overrides.__proxy;
     event.objectId = handler.overrides.__id;
 
-    if (notifyChange) {
-      events.push(event);
-    }
-
     if (onChangeGlobal) {
+      log("here")
       onChangeGlobal(event);
     }
 
@@ -1168,7 +1175,7 @@ function createInstance(configuration) {
       repeaterAction = args.shift();
     }
 
-    if (typeof(args[0]) === 'function') {
+    if (typeof(args[0]) === 'function' || args[0] === null) {
       repeaterNonRecordingAction = args.shift();
     }
     
@@ -1224,14 +1231,14 @@ function createInstance(configuration) {
     log("finish rebuild")
     // log(repeater.newlyCreated)
     if (!!repeater.newlyCreated) {
-      log("x")
+      log("fun")
+      log(options.onStartBuildUpdate)
       if (options.onStartBuildUpdate) options.onStartBuildUpdate();
       
       const newIdMap = {}
-      log("a")
       repeater.newlyCreated.forEach((created) => {
-        log("b")
         newIdMap[created.__buildId] = created;
+        log(created.__forwardTo)
         if (created.__forwardTo !== null) {
           // Push changes to established object.
           log("push changes...")
