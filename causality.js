@@ -380,7 +380,7 @@ function createInstance(configuration) {
       delete target[key];
       if(!( key in target )) { // Write protected?
         emitDeleteEvent(this, key, previousValue);
-        invalidateEnumerateObservers(this)
+        invalidateEnumerateObservers(this);
       }
       if( key in target ) return false; // Write protected?
       return true;
@@ -410,13 +410,7 @@ function createInstance(configuration) {
         overlayHandler, [overlayHandler.target, key]);
     }
 
-    if (inActiveRecording) {
-      if (typeof(this._enumerateObservers) === 'undefined') {
-        this._enumerateObservers = {};
-      }
-      recordDependency("_enumerateObservers",
-                                this._enumerateObservers);
-    }
+    if (inActiveRecording) recordDependencyOnEnumeration(this)
     return key in target;
   }
 
@@ -428,10 +422,7 @@ function createInstance(configuration) {
         overlayHandler, [overlayHandler.target, key]);
     }
 
-    if (typeof(this._enumerateObservers) !== 'undefined') {
-      invalidateObservers("_enumerateObservers",
-                            this._enumerateObservers);
-    }
+    invalidateEnumerateObservers(this);
     return Reflect.defineProperty(target, key, descriptor);
   }
 
@@ -443,13 +434,7 @@ function createInstance(configuration) {
         .apply(overlayHandler, [overlayHandler.target, key]);
     }
 
-    if (inActiveRecording) {
-      if (typeof(this._enumerateObservers) === 'undefined') {
-        this._enumerateObservers = {};
-      }
-      recordDependency("_enumerateObservers",
-                                this._enumerateObservers);
-    }
+    if (inActiveRecording) recordDependencyOnEnumeration(this)
     return Object.getOwnPropertyDescriptor(target, key);
   }
 
