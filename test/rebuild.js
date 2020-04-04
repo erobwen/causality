@@ -65,7 +65,7 @@ describe("Re Build", function(){
 
 
   it("Test rebuild", function(){
-    const source = create([3, 4, 3, 1, 3]);
+    const source = create([3, 4, 2, 1, 5]);
     let updateBuildEvents = [];
     let tree; 
 
@@ -81,7 +81,7 @@ describe("Re Build", function(){
     );
 
     console.log(tree)
-    source.push(5);
+    source.push(6);
     console.log(updateBuildEvents);
     console.log(tree)
 
