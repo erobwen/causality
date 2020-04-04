@@ -53,7 +53,7 @@ describe("Re Build", function(){
   function buildTree(source) {
     let result;
     source.forEach((value, index) => {
-      const node = new Node(value);
+      const node = create(new Node(value), "node_" + value);
       if (index === 0) {
         result = node; 
       } else {
@@ -65,7 +65,7 @@ describe("Re Build", function(){
 
 
   it("Test rebuild", function(){
-    const source = create([3, 4, 2, 1, 5]);
+    const source = create([3]);
     let updateBuildEvents = [];
     let tree; 
 
@@ -81,7 +81,7 @@ describe("Re Build", function(){
     );
 
     console.log(tree)
-    source.push(6);
+    source.push(3.5);
     console.log(updateBuildEvents);
     console.log(tree)
 

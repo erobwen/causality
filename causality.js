@@ -1,7 +1,7 @@
 'use strict'; 
 // require = require("esm")(module);
 const { argumentsToArray, configSignature, mergeInto } = require("./lib/utility.js");
-
+const log = console.log;
 
 function createInstance(configuration) {
 
@@ -136,7 +136,6 @@ function createInstance(configuration) {
    ***************************************************************/
 
   function getHandlerArray(target, key) {
-
     if (this.overrides.__forwardTo !== null && key !== "__forwardTo") {
       let forwardToHandler = this.overrides.__forwardTo.__handler;
       return forwardToHandler.get.apply(forwardToHandler, [forwardToHandler.target, key]);
@@ -153,7 +152,6 @@ function createInstance(configuration) {
   }
 
   function setHandlerArray(target, key, value) {
-
     if (this.overrides.__forwardTo !== null) {
       if (key === "__forwardTo") {
         this.overrides.__forwardTo = value;
@@ -205,7 +203,6 @@ function createInstance(configuration) {
   }
 
   function deletePropertyHandlerArray(target, key) {
-
     if (this.overrides.__forwardTo !== null) {
       let forwardToHandler = this.overrides.__forwardTo.__handler;
       return forwardToHandler.deleteProperty.apply(
@@ -226,7 +223,6 @@ function createInstance(configuration) {
   }
 
   function ownKeysHandlerArray(target) {
-
     if (this.overrides.__forwardTo !== null) {
       let forwardToHandler = this.overrides.__forwardTo.__handler;
       return forwardToHandler.ownKeys.apply(
@@ -240,7 +236,6 @@ function createInstance(configuration) {
   }
 
   function hasHandlerArray(target, key) {
-
     if (this.overrides.__forwardTo !== null) {
       let forwardToHandler = this.overrides.__forwardTo.__handler;
       return forwardToHandler.has.apply(forwardToHandler, [target, key]);
@@ -250,7 +245,6 @@ function createInstance(configuration) {
   }
 
   function definePropertyHandlerArray(target, key, oDesc) {
-
     if (this.overrides.__forwardTo !== null) {
       let forwardToHandler = this.overrides.__forwardTo.__handler;
       return forwardToHandler.defineProperty.apply(
@@ -262,7 +256,6 @@ function createInstance(configuration) {
   }
 
   function getOwnPropertyDescriptorHandlerArray(target, key) {
-
     if (this.overrides.__forwardTo !== null) {
       let forwardToHandler = this.overrides.__forwardTo.__handler;
       return forwardToHandler.getOwnPropertyDescriptor.apply(
@@ -282,21 +275,19 @@ function createInstance(configuration) {
 
 
   function getHandlerObject(target, key) {
+    if (onObjectAccess && !onObjectAccess(false, this, target)) { //false = no write. Used for ensureInitialized, registerActivity & canWrite 
+      return cannotAccessPropertyValue;
+    }
     key = key.toString();
     if (this.overrides.__forwardTo !== null && key !== "__forwardTo") {
       let forwardToHandler = this.overrides.__forwardTo.__handler;
-      let result = forwardToHandler.get.apply(
-        forwardToHandler, [forwardToHandler.target, key]);
+      let result = forwardToHandler.get.apply(forwardToHandler, [forwardToHandler.target, key]);
       return result;
     }
 
     if (typeof(this.overrides[key]) !== 'undefined') {
       return this.overrides[key];
-    } else {
-      if (onObjectAccess && !onObjectAccess(false, this, target)) { //false = no write. Used for ensureInitialized, registerActivity & canWrite 
-        return cannotAccessPropertyValue;
-      }
-    
+    } else {  
       if (typeof(key) !== 'undefined') {
         if (inActiveRecording) recordDependencyOnProperty(this, key);
 
@@ -315,7 +306,6 @@ function createInstance(configuration) {
   }
 
   function setHandlerObject(target, key, value) {
- 
     if (this.overrides.__forwardTo !== null) {
       if (key === "__forwardTo") {
         this.overrides.__forwardTo = value;
@@ -354,7 +344,6 @@ function createInstance(configuration) {
   }
 
   function deletePropertyHandlerObject(target, key) {
- 
     if (this.overrides.__forwardTo !== null) {
       let forwardToHandler = this.overrides.__forwardTo.__handler;
       forwardToHandler.deleteProperty.apply(
@@ -502,15 +491,14 @@ function createInstance(configuration) {
     if (inRepeater !== null) {
       if (buildId !== null) {
         if (!inRepeater.newlyCreated) inRepeater.newlyCreated = [];
-        if (typeof(inRepeater.buildIdObjectMap[buildId]) !== 'undefined') {
-          // Overlay previously created
-          let infusionTarget = inRepeater.buildIdObjectMap[buildId];
-          infusionTarget.__handler.overrides.__forwardTo = proxy;
-          inRepeater.newlyCreated.push(infusionTarget);
-          return infusionTarget;   // Borrow identity of infusion target.
-        } else {
-          // Newly created in this reCache cycle. Including overlaid ones.
-          inRepeater.newlyCreated.push(proxy);
+        inRepeater.newlyCreated.push(proxy);
+        
+        if (inRepeater.buildIdObjectMap && typeof(inRepeater.buildIdObjectMap[buildId]) !== 'undefined') {
+          // Object identity previously created
+          let establishedObject = inRepeater.buildIdObjectMap[buildId];
+          establishedObject.__forwardTo = proxy;
+          emitCreationEvent(handler);
+          return establishedObject;
         }
       }
     }
@@ -1233,23 +1221,44 @@ function createInstance(configuration) {
     }
 
     // Finish rebuilding
-    if (repeater.buildIdObjectMap) {
-      if (options.onStartBuildUpdate) options.onStartUpdateBuild();
-      repeater.newlyCreated.forEach(function(created) {
-        if (objectCallbacks && created.onBuildCreate) {
-          created.onBuildCreate();
-        }
+    log("finish rebuild")
+    // log(repeater.newlyCreated)
+    if (!!repeater.newlyCreated) {
+      log("x")
+      if (options.onStartBuildUpdate) options.onStartBuildUpdate();
+      
+      const newIdMap = {}
+      log("a")
+      repeater.newlyCreated.forEach((created) => {
+        log("b")
+        newIdMap[created.__buildId] = created;
         if (created.__forwardTo !== null) {
+          // Push changes to established object.
+          log("push changes...")
           let forwardTo = created.__forwardTo;
           created.__forwardTo = null;
           mergeInto(created, forwardTo);
         } else {
-          if (created.__buildId !== null) {
-            repeater.buildIdObjectMap[created.__buildId] = created;
-          }
+          // Send create on build message
+          log("create a new...")
+          if (typeof(created.onReBuildCreate) === "function") created.onReBuildCreate();
         }
       });
-      if (options.onEndBuildUpdate) options.onFinishUpdateBuild();
+      repeater.newlyCreated = [];
+
+      // Send on build remove messages
+      for (let id in repeater.buildIdObjectMap) {
+        if (typeof(newIdMap[id]) === "undefined") {
+          log("removing one... ")
+          const object = repeater.buildIdObjectMap[id];
+          if (typeof(object.onReBuildRemove) === "function") object.onReBuildRemove();
+        }
+      }
+
+      // Set new map
+      repeater.buildIdObjectMap = newIdMap;
+      
+      if (options.onEndBuildUpdate) options.onEndBuildUpdate();
     }
 
     leaveContext( activeContext );
