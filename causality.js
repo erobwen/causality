@@ -9,6 +9,8 @@ function createInstance(configuration) {
     objectCallbacks = true, // reserve onChange, onBuildCreate, onBuildRemove 
     notifyChange = false, // either set onChangeGlobal or define onChange on individual objects.
     onChangeGlobal = null,
+    onObjectAccess = null, 
+    cannotAccessPropertyValue = null,
     requireRepeaterName = false,
     requireInvalidatorName = false,
   } = configuration;  
@@ -38,9 +40,7 @@ function createInstance(configuration) {
       let result = this.target.pop();
 
       if (notifyChange) emitSpliceEvent(this, index, [result], null);
-      if (this._arrayObservers !== null) {
-        invalidateObservers("_arrayObservers", this._arrayObservers);
-      }
+      invalidateArrayObservers(this);
 
       return result;
     },
@@ -51,9 +51,7 @@ function createInstance(configuration) {
       this.target.push.apply(this.target, argumentsArray);
 
       if (notifyChange) emitSpliceEvent(this, index, null, argumentsArray);
-      if (this._arrayObservers !== null) {
-        invalidateObservers("_arrayObservers", this._arrayObservers);
-      }
+      invalidateArrayObservers(this);
 
       return this.target.length;
     },
@@ -62,9 +60,7 @@ function createInstance(configuration) {
       let result = this.target.shift();
       
       if (notifyChange) emitSpliceEvent(this, 0, [result], null);
-      if (this._arrayObservers !== null) {
-        invalidateObservers("_arrayObservers", this._arrayObservers);
-      }
+      invalidateArrayObservers(this);
 
       return result;
 
@@ -75,9 +71,7 @@ function createInstance(configuration) {
       this.target.unshift.apply(this.target, argumentsArray);
 
       if (notifyChange) emitSpliceEvent(this, 0, null, argumentsArray);
-      if (this._arrayObservers !== null) {
-        invalidateObservers("_arrayObservers", this._arrayObservers);
-      }
+      invalidateArrayObservers(this);
 
       return this.target.length;
     },
@@ -93,9 +87,7 @@ function createInstance(configuration) {
       let result = this.target.splice.apply(this.target, argumentsArray);
 
       if (notifyChange) emitSpliceEvent(this, index, removed, added);
-      if (this._arrayObservers !== null) {
-        invalidateObservers("_arrayObservers", this._arrayObservers);
-      }
+      invalidateArrayObservers(this);
 
       return result; // equivalent to removed
     },
@@ -116,9 +108,7 @@ function createInstance(configuration) {
       let result = this.target.copyWithin(target, start, end);
 
       if (notifyChange) emitSpliceEvent(this, target, added, removed);
-      if (this._arrayObservers !== null) {
-        invalidateObservers("_arrayObservers", this._arrayObservers);
-      }
+      invalidateArrayObservers(this);
 
       return result;
     }
@@ -131,10 +121,8 @@ function createInstance(configuration) {
       let result = this.target[functionName]
           .apply(this.target, argumentsArray);
 
-      if (notifyChange)emitSpliceEvent(this, 0, removed, this.target.slice(0));
-      if (this._arrayObservers !== null) {
-        invalidateObservers("_arrayObservers", this._arrayObservers);
-      }
+      if (notifyChange) emitSpliceEvent(this, 0, removed, this.target.slice(0));
+      invalidateArrayObservers(this);
 
       return result;
     };
@@ -293,9 +281,10 @@ function createInstance(configuration) {
    ***************************************************************/
 
 
-
-
   function getHandlerObject(target, key) {
+    if (onObjectAccess && !onObjectAccess(false, this, target)) { //false = no write. Used for ensureInitialized, registerActivity & canWrite 
+      return cannotAccessPropertyValue;
+    }
  
     key = key.toString();
     if (this.overrides.__overlay !== null && key !== "__overlay") {
