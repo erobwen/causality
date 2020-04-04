@@ -330,12 +330,10 @@ function createInstance(configuration) {
     if (this.overrides.__overlay !== null) {
       if (key === "__overlay") {
         this.overrides.__overlay = value;
-        // Setting a new overlay, should not be possible?
         return true;
       } else {
         let overlayHandler = this.overrides.__overlay.__handler;
-        return overlayHandler.set.apply(
-          overlayHandler, [overlayHandler.target, key, value]);
+        return overlayHandler.set.apply(overlayHandler, [overlayHandler.target, key, value]);
       }
     }
 
@@ -356,17 +354,8 @@ function createInstance(configuration) {
     if( resultValue === value || (Number.isNaN(resultValue) &&
                                   Number.isNaN(value)) ) {
       // Write protected?
-      if (typeof(this._propertyObservers) !== 'undefined' &&
-          typeof(this._propertyObservers[key]) !== 'undefined') {
-        invalidateObservers("_propertyObservers." + key,
-                              this._propertyObservers[key]);
-      }
-      if (undefinedKey) {
-        if (typeof(this._enumerateObservers) !== 'undefined') {
-          invalidateObservers("_enumerateObservers",
-                                this._enumerateObservers);
-        }
-      }
+      invalidatePropertyObservers(this, key);
+      if (undefinedKey) invalidateEnumerateObservers(this);
     }
 
     if( resultValue !== value  && !(Number.isNaN(resultValue) &&
@@ -829,6 +818,21 @@ function createInstance(configuration) {
     if (handler._arrayObservers !== null) {
       invalidateObservers("_arrayObservers",
                             handler._arrayObservers);
+    }
+  }
+
+  function invalidatePropertyObservers(handler, key) {
+    if (typeof(handler._propertyObservers) !== 'undefined' &&
+        typeof(handler._propertyObservers[key]) !== 'undefined') {
+      invalidateObservers("_propertyObservers." + key,
+                            handler._propertyObservers[key]);
+    }
+  }
+
+  function invalidateEnumerateObservers(handler) {
+    if (typeof(handler._enumerateObservers) !== 'undefined') {
+      invalidateObservers("_enumerateObservers",
+                            handler._enumerateObservers);
     }
   }
 
