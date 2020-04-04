@@ -149,11 +149,9 @@ function createInstance(configuration) {
 
   function getHandlerArray(target, key) {
 
-    if (this.overrides.__overlay !== null &&
-        (typeof(overlayBypass[key]) === 'undefined')) {
+    if (this.overrides.__overlay !== null && key !== "__overlay") {
       let overlayHandler = this.overrides.__overlay.__handler;
-      return overlayHandler.get.apply(overlayHandler,
-                                      [overlayHandler.target, key]);
+      return overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
     }
 
     if (staticArrayOverrides[key]) {
@@ -161,13 +159,7 @@ function createInstance(configuration) {
     } else if (typeof(this.overrides[key]) !== 'undefined') {
       return this.overrides[key];
     } else {
-      if (inActiveRecording) {
-        if (this._arrayObservers === null) {
-          this._arrayObservers = {};
-        }
-        recordDependency("_arrayObservers",
-                                  this._arrayObservers);//object
-      }
+      if (inActiveRecording) recordDependencyOnArray(this);
       return target[key];
     }
   }
@@ -180,8 +172,7 @@ function createInstance(configuration) {
         return true;
       } else {
         let overlayHandler = this.overrides.__overlay.__handler;
-        return overlayHandler.set.apply(
-          overlayHandler, [overlayHandler.target, key, value]);
+        return overlayHandler.set.apply(overlayHandler, [overlayHandler.target, key, value]);
       }
     }
 
@@ -206,10 +197,7 @@ function createInstance(configuration) {
         Number.isNaN(target[key]) && Number.isNaN(value)) ) {
         // Write protected?
         emitSpliceReplaceEvent(this, key, value, previousValue);
-        if (this._arrayObservers !== null) {
-          invalidateObservers("_arrayObservers",
-                                this._arrayObservers);
-        }
+        invalidateArrayObservers(this);
       }
     } else {
       // String index
@@ -218,10 +206,7 @@ function createInstance(configuration) {
                                     Number.isNaN(value)) ) {
         // Write protected?
         emitSetEvent(this, key, value, previousValue);
-        if (this._arrayObservers !== null) {
-          invalidateObservers("_arrayObservers",
-                                this._arrayObservers);
-        }
+        invalidateArrayObservers(this);
       }
     }
 
@@ -246,9 +231,7 @@ function createInstance(configuration) {
     delete target[key];
     if(!( key in target )) { // Write protected?
       emitDeleteEvent(this, key, previousValue);
-      if (this._arrayObservers !== null) {
-        invalidateObservers("_arrayObservers", this._arrayObservers);
-      }
+      invalidateArrayObservers(this);
     }
     if( key in target ) return false; // Write protected?
     return true;
@@ -262,12 +245,7 @@ function createInstance(configuration) {
         overlayHandler, [overlayHandler.target]);
     }
 
-    if (inActiveRecording) {
-      if (this._arrayObservers === null) {
-        this._arrayObservers = {};
-      }
-      recordDependency("_arrayObservers", this._arrayObservers);
-    }
+    if (inActiveRecording) recordDependencyOnArray(this);
     let result   = Object.keys(target);
     result.push('length');
     return result;
@@ -279,12 +257,7 @@ function createInstance(configuration) {
       let overlayHandler = this.overrides.__overlay.__handler;
       return overlayHandler.has.apply(overlayHandler, [target, key]);
     }
-    if (inActiveRecording) {
-      if (this._arrayObservers === null) {
-        this._arrayObservers = {};
-      }
-      recordDependency("_arrayObservers", this._arrayObservers);
-    }
+    if (inActiveRecording) recordDependencyOnArray(this);
     return key in target;
   }
 
@@ -296,9 +269,7 @@ function createInstance(configuration) {
         overlayHandler, [overlayHandler.target, key, oDesc]);
     }
 
-    if (this._arrayObservers !== null) {
-      invalidateObservers("_arrayObservers", this._arrayObservers);
-    }
+    invalidateArrayObservers(this);
     return target;
   }
 
@@ -310,12 +281,7 @@ function createInstance(configuration) {
         overlayHandler, [overlayHandler.target, key]);
     }
 
-    if (inActiveRecording) {
-      if (this._arrayObservers === null) {
-        this._arrayObservers = {};
-      }
-      recordDependency("_arrayObservers", this._arrayObservers);
-    }
+    if (inActiveRecording) recordDependencyOnArray(this);
     return Object.getOwnPropertyDescriptor(target, key);
   }
 
@@ -332,8 +298,7 @@ function createInstance(configuration) {
   function getHandlerObject(target, key) {
  
     key = key.toString();
-    if (this.overrides.__overlay !== null && key !== "__overlay" &&
-        (typeof(overlayBypass[key]) === 'undefined')) {
+    if (this.overrides.__overlay !== null && key !== "__overlay") {
       let overlayHandler = this.overrides.__overlay.__handler;
       let result = overlayHandler.get.apply(
         overlayHandler, [overlayHandler.target, key]);
@@ -852,7 +817,23 @@ function createInstance(configuration) {
    *
    **********************************/
 
-   function recordDependencyOnProperty(handler, key) {    
+  function recordDependencyOnArray(handler) {
+    if (handler._arrayObservers === null) {
+      handler._arrayObservers = {};
+    }
+    recordDependency("_arrayObservers",
+                              handler._arrayObservers);//object
+  }
+
+  function invalidateArrayObservers(handler) {  
+    if (handler._arrayObservers !== null) {
+      invalidateObservers("_arrayObservers",
+                            handler._arrayObservers);
+    }
+  }
+
+
+  function recordDependencyOnProperty(handler, key) {    
     if (typeof(handler._propertyObservers) ===  'undefined') {
       handler._propertyObservers = {};
     }
@@ -926,6 +907,18 @@ function createInstance(configuration) {
         activeRecorder.sources.push(observerSet);
       }
     }
+  }
+
+  function disposeAllObservers(invalidator) {
+    const invalidatorId = invalidator.id;
+    // trace.context && logGroup(`remove recording ${invalidator.id}`);
+    // Clear out previous observations
+    invalidator.sources.forEach(function(observerSet) {
+      disposeFromObserverSet(invalidatorId, observerSet);
+    
+    });
+    invalidator.sources.length = 0;  // From repeater itself.
+    // trace.context && logUngroup();
   }
 
   function disposeFromObserverSet(id, observerSet) {
@@ -1023,14 +1016,7 @@ function createInstance(configuration) {
       sources : [],
       invalidateAction: doAfterChange,
       dispose : function() {
-        // trace.context && logGroup(`remove recording ${this.id}`);
-        // Clear out previous observations
-        this.sources.forEach(function(observerSet) {
-          disposeFromObserverSet(this.id, observerSet);
-        
-        }.bind(this));
-        this.sources.length = 0;  // From repeater itself.
-        // trace.context && logUngroup();
+        disposeAllObservers(this);
       }
     });
 
@@ -1328,17 +1314,6 @@ function createInstance(configuration) {
       }
     }
   }
-
-
-  /************************************************************************
-   *
-   *  Merge into & forwarding/overlay
-   *
-   ************************************************************************/
-
-  let overlayBypass = {
-    '__overlay' : true
-  };
 
 
   /************************************************************************
