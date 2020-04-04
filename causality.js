@@ -326,6 +326,9 @@ function createInstance(configuration) {
    *
    ***************************************************************/
 
+
+
+
   function getHandlerObject(target, key) {
  
     key = key.toString();
@@ -341,16 +344,7 @@ function createInstance(configuration) {
       return this.overrides[key];
     } else {
       if (typeof(key) !== 'undefined') {
-        if (inActiveRecording) {
-          if (typeof(this._propertyObservers) ===  'undefined') {
-            this._propertyObservers = {};
-          }
-          if (typeof(this._propertyObservers[key]) ===  'undefined') {
-            this._propertyObservers[key] = {};
-          }
-          recordDependency("_propertyObservers." + key,
-                                    this._propertyObservers[key]);
-        }
+        if (inActiveRecording) recordDependencyOnProperty(this, key);
 
         let scan = target;
         while ( scan !== null && typeof(scan) !== 'undefined' ) {
@@ -853,132 +847,21 @@ function createInstance(configuration) {
 
 
   /**********************************
+   *
    *  Dependency recording
    *
-   *  invalidateOnChange.
    **********************************/
 
-  let recorderId = 0;
-
-  function invalidateOnChange() {
-    // description(optional), doFirst, doAfterChange. doAfterChange
-    // cannot modify model, if needed, use a repeater instead.
-    // (for guaranteed consistency)
-
-    // Arguments
-    let doFirst;
-    let doAfterChange;
-    let description = null;
-    if (arguments.length > 2) {
-      description   = arguments[0];
-      doFirst       = arguments[1];
-      doAfterChange = arguments[2];
-    } else {
-      if (requireInvalidatorName) throw new Error("Missing description for 'invalidateOnChange'")
-      doFirst       = arguments[0];
-      doAfterChange = arguments[1];
+   function recordDependencyOnProperty(handler, key) {    
+    if (typeof(handler._propertyObservers) ===  'undefined') {
+      handler._propertyObservers = {};
     }
-
-    // Recorder context
-    const enteredContext = enterContext('recording', {
-      independent : false,
-      nextToNotify: null,
-      id: recorderId++,
-      description: description,
-      sources : [],
-      invalidateAction: doAfterChange,
-      dispose : function() {
-        // trace.context && logGroup(`remove recording ${this.id}`);
-        // Clear out previous observations
-        this.sources.forEach(function(observerSet) {
-          // From observed object
-          // let observerSetContents = getMap(
-          // observerSet, 'contents');
-          // if (typeof(observerSet['contents'])) {
-          ////! Should not be needed
-          //     observerSet['contents'] = {};
-          // }
-
-          let observerSetContents = observerSet['contents'];
-          delete observerSetContents[this.id];
-          let noMoreObservers = false;
-          observerSet.contentsCounter--;
-          // trace.context && log(
-          //     "observerSet.contentsCounter: " +
-          //         observerSet.contentsCounter);
-          if (observerSet.contentsCounter == 0) {
-            if (observerSet.isRoot) {
-              if (observerSet.first === null &&
-                  observerSet.last === null) {
-                noMoreObservers = true;
-              }
-            } else {
-              if (observerSet.parent.first === observerSet) {
-                observerSet.parent.first === observerSet.next;
-              }
-
-              if (observerSet.parent.last === observerSet) {
-                observerSet.parent.last
-                  === observerSet.previous;
-              }
-
-              if (observerSet.next !== null) {
-                observerSet.next.previous =
-                  observerSet.previous;
-              }
-
-              if (observerSet.previous !== null) {
-                observerSet.previous.next = observerSet.next;
-              }
-
-              observerSet.previous = null;
-              observerSet.next = null;
-
-              if (observerSet.parent.first === null &&
-                  observerSet.parent.last === null) {
-                noMoreObservers = true;
-              }
-            }
-
-            if (noMoreObservers &&
-                typeof(observerSet.noMoreObserversCallback)
-                !== 'undefined') {
-              observerSet.noMoreObserversCallback();
-            }
-          }
-        }.bind(this));
-        this.sources.length = 0;  // From repeater itself.
-        // trace.context && logUngroup();
-      }
-    });
-
-    // Method for continue async in same context
-    enteredContext.record = function( action ){
-      if( context == enteredContext || enteredContext.isRemoved )
-        return action();
-      //console.log('enteredContext.record');//DEBUG
-      const activeContext = enterContext(enteredContext.type, enteredContext);
-      const value = action();
-      leaveContext( activeContext );
-      return value;
+    if (typeof(handler._propertyObservers[key]) ===  'undefined') {
+      handler._propertyObservers[key] = {};
     }
-
-    //console.log("doFirst in context " + enteredContext.type, enteredContext.id||'');//DEBUG
-    enteredContext.returnValue = doFirst( enteredContext );
-    //if( context ) console.log("after doFirst context " + enteredContext.type, enteredContext.id||'');//DEBUG
-    leaveContext( enteredContext );
-
-    return enteredContext;
+    recordDependency("_propertyObservers." + key,
+                              handler._propertyObservers[key]);
   }
-
-  function withoutRecording(action) {
-    state.recordingPaused++;
-    updateContextState();
-    action();
-    state.recordingPaused--;
-    updateContextState();
-  }
-
 
   let sourcesObserverSetChunkSize = 500;
   function recordDependency(description, observerSet) {
@@ -1044,6 +927,140 @@ function createInstance(configuration) {
       }
     }
   }
+
+  function disposeFromObserverSet(id, observerSet) {
+    let observerSetContents = observerSet['contents'];
+    delete observerSetContents[id];
+    let noMoreObservers = false;
+    observerSet.contentsCounter--;
+    // trace.context && log(
+    //     "observerSet.contentsCounter: " +
+    //         observerSet.contentsCounter);
+    if (observerSet.contentsCounter == 0) {
+      if (observerSet.isRoot) {
+        if (observerSet.first === null &&
+            observerSet.last === null) {
+          noMoreObservers = true;
+        }
+      } else {
+        if (observerSet.parent.first === observerSet) {
+          observerSet.parent.first === observerSet.next;
+        }
+
+        if (observerSet.parent.last === observerSet) {
+          observerSet.parent.last
+            === observerSet.previous;
+        }
+
+        if (observerSet.next !== null) {
+          observerSet.next.previous =
+            observerSet.previous;
+        }
+
+        if (observerSet.previous !== null) {
+          observerSet.previous.next = observerSet.next;
+        }
+
+        observerSet.previous = null;
+        observerSet.next = null;
+
+        if (observerSet.parent.first === null &&
+            observerSet.parent.last === null) {
+          noMoreObservers = true;
+        }
+      }
+
+      if (noMoreObservers &&
+          typeof(observerSet.noMoreObserversCallback)
+          !== 'undefined') {
+        observerSet.noMoreObserversCallback();
+      }
+    }
+
+  }
+
+    // From observed object
+  // let observerSetContents = getMap(
+  // observerSet, 'contents');
+  // if (typeof(observerSet['contents'])) {
+  ////! Should not be needed
+  //     observerSet['contents'] = {};
+  // }
+
+  /**********************************
+   *
+   *  invalidateOnChange.
+   *
+   **********************************/
+
+  let recorderId = 0;
+
+  function invalidateOnChange() {
+    // description(optional), doFirst, doAfterChange. doAfterChange
+    // cannot modify model, if needed, use a repeater instead.
+    // (for guaranteed consistency)
+
+    // Arguments
+    let doFirst;
+    let doAfterChange;
+    let description = null;
+    if (arguments.length > 2) {
+      description   = arguments[0];
+      doFirst       = arguments[1];
+      doAfterChange = arguments[2];
+    } else {
+      if (requireInvalidatorName) throw new Error("Missing description for 'invalidateOnChange'")
+      doFirst       = arguments[0];
+      doAfterChange = arguments[1];
+    }
+
+    // Recorder context
+    const enteredContext = enterContext('recording', {
+      independent : false,
+      nextToNotify: null,
+      id: recorderId++,
+      description: description,
+      sources : [],
+      invalidateAction: doAfterChange,
+      dispose : function() {
+        // trace.context && logGroup(`remove recording ${this.id}`);
+        // Clear out previous observations
+        this.sources.forEach(function(observerSet) {
+          disposeFromObserverSet(this.id, observerSet);
+        
+        }.bind(this));
+        this.sources.length = 0;  // From repeater itself.
+        // trace.context && logUngroup();
+      }
+    });
+
+    // Method for continue async in same context
+    enteredContext.record = function( action ){
+      if( context == enteredContext || enteredContext.isRemoved )
+        return action();
+      //console.log('enteredContext.record');//DEBUG
+      const activeContext = enterContext(enteredContext.type, enteredContext);
+      const value = action();
+      leaveContext( activeContext );
+      return value;
+    }
+
+    //console.log("doFirst in context " + enteredContext.type, enteredContext.id||'');//DEBUG
+    enteredContext.returnValue = doFirst( enteredContext );
+    //if( context ) console.log("after doFirst context " + enteredContext.type, enteredContext.id||'');//DEBUG
+    leaveContext( enteredContext );
+
+    return enteredContext;
+  }
+
+  function withoutRecording(action) {
+    state.recordingPaused++;
+    updateContextState();
+    action();
+    state.recordingPaused--;
+    updateContextState();
+  }
+
 
 
   /** -------------
