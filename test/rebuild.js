@@ -76,7 +76,7 @@ describe("Re Build", function(){
       null, 
       { 
         onStartBuildUpdate: () => { events.length = 0 },
-        onEndBuildUpdate: () => { updateBuildEvents = events.slice(); events.length = 0; }
+        onEndBuildUpdate: () => { console.log("inside"); updateBuildEvents = events.slice(); events.length = 0; }
       }
     );
 
