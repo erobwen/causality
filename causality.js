@@ -380,10 +380,7 @@ function createInstance(configuration) {
       delete target[key];
       if(!( key in target )) { // Write protected?
         emitDeleteEvent(this, key, previousValue);
-        if (typeof(this._enumerateObservers) !== 'undefined') {
-          invalidateObservers("_enumerateObservers",
-                                this._enumerateObservers);
-        }
+        invalidateEnumerateObservers(this)
       }
       if( key in target ) return false; // Write protected?
       return true;
@@ -398,13 +395,8 @@ function createInstance(configuration) {
         overlayHandler, [overlayHandler.target, key]);
     }
 
-    if (inActiveRecording) {
-      if (typeof(this._enumerateObservers) === 'undefined') {
-        this._enumerateObservers = {};
-      }
-      recordDependency("_enumerateObservers",
-                                this._enumerateObservers);
-    }
+    if (inActiveRecording) recordDependencyOnEnumeration(this);
+
     let keys = Object.keys(target);
     // keys.push('__id');
     return keys;
@@ -810,32 +802,15 @@ function createInstance(configuration) {
     if (handler._arrayObservers === null) {
       handler._arrayObservers = {};
     }
-    recordDependency("_arrayObservers",
-                              handler._arrayObservers);//object
+    recordDependency("_arrayObservers", handler._arrayObservers);//object
   }
 
-  function invalidateArrayObservers(handler) {  
-    if (handler._arrayObservers !== null) {
-      invalidateObservers("_arrayObservers",
-                            handler._arrayObservers);
+  function recordDependencyOnEnumeration(handler) {
+    if (typeof(handler._enumerateObservers) === 'undefined') {
+      handler._enumerateObservers = {};
     }
+    recordDependency("_enumerateObservers", handler._enumerateObservers);
   }
-
-  function invalidatePropertyObservers(handler, key) {
-    if (typeof(handler._propertyObservers) !== 'undefined' &&
-        typeof(handler._propertyObservers[key]) !== 'undefined') {
-      invalidateObservers("_propertyObservers." + key,
-                            handler._propertyObservers[key]);
-    }
-  }
-
-  function invalidateEnumerateObservers(handler) {
-    if (typeof(handler._enumerateObservers) !== 'undefined') {
-      invalidateObservers("_enumerateObservers",
-                            handler._enumerateObservers);
-    }
-  }
-
 
   function recordDependencyOnProperty(handler, key) {    
     if (typeof(handler._propertyObservers) ===  'undefined') {
@@ -844,8 +819,7 @@ function createInstance(configuration) {
     if (typeof(handler._propertyObservers[key]) ===  'undefined') {
       handler._propertyObservers[key] = {};
     }
-    recordDependency("_propertyObservers." + key,
-                              handler._propertyObservers[key]);
+    recordDependency("_propertyObservers." + key, handler._propertyObservers[key]);
   }
 
   let sourcesObserverSetChunkSize = 500;
@@ -910,6 +884,28 @@ function createInstance(configuration) {
         // Note dependency in repeater itself (for cleaning up)
         activeRecorder.sources.push(observerSet);
       }
+    }
+  }
+
+  function invalidateArrayObservers(handler) {  
+    if (handler._arrayObservers !== null) {
+      invalidateObservers("_arrayObservers",
+                            handler._arrayObservers);
+    }
+  }
+
+  function invalidatePropertyObservers(handler, key) {
+    if (typeof(handler._propertyObservers) !== 'undefined' &&
+        typeof(handler._propertyObservers[key]) !== 'undefined') {
+      invalidateObservers("_propertyObservers." + key,
+                            handler._propertyObservers[key]);
+    }
+  }
+
+  function invalidateEnumerateObservers(handler) {
+    if (typeof(handler._enumerateObservers) !== 'undefined') {
+      invalidateObservers("_enumerateObservers",
+                            handler._enumerateObservers);
     }
   }
 
