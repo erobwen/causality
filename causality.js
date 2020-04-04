@@ -138,8 +138,8 @@ function createInstance(configuration) {
   function getHandlerArray(target, key) {
 
     if (this.overrides.__forwardTo !== null && key !== "__forwardTo") {
-      let overlayHandler = this.overrides.__forwardTo.__handler;
-      return overlayHandler.get.apply(overlayHandler, [overlayHandler.target, key]);
+      let forwardToHandler = this.overrides.__forwardTo.__handler;
+      return forwardToHandler.get.apply(forwardToHandler, [forwardToHandler.target, key]);
     }
 
     if (staticArrayOverrides[key]) {
@@ -159,8 +159,8 @@ function createInstance(configuration) {
         this.overrides.__forwardTo = value;
         return true;
       } else {
-        let overlayHandler = this.overrides.__forwardTo.__handler;
-        return overlayHandler.set.apply(overlayHandler, [overlayHandler.target, key, value]);
+        let forwardToHandler = this.overrides.__forwardTo.__handler;
+        return forwardToHandler.set.apply(forwardToHandler, [forwardToHandler.target, key, value]);
       }
     }
 
@@ -207,9 +207,9 @@ function createInstance(configuration) {
   function deletePropertyHandlerArray(target, key) {
 
     if (this.overrides.__forwardTo !== null) {
-      let overlayHandler = this.overrides.__forwardTo.__handler;
-      return overlayHandler.deleteProperty.apply(
-        overlayHandler, [overlayHandler.target, key]);
+      let forwardToHandler = this.overrides.__forwardTo.__handler;
+      return forwardToHandler.deleteProperty.apply(
+        forwardToHandler, [forwardToHandler.target, key]);
     }
     if (!(key in target)) {
       return true;
@@ -228,9 +228,9 @@ function createInstance(configuration) {
   function ownKeysHandlerArray(target) {
 
     if (this.overrides.__forwardTo !== null) {
-      let overlayHandler = this.overrides.__forwardTo.__handler;
-      return overlayHandler.ownKeys.apply(
-        overlayHandler, [overlayHandler.target]);
+      let forwardToHandler = this.overrides.__forwardTo.__handler;
+      return forwardToHandler.ownKeys.apply(
+        forwardToHandler, [forwardToHandler.target]);
     }
 
     if (inActiveRecording) recordDependencyOnArray(this);
@@ -242,8 +242,8 @@ function createInstance(configuration) {
   function hasHandlerArray(target, key) {
 
     if (this.overrides.__forwardTo !== null) {
-      let overlayHandler = this.overrides.__forwardTo.__handler;
-      return overlayHandler.has.apply(overlayHandler, [target, key]);
+      let forwardToHandler = this.overrides.__forwardTo.__handler;
+      return forwardToHandler.has.apply(forwardToHandler, [target, key]);
     }
     if (inActiveRecording) recordDependencyOnArray(this);
     return key in target;
@@ -252,9 +252,9 @@ function createInstance(configuration) {
   function definePropertyHandlerArray(target, key, oDesc) {
 
     if (this.overrides.__forwardTo !== null) {
-      let overlayHandler = this.overrides.__forwardTo.__handler;
-      return overlayHandler.defineProperty.apply(
-        overlayHandler, [overlayHandler.target, key, oDesc]);
+      let forwardToHandler = this.overrides.__forwardTo.__handler;
+      return forwardToHandler.defineProperty.apply(
+        forwardToHandler, [forwardToHandler.target, key, oDesc]);
     }
 
     invalidateArrayObservers(this);
@@ -264,9 +264,9 @@ function createInstance(configuration) {
   function getOwnPropertyDescriptorHandlerArray(target, key) {
 
     if (this.overrides.__forwardTo !== null) {
-      let overlayHandler = this.overrides.__forwardTo.__handler;
-      return overlayHandler.getOwnPropertyDescriptor.apply(
-        overlayHandler, [overlayHandler.target, key]);
+      let forwardToHandler = this.overrides.__forwardTo.__handler;
+      return forwardToHandler.getOwnPropertyDescriptor.apply(
+        forwardToHandler, [forwardToHandler.target, key]);
     }
 
     if (inActiveRecording) recordDependencyOnArray(this);
@@ -284,9 +284,9 @@ function createInstance(configuration) {
   function getHandlerObject(target, key) {
     key = key.toString();
     if (this.overrides.__forwardTo !== null && key !== "__forwardTo") {
-      let overlayHandler = this.overrides.__forwardTo.__handler;
-      let result = overlayHandler.get.apply(
-        overlayHandler, [overlayHandler.target, key]);
+      let forwardToHandler = this.overrides.__forwardTo.__handler;
+      let result = forwardToHandler.get.apply(
+        forwardToHandler, [forwardToHandler.target, key]);
       return result;
     }
 
@@ -321,8 +321,8 @@ function createInstance(configuration) {
         this.overrides.__forwardTo = value;
         return true;
       } else {
-        let overlayHandler = this.overrides.__forwardTo.__handler;
-        return overlayHandler.set.apply(overlayHandler, [overlayHandler.target, key, value]);
+        let forwardToHandler = this.overrides.__forwardTo.__handler;
+        return forwardToHandler.set.apply(forwardToHandler, [forwardToHandler.target, key, value]);
       }
     }
 
@@ -356,9 +356,9 @@ function createInstance(configuration) {
   function deletePropertyHandlerObject(target, key) {
  
     if (this.overrides.__forwardTo !== null) {
-      let overlayHandler = this.overrides.__forwardTo.__handler;
-      overlayHandler.deleteProperty.apply(
-        overlayHandler, [overlayHandler.target, key]);
+      let forwardToHandler = this.overrides.__forwardTo.__handler;
+      forwardToHandler.deleteProperty.apply(
+        forwardToHandler, [forwardToHandler.target, key]);
       return true;
     }
 
@@ -379,9 +379,9 @@ function createInstance(configuration) {
   function ownKeysHandlerObject(target, key) { // Not inherited?
  
     if (this.overrides.__forwardTo !== null) {
-      let overlayHandler = this.overrides.__forwardTo.__handler;
-      return overlayHandler.ownKeys.apply(
-        overlayHandler, [overlayHandler.target, key]);
+      let forwardToHandler = this.overrides.__forwardTo.__handler;
+      return forwardToHandler.ownKeys.apply(
+        forwardToHandler, [forwardToHandler.target, key]);
     }
 
     if (inActiveRecording) recordDependencyOnEnumeration(this);
@@ -394,9 +394,9 @@ function createInstance(configuration) {
   function hasHandlerObject(target, key) {
  
     if (this.overrides.__forwardTo !== null) {
-      let overlayHandler = this.overrides.__forwardTo.__handler;
-      return overlayHandler.has.apply(
-        overlayHandler, [overlayHandler.target, key]);
+      let forwardToHandler = this.overrides.__forwardTo.__handler;
+      return forwardToHandler.has.apply(
+        forwardToHandler, [forwardToHandler.target, key]);
     }
 
     if (inActiveRecording) recordDependencyOnEnumeration(this)
@@ -406,9 +406,9 @@ function createInstance(configuration) {
   function definePropertyHandlerObject(target, key, descriptor) {
  
     if (this.overrides.__forwardTo !== null) {
-      let overlayHandler = this.overrides.__forwardTo.__handler;
-      return overlayHandler.defineProperty.apply(
-        overlayHandler, [overlayHandler.target, key]);
+      let forwardToHandler = this.overrides.__forwardTo.__handler;
+      return forwardToHandler.defineProperty.apply(
+        forwardToHandler, [forwardToHandler.target, key]);
     }
 
     invalidateEnumerateObservers(this);
@@ -418,9 +418,9 @@ function createInstance(configuration) {
   function getOwnPropertyDescriptorHandlerObject(target, key) {
  
     if (this.overrides.__forwardTo !== null) {
-      let overlayHandler = this.overrides.__forwardTo.__handler;
-      return overlayHandler.getOwnPropertyDescriptor
-        .apply(overlayHandler, [overlayHandler.target, key]);
+      let forwardToHandler = this.overrides.__forwardTo.__handler;
+      return forwardToHandler.getOwnPropertyDescriptor
+        .apply(forwardToHandler, [forwardToHandler.target, key]);
     }
 
     if (inActiveRecording) recordDependencyOnEnumeration(this)
@@ -1240,9 +1240,9 @@ function createInstance(configuration) {
           created.onBuildCreate();
         }
         if (created.__forwardTo !== null) {
-          let overlay = created.__forwardTo;
+          let forwardTo = created.__forwardTo;
           created.__forwardTo = null;
-          mergeInto(created, overlay);
+          mergeInto(created, forwardTo);
         } else {
           if (created.__buildId !== null) {
             repeater.buildIdObjectMap[created.__buildId] = created;

@@ -6,8 +6,8 @@ const assert = require('assert');
 describe("Proxy object traps", function () {
   const box = create();
 
-  it('overlay',  function () {
-    box.__handler.overrides.__forwardTo = create({ name: "overlay"});
+  it('forwardTo',  function () {
+    box.__handler.overrides.__forwardTo = create({ name: "forwardTo"});
     box.other = null;
     box.__forwardTo = null;
   });
@@ -37,7 +37,7 @@ describe("Proxy object traps", function () {
 describe("Array object traps", function () {
   const stack = create([]);
 
-  it('overlay',  function () {
+  it('forwardTo',  function () {
     stack.__handler.overrides.__forwardTo = create(['aa','bb']);
     stack[2] = false;
     stack.__forwardTo = null;
