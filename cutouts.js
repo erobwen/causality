@@ -83,5 +83,5 @@
   }
 
     // if (writeRestriction !== null) {
-    //   writeRestriction[proxy.causality.__id] = true;
+    //   writeRestriction[proxy.causality.id] = true;
     // }

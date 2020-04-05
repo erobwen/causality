@@ -53,17 +53,17 @@ describe("Re Build", function(){
     }
 
     onReBuildCreate() {
-      log("onReBuildCreate")
+      // log("onReBuildCreate")
     }
 
     onReBuildRemove() {
-      log("onReBuildRemove")
+      // log("onReBuildRemove")
     }
     
     onChange(event) {
       if (collecting) {      
-        log("onChange")
-        log(event)
+        // log("onChange")
+        // log(event)
       }
     }
   }
@@ -98,16 +98,16 @@ describe("Re Build", function(){
       }
     );
 
-    logg();
-    console.log(tree)
-    logg();
+    // logg();
+    // console.log(tree)
+    // logg();
     source.push(3.5);
-    console.log(tree)
-    console.log(updateBuildEvents);
-    logg();
+    // console.log(tree)
+    // console.log(updateBuildEvents);
+    // logg();
     source.shift();
-    console.log(tree)
-    console.log(updateBuildEvents);
-    logg();
+    // console.log(tree)
+    // console.log(updateBuildEvents);
+    // logg();
   });
 });

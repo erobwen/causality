@@ -15,12 +15,12 @@ describe("Overlays", function(){
     // Create forwardTo
     // console.log(" Create forwardTo ===========================")
     let xOverlay = causality.create({ name: "forwardTo"});
-    x.__handler.causality.__forwardTo = xOverlay;
-    // console.log(x.__handler);
-    // console.log(x.__handler.causality);
+    x.causality.forwardTo = xOverlay;
+    // console.log(x.causality.handler);
+    // console.log(x.causality.handler.causality);
     // console.log(x);
-    // console.log(x.__forwardTo);
-    // console.log(x.__handler);
+    // console.log(x.causality.forwardTo);
+    // console.log(x.causality.handler);
     // console.log(x.foo);
     assert.equal(typeof(x.foo), 'undefined');
 
@@ -32,7 +32,7 @@ describe("Overlays", function(){
     assert.equal(x.fie, 32);
 
     // Remove forwardTo
-    x.__forwardTo = null;
+    x.causality.forwardTo = null;
     assert.equal(x.foo, 1);
     assert.equal(typeof(x.fie), 'undefined');
   });

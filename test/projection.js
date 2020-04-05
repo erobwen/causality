@@ -60,8 +60,8 @@ describe("Projections", function(){
     }
 
     flattenArrayPreOrder() {
-      let result = create([], this.causality.__id + "_array");
-      result.push(create({value: this.value}, this.causality.__id + "_node"));
+      let result = create([], this.causality.id + "_array");
+      result.push(create({value: this.value}, this.causality.id + "_node"));
 
       this.children.forEach(function(child) {
         let childList = child.flattenArrayPreOrder();
@@ -72,9 +72,9 @@ describe("Projections", function(){
     }
 
     flattenArrayPreOrderRecursive() {
-      // console.log("flattenArrayPreOrderRecursive " + this.causality.__id + "_array");
-      let result = create([], this.causality.__id + "_array");
-      result.push(create({value: this.value}, this.causality.__id + "_node"));
+      // console.log("flattenArrayPreOrderRecursive " + this.causality.id + "_array");
+      let result = create([], this.causality.id + "_array");
+      result.push(create({value: this.value}, this.causality.id + "_node"));
 
       this.children.forEach(function(child) {
         let childList = child.reCached('flattenArrayPreOrderRecursive');
@@ -85,7 +85,7 @@ describe("Projections", function(){
     }
 
     flattenLinkedPreOrder() {
-      let firstNode = createListNode(this.value, this.causality.__id + "_list");
+      let firstNode = createListNode(this.value, this.causality.id + "_list");
       let node = firstNode;
 
       this.children.forEach(function(child) {
@@ -100,9 +100,9 @@ describe("Projections", function(){
     }
 
     flattenLinkedPreOrderRecursive() {
-      // console.log("flattenLinkedPreOrderRecursive " + this.causality.__id + "_head");
-      let listHead = createListHead(this.causality.__id + "_head");
-      let firstNode = createTransparentListNode(this.value, this.causality.__id + "_node");
+      // console.log("flattenLinkedPreOrderRecursive " + this.causality.id + "_head");
+      let listHead = createListHead(this.causality.id + "_head");
+      let firstNode = createTransparentListNode(this.value, this.causality.id + "_node");
 
       listHead.first = firstNode;
       // firstNode.previous = null;
@@ -112,7 +112,7 @@ describe("Projections", function(){
       this.children.forEach(function(child) {
         // child.reCachedInCache('flattenLinkedPreOrder');
         let childList = child.reCached('flattenLinkedPreOrderRecursive');
-        // console.log("linking next and previous together" + node.causality.__id +  " -> " + childList.first.causality.__id);
+        // console.log("linking next and previous together" + node.causality.id +  " -> " + childList.first.causality.id);
         node.next = childList.first;
         childList.first.previous = node;
         node = childList.last;
@@ -192,16 +192,16 @@ describe("Projections", function(){
   //   assert.equal(detectedEvents[0].type, 'set');
   //   assert.equal(detectedEvents[0].property, 'next');
   //   assert.equal(detectedEvents[0].newValue.value, 4.5);
-  //   assert.equal(detectedEvents[0].newValue.__buildId, '23_list');
+  //   assert.equal(detectedEvents[0].newValue.causality.buildId, '23_list');
   //   assert.equal(detectedEvents[0].oldValue.value, 5);
-  //   assert.equal(detectedEvents[0].oldValue.__buildId, '12_list');
+  //   assert.equal(detectedEvents[0].oldValue.causality.buildId, '12_list');
   //   assert.equal(detectedEvents[0].objectId, 18);
   //   assert.equal(detectedEvents[1].type, 'set');
   //   assert.equal(detectedEvents[1].property, 'previous');
   //   assert.equal(detectedEvents[1].newValue.value, 4.5);
-  //   assert.equal(detectedEvents[1].newValue.__buildId, '23_list');
+  //   assert.equal(detectedEvents[1].newValue.causality.buildId, '23_list');
   //   assert.equal(detectedEvents[1].oldValue.value, 4);
-  //   assert.equal(detectedEvents[1].oldValue.__buildId, '4_list');
+  //   assert.equal(detectedEvents[1].oldValue.causality.buildId, '4_list');
   //   assert.equal(detectedEvents[1].objectId, 19);
 
   //   // Assert updated
@@ -345,16 +345,16 @@ describe("Projections", function(){
   //     assert.equal(detectedEvents[0].type, 'set');
   //     assert.equal(detectedEvents[0].property, 'next');
   //     assert.equal(detectedEvents[0].newValue.value, 4.5);
-  //     assert.equal(detectedEvents[0].newValue.__buildId, '30_node');
+  //     assert.equal(detectedEvents[0].newValue.causality.buildId, '30_node');
   //     assert.equal(detectedEvents[0].oldValue.value, 5);
-  //     assert.equal(detectedEvents[0].oldValue.__buildId, '12_node');
+  //     assert.equal(detectedEvents[0].oldValue.causality.buildId, '12_node');
   //     assert.equal(detectedEvents[0].objectId, 22);
   //     assert.equal(detectedEvents[1].type, 'set');
   //     assert.equal(detectedEvents[1].property, 'previous');
   //     assert.equal(detectedEvents[1].newValue.value, 4.5);
-  //     assert.equal(detectedEvents[1].newValue.__buildId, '30_node');
+  //     assert.equal(detectedEvents[1].newValue.causality.buildId, '30_node');
   //     assert.equal(detectedEvents[1].oldValue.value, 4);
-  //     assert.equal(detectedEvents[1].oldValue.__buildId, '4_node');
+  //     assert.equal(detectedEvents[1].oldValue.causality.buildId, '4_node');
   //     assert.equal(detectedEvents[1].objectId, 24);
 
   //     // Assert updated

@@ -140,8 +140,8 @@ function createInstance(configuration) {
    ***************************************************************/
 
   function getHandlerArray(target, key) {
-    if (this.causality.__forwardTo !== null && key !== "__forwardTo") {
-      let forwardToHandler = this.causality.__forwardTo.__handler;
+    if (this.causality.forwardTo !== null && key !== "causality.forwardTo") {
+      let forwardToHandler = this.causality.forwardTo.causality.handler;
       return forwardToHandler.get.apply(forwardToHandler, [forwardToHandler.target, key]);
     }
 
@@ -158,12 +158,12 @@ function createInstance(configuration) {
   }
 
   function setHandlerArray(target, key, value) {
-    if (this.causality.__forwardTo !== null) {
-      if (key === "__forwardTo") {
-        this.causality.__forwardTo = value;
+    if (this.causality.forwardTo !== null) {
+      if (key === "causality.forwardTo") {
+        this.causality.forwardTo = value;
         return true;
       } else {
-        let forwardToHandler = this.causality.__forwardTo.__handler;
+        let forwardToHandler = this.causality.forwardTo.causality.handler;
         return forwardToHandler.set.apply(forwardToHandler, [forwardToHandler.target, key, value]);
       }
     }
@@ -209,8 +209,8 @@ function createInstance(configuration) {
   }
 
   function deletePropertyHandlerArray(target, key) {
-    if (this.causality.__forwardTo !== null) {
-      let forwardToHandler = this.causality.__forwardTo.__handler;
+    if (this.causality.forwardTo !== null) {
+      let forwardToHandler = this.causality.forwardTo.causality.handler;
       return forwardToHandler.deleteProperty.apply(
         forwardToHandler, [forwardToHandler.target, key]);
     }
@@ -229,8 +229,8 @@ function createInstance(configuration) {
   }
 
   function ownKeysHandlerArray(target) {
-    if (this.causality.__forwardTo !== null) {
-      let forwardToHandler = this.causality.__forwardTo.__handler;
+    if (this.causality.forwardTo !== null) {
+      let forwardToHandler = this.causality.forwardTo.causality.handler;
       return forwardToHandler.ownKeys.apply(
         forwardToHandler, [forwardToHandler.target]);
     }
@@ -242,8 +242,8 @@ function createInstance(configuration) {
   }
 
   function hasHandlerArray(target, key) {
-    if (this.causality.__forwardTo !== null) {
-      let forwardToHandler = this.causality.__forwardTo.__handler;
+    if (this.causality.forwardTo !== null) {
+      let forwardToHandler = this.causality.forwardTo.causality.handler;
       return forwardToHandler.has.apply(forwardToHandler, [target, key]);
     }
     if (inActiveRecording) recordDependencyOnArray(this);
@@ -251,8 +251,8 @@ function createInstance(configuration) {
   }
 
   function definePropertyHandlerArray(target, key, oDesc) {
-    if (this.causality.__forwardTo !== null) {
-      let forwardToHandler = this.causality.__forwardTo.__handler;
+    if (this.causality.forwardTo !== null) {
+      let forwardToHandler = this.causality.forwardTo.causality.handler;
       return forwardToHandler.defineProperty.apply(
         forwardToHandler, [forwardToHandler.target, key, oDesc]);
     }
@@ -262,8 +262,8 @@ function createInstance(configuration) {
   }
 
   function getOwnPropertyDescriptorHandlerArray(target, key) {
-    if (this.causality.__forwardTo !== null) {
-      let forwardToHandler = this.causality.__forwardTo.__handler;
+    if (this.causality.forwardTo !== null) {
+      let forwardToHandler = this.causality.forwardTo.causality.handler;
       return forwardToHandler.getOwnPropertyDescriptor.apply(
         forwardToHandler, [forwardToHandler.target, key]);
     }
@@ -286,8 +286,8 @@ function createInstance(configuration) {
     }
     key = key.toString();
     
-    if (this.causality.__forwardTo !== null && key !== "__forwardTo") {
-      let forwardToHandler = this.causality.__forwardTo.__handler;
+    if (this.causality.forwardTo !== null && key !== "causality.forwardTo") {
+      let forwardToHandler = this.causality.forwardTo.causality.handler;
       let result = forwardToHandler.get.apply(forwardToHandler, [forwardToHandler.target, key]);
       return result;
     }
@@ -305,7 +305,7 @@ function createInstance(configuration) {
           let descriptor = Object.getOwnPropertyDescriptor(scan, key);
           if (typeof(descriptor) !== 'undefined' &&
               typeof(descriptor.get) !== 'undefined') {
-            return descriptor.get.bind(this.causality.__proxy)();
+            return descriptor.get.bind(this.causality.proxy)();
           }
           scan = Object.getPrototypeOf( scan );
         }
@@ -315,11 +315,11 @@ function createInstance(configuration) {
   }
 
   function setHandlerObject(target, key, value) {
-    if (key === "__forwardTo") {
-      this.causality.__forwardTo = value;
+    if (key === "causality.forwardTo") {
+      this.causality.forwardTo = value;
       return true;
-    } else if (this.causality.__forwardTo !== null) {
-      let forwardToHandler = this.causality.__forwardTo.__handler;
+    } else if (this.causality.forwardTo !== null) {
+      let forwardToHandler = this.causality.forwardTo.causality.handler;
       return forwardToHandler.set.apply(forwardToHandler, [forwardToHandler.target, key, value]);
     }
 
@@ -351,8 +351,8 @@ function createInstance(configuration) {
   }
 
   function deletePropertyHandlerObject(target, key) {
-    if (this.causality.__forwardTo !== null) {
-      let forwardToHandler = this.causality.__forwardTo.__handler;
+    if (this.causality.forwardTo !== null) {
+      let forwardToHandler = this.causality.forwardTo.causality.handler;
       forwardToHandler.deleteProperty.apply(
         forwardToHandler, [forwardToHandler.target, key]);
       return true;
@@ -374,8 +374,8 @@ function createInstance(configuration) {
 
   function ownKeysHandlerObject(target, key) { // Not inherited?
  
-    if (this.causality.__forwardTo !== null) {
-      let forwardToHandler = this.causality.__forwardTo.__handler;
+    if (this.causality.forwardTo !== null) {
+      let forwardToHandler = this.causality.forwardTo.causality.handler;
       return forwardToHandler.ownKeys.apply(
         forwardToHandler, [forwardToHandler.target, key]);
     }
@@ -383,14 +383,14 @@ function createInstance(configuration) {
     if (inActiveRecording) recordDependencyOnEnumeration(this);
 
     let keys = Object.keys(target);
-    // keys.push('__id');
+    // keys.push('id');
     return keys;
   }
 
   function hasHandlerObject(target, key) {
  
-    if (this.causality.__forwardTo !== null) {
-      let forwardToHandler = this.causality.__forwardTo.__handler;
+    if (this.causality.forwardTo !== null) {
+      let forwardToHandler = this.causality.forwardTo.causality.handler;
       return forwardToHandler.has.apply(
         forwardToHandler, [forwardToHandler.target, key]);
     }
@@ -401,8 +401,8 @@ function createInstance(configuration) {
 
   function definePropertyHandlerObject(target, key, descriptor) {
  
-    if (this.causality.__forwardTo !== null) {
-      let forwardToHandler = this.causality.__forwardTo.__handler;
+    if (this.causality.forwardTo !== null) {
+      let forwardToHandler = this.causality.forwardTo.causality.handler;
       return forwardToHandler.defineProperty.apply(
         forwardToHandler, [forwardToHandler.target, key]);
     }
@@ -413,8 +413,8 @@ function createInstance(configuration) {
 
   function getOwnPropertyDescriptorHandlerObject(target, key) {
  
-    if (this.causality.__forwardTo !== null) {
-      let forwardToHandler = this.causality.__forwardTo.__handler;
+    if (this.causality.forwardTo !== null) {
+      let forwardToHandler = this.causality.forwardTo.causality.handler;
       return forwardToHandler.getOwnPropertyDescriptor
         .apply(forwardToHandler, [forwardToHandler.target, key]);
     }
@@ -481,12 +481,12 @@ function createInstance(configuration) {
     handler.proxy = proxy;
 
     handler.causality = {
-      __id: nextId++,
-      __buildId : buildId,
-      __forwardTo : null,
-      __target: createdTarget,
-      __handler : handler,
-      __proxy : proxy,
+      id: nextId++,
+      buildId : buildId,
+      forwardTo : null,
+      target: createdTarget,
+      handler : handler,
+      proxy : proxy,
 
       // Reserved properties that you can override IF objectCallbacks is set to true. 
       // onChange
@@ -502,7 +502,7 @@ function createInstance(configuration) {
         if (inRepeater.buildIdObjectMap && typeof(inRepeater.buildIdObjectMap[buildId]) !== 'undefined') {
           // Object identity previously created
           let establishedObject = inRepeater.buildIdObjectMap[buildId];
-          establishedObject.__forwardTo = proxy;
+          establishedObject.causality.forwardTo = proxy;
 
           inRepeater.newlyCreated.push(establishedObject);
           emitCreationEvent(handler);
@@ -745,8 +745,8 @@ function createInstance(configuration) {
   }
 
   function emitEvent(handler, event) {
-    event.object = handler.causality.__proxy;
-    event.objectId = handler.causality.__id;
+    event.object = handler.causality.proxy;
+    event.objectId = handler.causality.id;
 
     if (onChangeGlobal) {
       onChangeGlobal(event);
@@ -1231,16 +1231,16 @@ function createInstance(configuration) {
       
       const newIdMap = {}
       repeater.newlyCreated.forEach((created) => {
-        newIdMap[created.__buildId] = created;
-        if (created.__forwardTo !== null) {
+        newIdMap[created.causality.buildId] = created;
+        if (created.causality.forwardTo !== null) {
           // Push changes to established object.
-          let forwardTo = created.__forwardTo;
-          created.__forwardTo = null;
+          let forwardTo = created.causality.forwardTo;
+          created.causality.forwardTo = null;
           mergeInto(created, forwardTo);
         } else {
           // Send create on build message
           if (typeof(created.onReBuildCreate) === "function") created.onReBuildCreate();
-          emitCreationEvent(created.__handler);
+          emitCreationEvent(created.causality.handler);
         }
       });
       repeater.newlyCreated = [];
