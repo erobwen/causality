@@ -34,7 +34,7 @@ function createInstance(configuration) {
 
   /***************************************************************
    *
-   *  Array overrides
+   *  Array causality
    *
    ***************************************************************/
 
@@ -140,15 +140,15 @@ function createInstance(configuration) {
    ***************************************************************/
 
   function getHandlerArray(target, key) {
-    if (this.overrides.__forwardTo !== null && key !== "__forwardTo") {
-      let forwardToHandler = this.overrides.__forwardTo.__handler;
+    if (this.causality.__forwardTo !== null && key !== "__forwardTo") {
+      let forwardToHandler = this.causality.__forwardTo.__handler;
       return forwardToHandler.get.apply(forwardToHandler, [forwardToHandler.target, key]);
     }
 
     if (staticArrayOverrides[key]) {
       return staticArrayOverrides[key].bind(this);
-    } else if (typeof(this.overrides[key]) !== 'undefined') {
-      return this.overrides[key];
+    } else if (typeof(this.causality[key]) !== 'undefined') {
+      return this.causality[key];
     } else {
       if (inActiveRecording) recordDependencyOnArray(this);
       return target[key];
@@ -156,12 +156,12 @@ function createInstance(configuration) {
   }
 
   function setHandlerArray(target, key, value) {
-    if (this.overrides.__forwardTo !== null) {
+    if (this.causality.__forwardTo !== null) {
       if (key === "__forwardTo") {
-        this.overrides.__forwardTo = value;
+        this.causality.__forwardTo = value;
         return true;
       } else {
-        let forwardToHandler = this.overrides.__forwardTo.__handler;
+        let forwardToHandler = this.causality.__forwardTo.__handler;
         return forwardToHandler.set.apply(forwardToHandler, [forwardToHandler.target, key, value]);
       }
     }
@@ -207,8 +207,8 @@ function createInstance(configuration) {
   }
 
   function deletePropertyHandlerArray(target, key) {
-    if (this.overrides.__forwardTo !== null) {
-      let forwardToHandler = this.overrides.__forwardTo.__handler;
+    if (this.causality.__forwardTo !== null) {
+      let forwardToHandler = this.causality.__forwardTo.__handler;
       return forwardToHandler.deleteProperty.apply(
         forwardToHandler, [forwardToHandler.target, key]);
     }
@@ -227,8 +227,8 @@ function createInstance(configuration) {
   }
 
   function ownKeysHandlerArray(target) {
-    if (this.overrides.__forwardTo !== null) {
-      let forwardToHandler = this.overrides.__forwardTo.__handler;
+    if (this.causality.__forwardTo !== null) {
+      let forwardToHandler = this.causality.__forwardTo.__handler;
       return forwardToHandler.ownKeys.apply(
         forwardToHandler, [forwardToHandler.target]);
     }
@@ -240,8 +240,8 @@ function createInstance(configuration) {
   }
 
   function hasHandlerArray(target, key) {
-    if (this.overrides.__forwardTo !== null) {
-      let forwardToHandler = this.overrides.__forwardTo.__handler;
+    if (this.causality.__forwardTo !== null) {
+      let forwardToHandler = this.causality.__forwardTo.__handler;
       return forwardToHandler.has.apply(forwardToHandler, [target, key]);
     }
     if (inActiveRecording) recordDependencyOnArray(this);
@@ -249,8 +249,8 @@ function createInstance(configuration) {
   }
 
   function definePropertyHandlerArray(target, key, oDesc) {
-    if (this.overrides.__forwardTo !== null) {
-      let forwardToHandler = this.overrides.__forwardTo.__handler;
+    if (this.causality.__forwardTo !== null) {
+      let forwardToHandler = this.causality.__forwardTo.__handler;
       return forwardToHandler.defineProperty.apply(
         forwardToHandler, [forwardToHandler.target, key, oDesc]);
     }
@@ -260,8 +260,8 @@ function createInstance(configuration) {
   }
 
   function getOwnPropertyDescriptorHandlerArray(target, key) {
-    if (this.overrides.__forwardTo !== null) {
-      let forwardToHandler = this.overrides.__forwardTo.__handler;
+    if (this.causality.__forwardTo !== null) {
+      let forwardToHandler = this.causality.__forwardTo.__handler;
       return forwardToHandler.getOwnPropertyDescriptor.apply(
         forwardToHandler, [forwardToHandler.target, key]);
     }
@@ -284,14 +284,14 @@ function createInstance(configuration) {
     }
     key = key.toString();
     
-    if (this.overrides.__forwardTo !== null && key !== "__forwardTo") {
-      let forwardToHandler = this.overrides.__forwardTo.__handler;
+    if (this.causality.__forwardTo !== null && key !== "__forwardTo") {
+      let forwardToHandler = this.causality.__forwardTo.__handler;
       let result = forwardToHandler.get.apply(forwardToHandler, [forwardToHandler.target, key]);
       return result;
     }
 
-    if (typeof(this.overrides[key]) !== 'undefined') {
-      return this.overrides[key];
+    if (typeof(this.causality[key]) !== 'undefined') {
+      return this.causality[key];
     } else {  
       if (typeof(key) !== 'undefined') {
         if (inActiveRecording) recordDependencyOnProperty(this, key);
@@ -301,7 +301,7 @@ function createInstance(configuration) {
           let descriptor = Object.getOwnPropertyDescriptor(scan, key);
           if (typeof(descriptor) !== 'undefined' &&
               typeof(descriptor.get) !== 'undefined') {
-            return descriptor.get.bind(this.overrides.__proxy)();
+            return descriptor.get.bind(this.causality.__proxy)();
           }
           scan = Object.getPrototypeOf( scan );
         }
@@ -312,10 +312,10 @@ function createInstance(configuration) {
 
   function setHandlerObject(target, key, value) {
     if (key === "__forwardTo") {
-      this.overrides.__forwardTo = value;
+      this.causality.__forwardTo = value;
       return true;
-    } else if (this.overrides.__forwardTo !== null) {
-      let forwardToHandler = this.overrides.__forwardTo.__handler;
+    } else if (this.causality.__forwardTo !== null) {
+      let forwardToHandler = this.causality.__forwardTo.__handler;
       return forwardToHandler.set.apply(forwardToHandler, [forwardToHandler.target, key, value]);
     }
 
@@ -347,8 +347,8 @@ function createInstance(configuration) {
   }
 
   function deletePropertyHandlerObject(target, key) {
-    if (this.overrides.__forwardTo !== null) {
-      let forwardToHandler = this.overrides.__forwardTo.__handler;
+    if (this.causality.__forwardTo !== null) {
+      let forwardToHandler = this.causality.__forwardTo.__handler;
       forwardToHandler.deleteProperty.apply(
         forwardToHandler, [forwardToHandler.target, key]);
       return true;
@@ -370,8 +370,8 @@ function createInstance(configuration) {
 
   function ownKeysHandlerObject(target, key) { // Not inherited?
  
-    if (this.overrides.__forwardTo !== null) {
-      let forwardToHandler = this.overrides.__forwardTo.__handler;
+    if (this.causality.__forwardTo !== null) {
+      let forwardToHandler = this.causality.__forwardTo.__handler;
       return forwardToHandler.ownKeys.apply(
         forwardToHandler, [forwardToHandler.target, key]);
     }
@@ -385,8 +385,8 @@ function createInstance(configuration) {
 
   function hasHandlerObject(target, key) {
  
-    if (this.overrides.__forwardTo !== null) {
-      let forwardToHandler = this.overrides.__forwardTo.__handler;
+    if (this.causality.__forwardTo !== null) {
+      let forwardToHandler = this.causality.__forwardTo.__handler;
       return forwardToHandler.has.apply(
         forwardToHandler, [forwardToHandler.target, key]);
     }
@@ -397,8 +397,8 @@ function createInstance(configuration) {
 
   function definePropertyHandlerObject(target, key, descriptor) {
  
-    if (this.overrides.__forwardTo !== null) {
-      let forwardToHandler = this.overrides.__forwardTo.__handler;
+    if (this.causality.__forwardTo !== null) {
+      let forwardToHandler = this.causality.__forwardTo.__handler;
       return forwardToHandler.defineProperty.apply(
         forwardToHandler, [forwardToHandler.target, key]);
     }
@@ -409,8 +409,8 @@ function createInstance(configuration) {
 
   function getOwnPropertyDescriptorHandlerObject(target, key) {
  
-    if (this.overrides.__forwardTo !== null) {
-      let forwardToHandler = this.overrides.__forwardTo.__handler;
+    if (this.causality.__forwardTo !== null) {
+      let forwardToHandler = this.causality.__forwardTo.__handler;
       return forwardToHandler.getOwnPropertyDescriptor
         .apply(forwardToHandler, [forwardToHandler.target, key]);
     }
@@ -476,7 +476,7 @@ function createInstance(configuration) {
     handler.target = createdTarget;
     handler.proxy = proxy;
 
-    handler.overrides = {
+    handler.causality = {
       __id: nextId++,
       __buildId : buildId,
       __forwardTo : null,
@@ -741,8 +741,8 @@ function createInstance(configuration) {
   }
 
   function emitEvent(handler, event) {
-    event.object = handler.overrides.__proxy;
-    event.objectId = handler.overrides.__id;
+    event.object = handler.causality.__proxy;
+    event.objectId = handler.causality.__id;
 
     if (onChangeGlobal) {
       onChangeGlobal(event);
@@ -871,15 +871,15 @@ function createInstance(configuration) {
     }
   }
 
-  function disposeAllObservers(invalidator) {
-    const invalidatorId = invalidator.id;
-    // trace.context && logGroup(`remove recording ${invalidator.id}`);
+  function disposeAllObservers(observer) {
+    const observerId = observer.id;
+    // trace.context && logGroup(`remove recording ${observer.id}`);
     // Clear out previous observations
-    invalidator.sources.forEach(function(observerSet) {
-      disposeFromObserverSet(invalidatorId, observerSet);
+    observer.sources.forEach(function(observerSet) {
+      disposeFromObserverSet(observerId, observerSet);
     
     });
-    invalidator.sources.length = 0;  // From repeater itself.
+    observer.sources.length = 0;  // From repeater itself.
     // trace.context && logUngroup();
   }
 

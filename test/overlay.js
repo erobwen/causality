@@ -15,9 +15,9 @@ describe("Overlays", function(){
     // Create forwardTo
     // console.log(" Create forwardTo ===========================")
     let xOverlay = causality.create({ name: "forwardTo"});
-    x.__handler.overrides.__forwardTo = xOverlay;
+    x.__handler.causality.__forwardTo = xOverlay;
     // console.log(x.__handler);
-    // console.log(x.__handler.overrides);
+    // console.log(x.__handler.causality);
     // console.log(x);
     // console.log(x.__forwardTo);
     // console.log(x.__handler);
