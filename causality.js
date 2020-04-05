@@ -504,7 +504,7 @@ function createInstance(configuration) {
         if (inRepeater.buildIdObjectMap && typeof(inRepeater.buildIdObjectMap[buildId]) !== 'undefined') {
           // Object identity previously created
           let establishedObject = inRepeater.buildIdObjectMap[buildId];
-          establishedObject.causality.forwardTo = proxy;
+          establishedObject.causalityForwardTo = proxy;
 
           inRepeater.newlyCreated.push(establishedObject);
           emitCreationEvent(handler);
@@ -1234,10 +1234,10 @@ function createInstance(configuration) {
       const newIdMap = {}
       repeater.newlyCreated.forEach((created) => {
         newIdMap[created.causality.buildId] = created;
-        if (created.causality.forwardTo !== null) {
+        if (created.causalityForwardTo !== null) {
           // Push changes to established object.
-          let forwardTo = created.causality.forwardTo;
-          created.causality.forwardTo = null;
+          let forwardTo = created.causalityForwardTo;
+          created.causalityForwardTo = null;
           mergeInto(created, forwardTo);
         } else {
           // Send create on build message
