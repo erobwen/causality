@@ -940,82 +940,6 @@ function createInstance(configuration) {
 
   }
 
-    // From observed object
-  // let observerSetContents = getMap(
-  // observerSet, 'contents');
-  // if (typeof(observerSet['contents'])) {
-  ////! Should not be needed
-  //     observerSet['contents'] = {};
-  // }
-
-  /**********************************
-   *
-   *  invalidateOnChange.
-   *
-   **********************************/
-
-  let recorderId = 0;
-
-  function invalidateOnChange() {
-    // description(optional), doFirst, doAfterChange. doAfterChange
-    // cannot modify model, if needed, use a repeater instead.
-    // (for guaranteed consistency)
-
-    // Arguments
-    let doFirst;
-    let doAfterChange;
-    let description = null;
-    if (arguments.length > 2) {
-      description   = arguments[0];
-      doFirst       = arguments[1];
-      doAfterChange = arguments[2];
-    } else {
-      if (requireInvalidatorName) throw new Error("Missing description for 'invalidateOnChange'")
-      doFirst       = arguments[0];
-      doAfterChange = arguments[1];
-    }
-
-    // Recorder context
-    const enteredContext = enterContext('recording', {
-      independent : false,
-      nextToNotify: null,
-      id: recorderId++,
-      description: description,
-      sources : [],
-      invalidateAction: doAfterChange,
-      dispose : function() {
-        disposeAllObservers(this);
-      }
-    });
-
-    // Method for continue async in same context
-    enteredContext.record = function( action ){
-      if( context == enteredContext || enteredContext.isRemoved )
-        return action();
-      //console.log('enteredContext.record');//DEBUG
-      const activeContext = enterContext(enteredContext.type, enteredContext);
-      const value = action();
-      leaveContext( activeContext );
-      return value;
-    }
-
-    //console.log("doFirst in context " + enteredContext.type, enteredContext.id||'');//DEBUG
-    enteredContext.returnValue = doFirst( enteredContext );
-    //if( context ) console.log("after doFirst context " + enteredContext.type, enteredContext.id||'');//DEBUG
-    leaveContext( enteredContext );
-
-    return enteredContext;
-  }
-
-  function withoutRecording(action) {
-    state.recordingPaused++;
-    updateContextState();
-    action();
-    state.recordingPaused--;
-    updateContextState();
-  }
-
-
 
   /** -------------
    *  Upon change
@@ -1098,6 +1022,84 @@ function createInstance(configuration) {
       }
     }
   }
+
+    // From observed object
+  // let observerSetContents = getMap(
+  // observerSet, 'contents');
+  // if (typeof(observerSet['contents'])) {
+  ////! Should not be needed
+  //     observerSet['contents'] = {};
+  // }
+
+  /**********************************
+   *
+   *  invalidateOnChange.
+   *
+   **********************************/
+
+  let recorderId = 0;
+
+  function invalidateOnChange() {
+    // description(optional), doFirst, doAfterChange. doAfterChange
+    // cannot modify model, if needed, use a repeater instead.
+    // (for guaranteed consistency)
+
+    // Arguments
+    let doFirst;
+    let doAfterChange;
+    let description = null;
+    if (arguments.length > 2) {
+      description   = arguments[0];
+      doFirst       = arguments[1];
+      doAfterChange = arguments[2];
+    } else {
+      if (requireInvalidatorName) throw new Error("Missing description for 'invalidateOnChange'")
+      doFirst       = arguments[0];
+      doAfterChange = arguments[1];
+    }
+
+    // Recorder context
+    const enteredContext = enterContext('recording', {
+      independent : false,
+      nextToNotify: null,
+      id: recorderId++,
+      description: description,
+      sources : [],
+      invalidateAction: doAfterChange,
+      dispose : function() {
+        disposeAllObservers(this);
+      }
+    });
+
+    // Method for continue async in same context
+    enteredContext.record = function( action ){
+      if( context == enteredContext || enteredContext.isRemoved )
+        return action();
+      //console.log('enteredContext.record');//DEBUG
+      const activeContext = enterContext(enteredContext.type, enteredContext);
+      const value = action();
+      leaveContext( activeContext );
+      return value;
+    }
+
+    //console.log("doFirst in context " + enteredContext.type, enteredContext.id||'');//DEBUG
+    enteredContext.returnValue = doFirst( enteredContext );
+    //if( context ) console.log("after doFirst context " + enteredContext.type, enteredContext.id||'');//DEBUG
+    leaveContext( enteredContext );
+
+    return enteredContext;
+  }
+
+  function withoutRecording(action) {
+    state.recordingPaused++;
+    updateContextState();
+    action();
+    state.recordingPaused--;
+    updateContextState();
+  }
+
+
+
 
 
   /**********************************
