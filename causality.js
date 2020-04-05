@@ -10,6 +10,8 @@ const { argumentsToArray, configSignature, mergeInto } = require("./lib/utility.
 function createInstance(configuration) {
 
   const {
+    objectMetaProperty = "causality",
+    objectMetaForwardToProperty = "causalityForwardTo",
     objectCallbacks = true, // reserve onChange, onBuildCreate, onBuildRemove 
     notifyChange = false, // either set onChangeGlobal or define onChange on individual objects.
     onChangeGlobal = null,
@@ -140,14 +142,16 @@ function createInstance(configuration) {
    ***************************************************************/
 
   function getHandlerArray(target, key) {
-    if (this.causality.forwardTo !== null && key !== "causality.forwardTo") {
+    if (key === objectMetaForwardToProperty) {
+      return this.causality.forwardTo;
+    } else if (this.causality.forwardTo !== null) {
       let forwardToHandler = this.causality.forwardTo.causality.handler;
       return forwardToHandler.get.apply(forwardToHandler, [forwardToHandler.target, key]);
-    }
+    } 
 
     if (staticArrayOverrides[key]) {
       return staticArrayOverrides[key].bind(this);
-    } else if (key === "causality") {
+    } else if (key === objectMetaProperty) {
       return this.causality;
     } else {
       if (inActiveRecording) recordDependencyOnArray(this);
@@ -157,7 +161,7 @@ function createInstance(configuration) {
 
   function setHandlerArray(target, key, value) {
     if (this.causality.forwardTo !== null) {
-      if (key === "causalityForwardTo") {
+      if (key === objectMetaForwardToProperty) {
         this.causality.forwardTo = value;
         return true;
       } else {
@@ -284,13 +288,15 @@ function createInstance(configuration) {
     }
     key = key.toString();
     
-    if (this.causality.forwardTo !== null && key !== "causality.forwardTo") {
+    if (key === objectMetaForwardToProperty) {
+      return this.causality.forwardTo;
+    } else if (this.causality.forwardTo !== null) {
       let forwardToHandler = this.causality.forwardTo.causality.handler;
       let result = forwardToHandler.get.apply(forwardToHandler, [forwardToHandler.target, key]);
       return result;
     }
 
-    if (key === "causality") {
+    if (key === objectMetaProperty) {
       return this.causality;
     } else {  
       if (typeof(key) !== 'undefined') {
@@ -311,7 +317,7 @@ function createInstance(configuration) {
   }
 
   function setHandlerObject(target, key, value) {
-    if (key === "causalityForwardTo") {
+    if (key === objectMetaForwardToProperty) {
       this.causality.forwardTo = value;
       return true;
     } else if (this.causality.forwardTo !== null) {
