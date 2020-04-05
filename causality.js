@@ -877,19 +877,19 @@ function createInstance(configuration) {
     }
   }
 
-  function disposeAllObservers(observer) {
+  function removeAllSources(observer) {
     const observerId = observer.id;
     // trace.context && logGroup(`remove recording ${observer.id}`);
     // Clear out previous observations
     observer.sources.forEach(function(observerSet) {
-      disposeFromObserverSet(observerId, observerSet);
+      removeFromObserverSet(observerId, observerSet);
     
     });
     observer.sources.length = 0;  // From repeater itself.
     // trace.context && logUngroup();
   }
 
-  function disposeFromObserverSet(id, observerSet) {
+  function removeFromObserverSet(id, observerSet) {
     let observerSetContents = observerSet['contents'];
     delete observerSetContents[id];
     let noMoreObservers = false;
@@ -1067,7 +1067,7 @@ function createInstance(configuration) {
       sources : [],
       invalidateAction: doAfterChange,
       dispose : function() {
-        disposeAllObservers(this);
+        removeAllSources(this);
       }
     });
 
@@ -1196,18 +1196,16 @@ function createInstance(configuration) {
       nonRecordedAction: repeaterNonRecordingAction,
       options: options ? options : {},
       restart: function() {
-        disposeAllObservers(this);
-        repeaterDirty(this);
+        this.invalidateAction();
       },
       invalidateAction: function() {
-        disposeAllObservers(this);
+        removeAllSources(this);
         repeaterDirty(this);
       },
       dispose: function() {
         //" + this.id + "." + this.description);
         detatchRepeater(this);
-        disposeChildContexts(this);
-        // disposeSingleChildContext(this); // Remove recorder!
+        removeAllSources(this);
       },
       nextDirty : null,
       previousDirty : null,
