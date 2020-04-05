@@ -1,10 +1,11 @@
 'use strict'; 
 // require = require("esm")(module);
 const { argumentsToArray, configSignature, mergeInto } = require("./lib/utility.js");
-const log = console.log;
-const logg = (string) => {
-  console.log("-------------" + string + "-------------");
-};
+// const log = console.log;
+// const logg = (string) => {
+//   console.log("-------------" + string + "-------------");
+// };
+// log; logg;
 
 function createInstance(configuration) {
 
@@ -310,7 +311,6 @@ function createInstance(configuration) {
   }
 
   function setHandlerObject(target, key, value) {
-    log("set!")
     if (key === "__forwardTo") {
       this.overrides.__forwardTo = value;
       return true;
@@ -328,7 +328,6 @@ function createInstance(configuration) {
         return true;
       }
     }
-    log("new value")
     emitSetEvent(this, key, value, previousValue);
 
     let undefinedKey = !(key in target);
@@ -495,15 +494,12 @@ function createInstance(configuration) {
     if (inRepeater !== null) {
       if (buildId !== null) {
         if (!inRepeater.newlyCreated) inRepeater.newlyCreated = [];
-        log("create with id...")
         
         if (inRepeater.buildIdObjectMap && typeof(inRepeater.buildIdObjectMap[buildId]) !== 'undefined') {
-          log("reuse...")
           // Object identity previously created
           let establishedObject = inRepeater.buildIdObjectMap[buildId];
           establishedObject.__forwardTo = proxy;
 
-          log(establishedObject.__forwardTo === proxy)
           inRepeater.newlyCreated.push(establishedObject);
           emitCreationEvent(handler);
           return establishedObject;
@@ -720,7 +716,6 @@ function createInstance(configuration) {
   }
 
   function emitSetEvent(handler, key, value, previousValue) {
-      log(notifyChange)
     if (notifyChange) {
       emitEvent(handler, {
         type: 'set',
@@ -746,12 +741,10 @@ function createInstance(configuration) {
   }
 
   function emitEvent(handler, event) {
-    log("EMIT EVENT")
     event.object = handler.overrides.__proxy;
     event.objectId = handler.overrides.__id;
 
     if (onChangeGlobal) {
-      log("here")
       onChangeGlobal(event);
     }
 
@@ -1228,27 +1221,22 @@ function createInstance(configuration) {
     }
 
     // Finish rebuilding
-    log("finish rebuild")
     // log(repeater.newlyCreated)
-    if (!!repeater.newlyCreated) {
-      log("fun")
-      log(options.onStartBuildUpdate)
+    if (repeater.newlyCreated) {
       if (options.onStartBuildUpdate) options.onStartBuildUpdate();
       
       const newIdMap = {}
       repeater.newlyCreated.forEach((created) => {
         newIdMap[created.__buildId] = created;
-        log(created.__forwardTo)
         if (created.__forwardTo !== null) {
           // Push changes to established object.
-          log("push changes...")
           let forwardTo = created.__forwardTo;
           created.__forwardTo = null;
           mergeInto(created, forwardTo);
         } else {
           // Send create on build message
-          log("create a new...")
           if (typeof(created.onReBuildCreate) === "function") created.onReBuildCreate();
+          emitCreationEvent(created.__handler);
         }
       });
       repeater.newlyCreated = [];
@@ -1256,7 +1244,6 @@ function createInstance(configuration) {
       // Send on build remove messages
       for (let id in repeater.buildIdObjectMap) {
         if (typeof(newIdMap[id]) === "undefined") {
-          log("removing one... ")
           const object = repeater.buildIdObjectMap[id];
           if (typeof(object.onReBuildRemove) === "function") object.onReBuildRemove();
         }

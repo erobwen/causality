@@ -9,7 +9,6 @@ const instance = causality.instance({
   name: "rebuild", 
   notifyChange: true, 
   onChangeGlobal: (event) => {
-    log(events);
     events.push(event);
   }
 });
@@ -24,6 +23,8 @@ const logg = (string) => {
     console.log("--------------------------");
   }
 };
+
+let collecting = false; 
 
 describe("Re Build", function(){
 
@@ -51,17 +52,26 @@ describe("Re Build", function(){
       }
     }
 
-    onReBuildCreate() {}
+    onReBuildCreate() {
+      log("onReBuildCreate")
+    }
 
-    onReBuildRemove() {}
+    onReBuildRemove() {
+      log("onReBuildRemove")
+    }
     
-    onChange() {}
+    onChange(event) {
+      if (collecting) {      
+        log("onChange")
+        log(event)
+      }
+    }
   }
 
   function buildTree(source) {
     let result;
     source.forEach((value, index) => {
-      const node = create(new Node(value), "node_" + index);
+      const node = create(new Node(value), "node_" + value);
       if (index === 0) {
         result = node; 
       } else {
@@ -83,19 +93,21 @@ describe("Re Build", function(){
       },
       null, 
       { 
-        onStartBuildUpdate: () => { events.length = 0 },
-        onEndBuildUpdate: () => { console.log("inside"); updateBuildEvents = events.slice(); events.length = 0; }
+        onStartBuildUpdate: () => { collecting = true; events.length = 0 },
+        onEndBuildUpdate: () => { collecting = false; updateBuildEvents = events.slice(); events.length = 0; }
       }
     );
 
+    logg();
     console.log(tree)
     logg();
     source.push(3.5);
-    logg();
-    console.log(updateBuildEvents);
     console.log(tree)
-
-    
-    // assert.equal(, );
+    console.log(updateBuildEvents);
+    logg();
+    source.shift();
+    console.log(tree)
+    console.log(updateBuildEvents);
+    logg();
   });
 });
