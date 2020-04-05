@@ -60,8 +60,8 @@ describe("Projections", function(){
     }
 
     flattenArrayPreOrder() {
-      let result = create([], this.__id + "_array");
-      result.push(create({value: this.value}, this.__id + "_node"));
+      let result = create([], this.causality.__id + "_array");
+      result.push(create({value: this.value}, this.causality.__id + "_node"));
 
       this.children.forEach(function(child) {
         let childList = child.flattenArrayPreOrder();
@@ -72,9 +72,9 @@ describe("Projections", function(){
     }
 
     flattenArrayPreOrderRecursive() {
-      // console.log("flattenArrayPreOrderRecursive " + this.__id + "_array");
-      let result = create([], this.__id + "_array");
-      result.push(create({value: this.value}, this.__id + "_node"));
+      // console.log("flattenArrayPreOrderRecursive " + this.causality.__id + "_array");
+      let result = create([], this.causality.__id + "_array");
+      result.push(create({value: this.value}, this.causality.__id + "_node"));
 
       this.children.forEach(function(child) {
         let childList = child.reCached('flattenArrayPreOrderRecursive');
@@ -85,7 +85,7 @@ describe("Projections", function(){
     }
 
     flattenLinkedPreOrder() {
-      let firstNode = createListNode(this.value, this.__id + "_list");
+      let firstNode = createListNode(this.value, this.causality.__id + "_list");
       let node = firstNode;
 
       this.children.forEach(function(child) {
@@ -100,9 +100,9 @@ describe("Projections", function(){
     }
 
     flattenLinkedPreOrderRecursive() {
-      // console.log("flattenLinkedPreOrderRecursive " + this.__id + "_head");
-      let listHead = createListHead(this.__id + "_head");
-      let firstNode = createTransparentListNode(this.value, this.__id + "_node");
+      // console.log("flattenLinkedPreOrderRecursive " + this.causality.__id + "_head");
+      let listHead = createListHead(this.causality.__id + "_head");
+      let firstNode = createTransparentListNode(this.value, this.causality.__id + "_node");
 
       listHead.first = firstNode;
       // firstNode.previous = null;
@@ -112,7 +112,7 @@ describe("Projections", function(){
       this.children.forEach(function(child) {
         // child.reCachedInCache('flattenLinkedPreOrder');
         let childList = child.reCached('flattenLinkedPreOrderRecursive');
-        // console.log("linking next and previous together" + node.__id +  " -> " + childList.first.__id);
+        // console.log("linking next and previous together" + node.causality.__id +  " -> " + childList.first.causality.__id);
         node.next = childList.first;
         childList.first.previous = node;
         node = childList.last;

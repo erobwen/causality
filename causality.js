@@ -147,6 +147,8 @@ function createInstance(configuration) {
 
     if (staticArrayOverrides[key]) {
       return staticArrayOverrides[key].bind(this);
+    } else if (key === "causality") {
+      return this.causality;
     } else if (typeof(this.causality[key]) !== 'undefined') {
       return this.causality[key];
     } else {
@@ -290,7 +292,9 @@ function createInstance(configuration) {
       return result;
     }
 
-    if (typeof(this.causality[key]) !== 'undefined') {
+    if (key === "causality") {
+      return this.causality;
+    } else if (typeof(this.causality[key]) !== 'undefined') {
       return this.causality[key];
     } else {  
       if (typeof(key) !== 'undefined') {
