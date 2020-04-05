@@ -537,7 +537,7 @@ function createInstance(configuration) {
   let inRepeater = null;
 
   function updateContextState() {
-    inActiveRecording = (context !== null) ? ((context.type === "recording") && state.recordingPaused === 0) : false;
+    inActiveRecording = (context !== null) ? ((context.type === "recording" || context.type === "repeater_context") && state.recordingPaused === 0) : false;
     activeRecorder = (inActiveRecording) ? context : null;
     
     inCachedCall.value = null;
@@ -1189,12 +1189,18 @@ function createInstance(configuration) {
     return refreshRepeater({
       independent : false,
       id: repeaterId++,
+      nextToNotify: null,
+      sources : [],
       description: description,
       repeaterAction : modifyRepeaterAction(repeaterAction, options),
       nonRecordedAction: repeaterNonRecordingAction,
       options: options ? options : {},
       restart: function() {
-        this.invalidator.dispose();
+        disposeAllObservers(this);
+        repeaterDirty(this);
+      },
+      invalidateAction: function() {
+        disposeAllObservers(this);
         repeaterDirty(this);
       },
       dispose: function() {
@@ -1215,11 +1221,7 @@ function createInstance(configuration) {
         
     // Recorded action
     const activeContext = enterContext('repeater_context', repeater);
-    repeater.invalidator = invalidateOnChange(
-      () => { repeater.repeaterAction(repeater) },
-      repeater.restart.bind(repeater)
-    );
-    repeater.returnValue = repeater.invalidator.returnValue;
+    repeater.returnValue = repeater.repeaterAction(repeater)
 
     // Non recorded action
     if (repeater.nonRecordedAction !== null) {
