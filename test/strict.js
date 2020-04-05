@@ -7,9 +7,9 @@ describe("Proxy object traps", function () {
   const box = create();
 
   it('forwardTo',  function () {
-    box.causality.handler.causality.forwardTo = create({ name: "forwardTo"});
+    box.causalityForwardTo = create({ name: "forwardTo"});
     box.other = null;
-    box.causality.forwardTo = null;
+    box.causalityForwardTo = null;
   });
 
   it('nochange',  function () {
@@ -38,9 +38,9 @@ describe("Array object traps", function () {
   const stack = create([]);
 
   it('forwardTo',  function () {
-    stack.causality.handler.causality.forwardTo = create(['aa','bb']);
+    stack.causalityForwardTo = create(['aa','bb']);
     stack[2] = false;
-    stack.causality.forwardTo = null;
+    stack.causalityForwardTo = null;
   });
 
 
