@@ -149,8 +149,6 @@ function createInstance(configuration) {
       return staticArrayOverrides[key].bind(this);
     } else if (key === "causality") {
       return this.causality;
-    } else if (typeof(this.causality[key]) !== 'undefined') {
-      return this.causality[key];
     } else {
       if (inActiveRecording) recordDependencyOnArray(this);
       return target[key];
@@ -159,7 +157,7 @@ function createInstance(configuration) {
 
   function setHandlerArray(target, key, value) {
     if (this.causality.forwardTo !== null) {
-      if (key === "causality.forwardTo") {
+      if (key === "causalityForwardTo") {
         this.causality.forwardTo = value;
         return true;
       } else {
@@ -294,8 +292,6 @@ function createInstance(configuration) {
 
     if (key === "causality") {
       return this.causality;
-    } else if (typeof(this.causality[key]) !== 'undefined') {
-      return this.causality[key];
     } else {  
       if (typeof(key) !== 'undefined') {
         if (inActiveRecording) recordDependencyOnProperty(this, key);
@@ -315,7 +311,7 @@ function createInstance(configuration) {
   }
 
   function setHandlerObject(target, key, value) {
-    if (key === "causality.forwardTo") {
+    if (key === "causalityForwardTo") {
       this.causality.forwardTo = value;
       return true;
     } else if (this.causality.forwardTo !== null) {
