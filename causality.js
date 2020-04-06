@@ -16,6 +16,8 @@ function createInstance(configuration) {
     notifyChange = false, // either set onChangeGlobal or define onChange on individual objects.
     onChangeGlobal = null,
     onObjectAccess = null, 
+    customCreateInvalidator = null, 
+    customCreateRepeater = null,
     cannotAccessPropertyValue = null,
     requireRepeaterName = false,
     requireInvalidatorName = false,
@@ -766,6 +768,14 @@ function createInstance(configuration) {
    *
    **********************************/
 
+  function withoutRecording(action) {
+    state.recordingPaused++;
+    updateContextState();
+    action();
+    state.recordingPaused--;
+    updateContextState();
+  }
+
   function recordDependencyOnArray(handler) {
     if (handler._arrayObservers === null) {
       handler._arrayObservers = {};
@@ -1031,6 +1041,7 @@ function createInstance(configuration) {
   //     observerSet['contents'] = {};
   // }
 
+
   /**********************************
    *
    *  invalidateOnChange.
@@ -1038,6 +1049,30 @@ function createInstance(configuration) {
    **********************************/
 
   let recorderId = 0;
+
+  function defaultCreateInvalidator(description, doAfterChange) {
+    return {
+      description: description,
+      independent : false,
+      id: recorderId++,
+      sources : [],
+      invalidateAction: doAfterChange,
+      dispose : function() {
+        removeAllSources(this);
+      },
+      nextToNotify: null,
+      record : function( action ){
+        if( context == this || this.isRemoved ) return action();
+        //console.log('enteredContext.record');//DEBUG
+        const activeContext = enterContext(this.type, this);
+        const value = action();
+        leaveContext( activeContext );
+        return value;
+      }
+    }
+  }
+
+  const createInvalidator = customCreateInvalidator ? customCreateInvalidator : defaultCreateInvalidator;
 
   function invalidateOnChange() {
     // description(optional), doFirst, doAfterChange. doAfterChange
@@ -1059,28 +1094,10 @@ function createInstance(configuration) {
     }
 
     // Recorder context
-    const enteredContext = enterContext('recording', {
-      independent : false,
-      nextToNotify: null,
-      id: recorderId++,
-      description: description,
-      sources : [],
-      invalidateAction: doAfterChange,
-      dispose : function() {
-        removeAllSources(this);
-      }
-    });
-
-    // Method for continue async in same context
-    enteredContext.record = function( action ){
-      if( context == enteredContext || enteredContext.isRemoved )
-        return action();
-      //console.log('enteredContext.record');//DEBUG
-      const activeContext = enterContext(enteredContext.type, enteredContext);
-      const value = action();
-      leaveContext( activeContext );
-      return value;
-    }
+    const enteredContext = enterContext(
+      'recording', 
+      createInvalidator(description, doAfterChange)
+    );
 
     //console.log("doFirst in context " + enteredContext.type, enteredContext.id||'');//DEBUG
     enteredContext.returnValue = doFirst( enteredContext );
@@ -1089,16 +1106,6 @@ function createInstance(configuration) {
 
     return enteredContext;
   }
-
-  function withoutRecording(action) {
-    state.recordingPaused++;
-    updateContextState();
-    action();
-    state.recordingPaused--;
-    updateContextState();
-  }
-
-
 
 
 
@@ -1110,6 +1117,36 @@ function createInstance(configuration) {
 
   let firstDirtyRepeater = null;
   let lastDirtyRepeater = null;
+
+  function defaultCreateRepeater(description, repeaterAction, repeaterNonRecordingAction, options) {
+    return {
+      independent : false,
+      id: repeaterId++,
+      nextToNotify: null,
+      sources : [],
+      description: description,
+      repeaterAction : modifyRepeaterAction(repeaterAction, options),
+      nonRecordedAction: repeaterNonRecordingAction,
+      options: options ? options : {},
+      restart: function() {
+        this.invalidateAction();
+      },
+      invalidateAction: function() {
+        removeAllSources(this);
+        repeaterDirty(this);
+      },
+      dispose: function() {
+        //" + this.id + "." + this.description);
+        detatchRepeater(this);
+        removeAllSources(this);
+      },
+      nextDirty : null,
+      previousDirty : null,
+      lastRepeatTime: 0,
+    }
+  }
+
+  const createRepeater = customCreateRepeater ? customCreateRepeater : defaultCreateRepeater;
 
   function clearRepeaterLists() {
     recorderId = 0;
@@ -1186,31 +1223,7 @@ function createInstance(configuration) {
     if (!options) options = {};
 
     // Activate!
-    return refreshRepeater({
-      independent : false,
-      id: repeaterId++,
-      nextToNotify: null,
-      sources : [],
-      description: description,
-      repeaterAction : modifyRepeaterAction(repeaterAction, options),
-      nonRecordedAction: repeaterNonRecordingAction,
-      options: options ? options : {},
-      restart: function() {
-        this.invalidateAction();
-      },
-      invalidateAction: function() {
-        removeAllSources(this);
-        repeaterDirty(this);
-      },
-      dispose: function() {
-        //" + this.id + "." + this.description);
-        detatchRepeater(this);
-        removeAllSources(this);
-      },
-      nextDirty : null,
-      previousDirty : null,
-      lastRepeatTime: 0,
-    });
+    return refreshRepeater(createRepeater(description, repeaterAction, repeaterNonRecordingAction, options));
   }
 
   function refreshRepeater(repeater) {
