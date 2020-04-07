@@ -14,14 +14,15 @@ function createInstance(configuration) {
     objectMetaForwardToProperty = "causalityForwardTo",
     objectCallbacks = true, // reserve onChange, onBuildCreate, onBuildRemove 
     notifyChange = false, // either set onChangeGlobal or define onChange on individual objects.
-    onChangeGlobal = null,
-    onObjectAccess = null, 
     customDependencyRecorder = null,
     customCreateInvalidator = null, 
     customCreateRepeater = null,
-    cannotAccessPropertyValue = null,
+    cannotReadPropertyValue = null,
     requireRepeaterName = false,
     requireInvalidatorName = false,
+    onChangeGlobal = null,
+    onWriteGlobal = null, 
+    onReadGlobal = null, 
   } = configuration;  
 
   /***************************************************************
@@ -152,6 +153,10 @@ function createInstance(configuration) {
       return forwardToHandler.get.apply(forwardToHandler, [forwardToHandler.target, key]);
     } 
 
+    if (onReadGlobal && !onReadGlobal(this, target)) { 
+      return cannotReadPropertyValue;
+    }
+
     if (staticArrayOverrides[key]) {
       return staticArrayOverrides[key].bind(this);
     } else if (key === objectMetaProperty) {
@@ -172,6 +177,10 @@ function createInstance(configuration) {
         return forwardToHandler.set.apply(forwardToHandler, [forwardToHandler.target, key, value]);
       }
     }
+
+    if (onWriteGlobal && !onWriteGlobal(this, target)) {
+      return;
+    } 
 
     let previousValue = target[key];
 
@@ -209,7 +218,8 @@ function createInstance(configuration) {
 
     if( target[key] !== value && !(Number.isNaN(target[key]) &&
                                    Number.isNaN(value)) )
-      return false; // Write protected?
+    
+    return false; // Write protected?
     return true;
   }
 
@@ -219,6 +229,11 @@ function createInstance(configuration) {
       return forwardToHandler.deleteProperty.apply(
         forwardToHandler, [forwardToHandler.target, key]);
     }
+
+    if (onWriteGlobal && !onWriteGlobal(this, target)) {
+      return;
+    } 
+
     if (!(key in target)) {
       return true;
     }
@@ -240,6 +255,10 @@ function createInstance(configuration) {
         forwardToHandler, [forwardToHandler.target]);
     }
 
+    if (onReadGlobal && !onReadGlobal(this, target)) { 
+      return cannotReadPropertyValue;
+    }
+
     if (inActiveRecording) recordDependencyOnArray(activeRecorder, this);
     let result   = Object.keys(target);
     result.push('length');
@@ -251,6 +270,11 @@ function createInstance(configuration) {
       let forwardToHandler = this.meta.forwardTo[objectMetaProperty].handler;
       return forwardToHandler.has.apply(forwardToHandler, [target, key]);
     }
+
+    if (onReadGlobal && !onReadGlobal(this, target)) { 
+      return cannotReadPropertyValue;
+    }
+
     if (inActiveRecording) recordDependencyOnArray(activeRecorder, this);
     return key in target;
   }
@@ -262,6 +286,10 @@ function createInstance(configuration) {
         forwardToHandler, [forwardToHandler.target, key, oDesc]);
     }
 
+    if (onWriteGlobal && !onWriteGlobal(this, target)) {
+      return;
+    } 
+
     invalidateArrayObservers(this);
     return target;
   }
@@ -271,6 +299,10 @@ function createInstance(configuration) {
       let forwardToHandler = this.meta.forwardTo[objectMetaProperty].handler;
       return forwardToHandler.getOwnPropertyDescriptor.apply(
         forwardToHandler, [forwardToHandler.target, key]);
+    }
+
+    if (onReadGlobal && !onReadGlobal(this, target)) { 
+      return cannotReadPropertyValue;
     }
 
     if (inActiveRecording) recordDependencyOnArray(activeRecorder, this);
@@ -286,11 +318,8 @@ function createInstance(configuration) {
 
 
   function getHandlerObject(target, key) {
-    if (onObjectAccess && !onObjectAccess(false, this, target)) { //false = no write. Used for ensureInitialized, registerActivity & canWrite 
-      return cannotAccessPropertyValue;
-    }
     key = key.toString();
-    
+
     if (key === objectMetaForwardToProperty) {
       return this.meta.forwardTo;
     } else if (this.meta.forwardTo !== null) {
@@ -299,6 +328,10 @@ function createInstance(configuration) {
       return result;
     }
 
+    if (onReadGlobal && !onReadGlobal(this, target)) { //Used for ensureInitialized, registerActivity & canRead 
+      return cannotReadPropertyValue;
+    }
+    
     if (key === objectMetaProperty) {
       return this.meta;
     } else {  
@@ -327,6 +360,10 @@ function createInstance(configuration) {
       let forwardToHandler = this.meta.forwardTo[objectMetaProperty].handler;
       return forwardToHandler.set.apply(forwardToHandler, [forwardToHandler.target, key, value]);
     }
+
+    if (onWriteGlobal && !onWriteGlobal(this, target)) {
+      return;
+    } 
 
     let previousValue = target[key];
 
@@ -363,6 +400,10 @@ function createInstance(configuration) {
       return true;
     }
 
+    if (onWriteGlobal && !onWriteGlobal(this, target)) {
+      return;
+    } 
+
     if (!(key in target)) {
       return true;
     } else {
@@ -378,13 +419,16 @@ function createInstance(configuration) {
   }
 
   function ownKeysHandlerObject(target, key) { // Not inherited?
- 
     if (this.meta.forwardTo !== null) {
       let forwardToHandler = this.meta.forwardTo[objectMetaProperty].handler;
       return forwardToHandler.ownKeys.apply(
         forwardToHandler, [forwardToHandler.target, key]);
     }
 
+    if (onReadGlobal && !onReadGlobal(this, target)) { //Used for ensureInitialized, registerActivity & canRead 
+      return cannotReadPropertyValue;
+    }
+ 
     if (inActiveRecording) recordDependencyOnEnumeration(activeRecorder, this);
 
     let keys = Object.keys(target);
@@ -393,37 +437,46 @@ function createInstance(configuration) {
   }
 
   function hasHandlerObject(target, key) {
- 
     if (this.meta.forwardTo !== null) {
       let forwardToHandler = this.meta.forwardTo[objectMetaProperty].handler;
       return forwardToHandler.has.apply(
         forwardToHandler, [forwardToHandler.target, key]);
     }
 
+    if (onReadGlobal && !onReadGlobal(this, target)) { //Used for ensureInitialized, registerActivity & canRead 
+      return cannotReadPropertyValue;
+    }
+ 
     if (inActiveRecording) recordDependencyOnEnumeration(activeRecorder, this)
     return key in target;
   }
 
   function definePropertyHandlerObject(target, key, descriptor) {
- 
     if (this.meta.forwardTo !== null) {
       let forwardToHandler = this.meta.forwardTo[objectMetaProperty].handler;
       return forwardToHandler.defineProperty.apply(
         forwardToHandler, [forwardToHandler.target, key]);
     }
 
+    if (onWriteGlobal && !onWriteGlobal(this, target)) {
+      return;
+    }
+ 
     invalidateEnumerateObservers(this);
     return Reflect.defineProperty(target, key, descriptor);
   }
 
   function getOwnPropertyDescriptorHandlerObject(target, key) {
- 
     if (this.meta.forwardTo !== null) {
       let forwardToHandler = this.meta.forwardTo[objectMetaProperty].handler;
       return forwardToHandler.getOwnPropertyDescriptor
         .apply(forwardToHandler, [forwardToHandler.target, key]);
     }
 
+    if (onReadGlobal && !onReadGlobal(this, target)) { //Used for ensureInitialized, registerActivity & canRead 
+      return cannotReadPropertyValue;
+    }
+ 
     if (inActiveRecording) recordDependencyOnEnumeration(activeRecorder, this)
     return Object.getOwnPropertyDescriptor(target, key);
   }
