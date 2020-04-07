@@ -16,6 +16,7 @@ function createInstance(configuration) {
     notifyChange = false, // either set onChangeGlobal or define onChange on individual objects.
     onChangeGlobal = null,
     onObjectAccess = null, 
+    customDependencyRecorder = null,
     customCreateInvalidator = null, 
     customCreateRepeater = null,
     cannotAccessPropertyValue = null,
@@ -776,21 +777,26 @@ function createInstance(configuration) {
     updateContextState();
   }
 
-  function recordDependencyOnArray(recorder, handler) {
+  const recordDependencyOnArray = customDependencyRecorder ? customDependencyRecorder.recordDependencyOnArray : defaultRecordDependencyOnArray;
+  const recordDependencyOnEnumeration = customDependencyRecorder ? customDependencyRecorder.recordDependencyOnEnumeration : defaultRecordDependencyOnEnumeration;
+  const recordDependencyOnProperty = customDependencyRecorder ? customDependencyRecorder.recordDependencyOnProperty : defaultRecordDependencyOnProperty;
+  const recordDependency = customDependencyRecorder ? customDependencyRecorder.recordDependency : defaultRecordDependency;
+
+  function defaultRecordDependencyOnArray(recorder, handler) {
     if (handler._arrayObservers === null) {
       handler._arrayObservers = {};
     }
     recordDependency(recorder, "_arrayObservers", handler._arrayObservers);//object
   }
 
-  function recordDependencyOnEnumeration(recorder, handler) {
+  function defaultRecordDependencyOnEnumeration(recorder, handler) {
     if (typeof(handler._enumerateObservers) === 'undefined') {
       handler._enumerateObservers = {};
     }
     recordDependency(recorder, "_enumerateObservers", handler._enumerateObservers);
   }
 
-  function recordDependencyOnProperty(recorder, handler, key) {    
+  function defaultRecordDependencyOnProperty(recorder, handler, key) {    
     if (typeof(handler._propertyObservers) ===  'undefined') {
       handler._propertyObservers = {};
     }
@@ -801,7 +807,7 @@ function createInstance(configuration) {
   }
 
   let sourcesObserverSetChunkSize = 500;
-  function recordDependency(recorder, description, observerSet) {
+  function defaultRecordDependency(recorder, description, observerSet) {
     if (typeof(recorder) === "string") {
       observerSet = description;
       description = recorder; 
