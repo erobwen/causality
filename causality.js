@@ -156,7 +156,7 @@ function createInstance(configuration) {
     } else if (key === objectMetaProperty) {
       return this.meta;
     } else {
-      if (inActiveRecording) recordDependencyOnArray(this);
+      if (inActiveRecording) recordDependencyOnArray(activeRecorder, this);
       return target[key];
     }
   }
@@ -239,7 +239,7 @@ function createInstance(configuration) {
         forwardToHandler, [forwardToHandler.target]);
     }
 
-    if (inActiveRecording) recordDependencyOnArray(this);
+    if (inActiveRecording) recordDependencyOnArray(activeRecorder, this);
     let result   = Object.keys(target);
     result.push('length');
     return result;
@@ -250,7 +250,7 @@ function createInstance(configuration) {
       let forwardToHandler = this.meta.forwardTo[objectMetaProperty].handler;
       return forwardToHandler.has.apply(forwardToHandler, [target, key]);
     }
-    if (inActiveRecording) recordDependencyOnArray(this);
+    if (inActiveRecording) recordDependencyOnArray(activeRecorder, this);
     return key in target;
   }
 
@@ -272,7 +272,7 @@ function createInstance(configuration) {
         forwardToHandler, [forwardToHandler.target, key]);
     }
 
-    if (inActiveRecording) recordDependencyOnArray(this);
+    if (inActiveRecording) recordDependencyOnArray(activeRecorder, this);
     return Object.getOwnPropertyDescriptor(target, key);
   }
 
@@ -302,7 +302,7 @@ function createInstance(configuration) {
       return this.meta;
     } else {  
       if (typeof(key) !== 'undefined') {
-        if (inActiveRecording) recordDependencyOnProperty(this, key);
+        if (inActiveRecording) recordDependencyOnProperty(activeRecorder, this, key);
 
         let scan = target;
         while ( scan !== null && typeof(scan) !== 'undefined' ) {
@@ -384,7 +384,7 @@ function createInstance(configuration) {
         forwardToHandler, [forwardToHandler.target, key]);
     }
 
-    if (inActiveRecording) recordDependencyOnEnumeration(this);
+    if (inActiveRecording) recordDependencyOnEnumeration(activeRecorder, this);
 
     let keys = Object.keys(target);
     // keys.push('id');
@@ -399,7 +399,7 @@ function createInstance(configuration) {
         forwardToHandler, [forwardToHandler.target, key]);
     }
 
-    if (inActiveRecording) recordDependencyOnEnumeration(this)
+    if (inActiveRecording) recordDependencyOnEnumeration(activeRecorder, this)
     return key in target;
   }
 
@@ -423,7 +423,7 @@ function createInstance(configuration) {
         .apply(forwardToHandler, [forwardToHandler.target, key]);
     }
 
-    if (inActiveRecording) recordDependencyOnEnumeration(this)
+    if (inActiveRecording) recordDependencyOnEnumeration(activeRecorder, this)
     return Object.getOwnPropertyDescriptor(target, key);
   }
 
@@ -776,36 +776,42 @@ function createInstance(configuration) {
     updateContextState();
   }
 
-  function recordDependencyOnArray(handler) {
+  function recordDependencyOnArray(recorder, handler) {
     if (handler._arrayObservers === null) {
       handler._arrayObservers = {};
     }
-    recordDependency("_arrayObservers", handler._arrayObservers);//object
+    recordDependency(recorder, "_arrayObservers", handler._arrayObservers);//object
   }
 
-  function recordDependencyOnEnumeration(handler) {
+  function recordDependencyOnEnumeration(recorder, handler) {
     if (typeof(handler._enumerateObservers) === 'undefined') {
       handler._enumerateObservers = {};
     }
-    recordDependency("_enumerateObservers", handler._enumerateObservers);
+    recordDependency(recorder, "_enumerateObservers", handler._enumerateObservers);
   }
 
-  function recordDependencyOnProperty(handler, key) {    
+  function recordDependencyOnProperty(recorder, handler, key) {    
     if (typeof(handler._propertyObservers) ===  'undefined') {
       handler._propertyObservers = {};
     }
     if (typeof(handler._propertyObservers[key]) ===  'undefined') {
       handler._propertyObservers[key] = {};
     }
-    recordDependency("_propertyObservers." + key, handler._propertyObservers[key]);
+    recordDependency(recorder, "_propertyObservers." + key, handler._propertyObservers[key]);
   }
 
   let sourcesObserverSetChunkSize = 500;
-  function recordDependency(description, observerSet) {
+  function recordDependency(recorder, description, observerSet) {
+    if (typeof(recorder) === "string") {
+      observerSet = description;
+      description = recorder; 
+      recorder = activeRecorder;
+
+    }
     // instance can be a cached method if observing its return value,
     // object & definition only needed for debugging.
 
-    if (activeRecorder !== null) {
+    if (recorder !== null) {
       if (typeof(observerSet.initialized) === 'undefined') {
         observerSet.description = description;
         observerSet.isRoot = true;
@@ -816,7 +822,7 @@ function createInstance(configuration) {
         observerSet.last = null;
       }
 
-      let recorderId = activeRecorder.id;
+      let recorderId = recorder.id;
 
       if (typeof(observerSet.contents[recorderId]) !== 'undefined') {
         return;
@@ -857,10 +863,10 @@ function createInstance(configuration) {
       let observerSetContents = observerSet.contents;
       if (typeof(observerSetContents[recorderId]) === 'undefined') {
         observerSet.contentsCounter = observerSet.contentsCounter + 1;
-        observerSetContents[recorderId] = activeRecorder;
+        observerSetContents[recorderId] = recorder;
 
         // Note dependency in repeater itself (for cleaning up)
-        activeRecorder.sources.push(observerSet);
+        recorder.sources.push(observerSet);
       }
     }
   }
