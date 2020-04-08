@@ -28,6 +28,10 @@ let collecting = false;
 
 describe("Re Build", function(){
 
+  let created3Node = false; 
+  let removed3Node = false; 
+  let setHigherFor3Node = false; 
+
   class Node {
     constructor(value) {
       this.value = value; 
@@ -63,18 +67,18 @@ describe("Re Build", function(){
     }
 
     onReBuildCreate() {
-      // log("onReBuildCreate")
+      if (this.value === 3) created3Node = true; 
+      // log("onReBuildCreate" + this.value);
     }
 
     onReBuildRemove() {
-      // log("onReBuildRemove")
+      if (this.value === 3) removed3Node = true; 
+      // log("onReBuildRemove" + this.value)
     }
     
     onChange(event) {
-      if (collecting) {      
-        // log("onChange")
-        // log(event)
-      }
+      if (this.value === 3 && event.type === "set" && event.property === "higher") setHigherFor3Node = true; 
+      // log("onChange" + this.value)
     }
   }
 
@@ -95,11 +99,11 @@ describe("Re Build", function(){
   it("Test rebuild", function(){
     const source = create([3]);
     let updateBuildEvents = [];
-    let root = create({tree: null}); 
+    let tree = create({root: null}); 
 
     repeat(
       () => {
-        root.tree = buildTree(source);
+        tree.root = buildTree(source);
       },
       null, 
       { 
@@ -108,20 +112,16 @@ describe("Re Build", function(){
       }
     );
 
-    logg();
-    log("inital...")
-    log(root)
+    const value3Node = tree.root.find(3);
     
-    logg();
-    log("manipulate...")
     source.push(3.5);
-    log(root)
-    log(updateBuildEvents);
+    const value35Node = tree.root.find(3.5);
+    assert.equal(created3Node, true);
+    assert.equal(setHigherFor3Node, true);
+    assert.equal(value3Node, tree.root.find(3));
 
-    logg();
-    log("manipulate...");
     source.shift();
-    log(root)
-    log(updateBuildEvents);    
+    assert.equal(value35Node, tree.root.find(3.5));
+    assert.equal(removed3Node, true);
   });
 });

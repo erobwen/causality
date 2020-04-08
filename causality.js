@@ -17,7 +17,12 @@ function createInstance(configuration) {
     objectMetaForwardToProperty = "causalityForwardTo",
 
     emitEvents = false, // either set onEventGlobal or define onChange on individual objects.
-    sendEventsToObjects = true, // reserve onChange, onBuildCreate, onBuildRemove 
+    sendEventsToObjects = true,
+      // Reserved properties that you can override on observables IF sendEventsToObjects is set to true. 
+      // onChange
+      // onBuildCreate
+      // onBuildRemove
+      // TODO: onRemovedObserver, onRemovedLastObserver ? 
     onEventGlobal = null,
     emitReCreationEvents = false,
     
@@ -206,7 +211,6 @@ function createInstance(configuration) {
 
       if( target[key] === value || (
         Number.isNaN(target[key]) && Number.isNaN(value)) ) {
-        // Write protected?
         emitSpliceReplaceEvent(this, key, value, previousValue);
         invalidateArrayObservers(this);
       }
@@ -215,16 +219,16 @@ function createInstance(configuration) {
       target[key] = value;
       if( target[key] === value || (Number.isNaN(target[key]) &&
                                     Number.isNaN(value)) ) {
-        // Write protected?
         emitSetEvent(this, key, value, previousValue);
         invalidateArrayObservers(this);
       }
     }
 
     if( target[key] !== value && !(Number.isNaN(target[key]) &&
-                                   Number.isNaN(value)) )
+                                   Number.isNaN(value)) ) {
+      return false;
+    }
     
-    return false; // Write protected?
     return true;
   }
 
@@ -552,12 +556,6 @@ function createInstance(configuration) {
       handler : handler,
       proxy : proxy,
 
-      // Reserved properties that you can override IF sendEventsToObjects is set to true. 
-      // onChange
-      // onBuildChange // Only responds to changes during build / rebuild.
-      // onBuildCreate
-      // onBuildRemove
-
       // Optimization. Here to avoid expensive decoration post object creation.
       isRebuildOfOther: false,
     };
@@ -840,6 +838,30 @@ function createInstance(configuration) {
     }
   }
 
+  function invalidateObservers(description, observers) {
+    if (typeof(observers.initialized) !== 'undefined') {
+      if (state.blockInvalidation > 0) {
+        return;
+      }
+
+      let contents = observers.contents;
+      for (let id in contents) {
+        invalidateObserver(contents[id]);
+      }
+
+      if (typeof(observers.first) !== 'undefined') {
+        let chainedObserverChunk = observers.first;
+        while(chainedObserverChunk !== null) {
+          let contents = chainedObserverChunk.contents;
+          for (let id in contents) {
+            invalidateObserver(contents[id]);
+          }
+          chainedObserverChunk = chainedObserverChunk.next;
+        }
+      }
+    }
+  }
+
   function removeAllSources(observer) {
     const observerId = observer.id;
     // trace.context && logGroup(`remove invalidator ${observer.id}`);
@@ -932,30 +954,6 @@ function createInstance(configuration) {
   }
 
 
-  // Recorders is a map from id => recorder
-  function invalidateObservers(description, observers) {
-    if (typeof(observers.initialized) !== 'undefined') {
-      if (state.blockInvalidation > 0) {
-        return;
-      }
-
-      let contents = observers.contents;
-      for (let id in contents) {
-        invalidateObserver(contents[id]);
-      }
-
-      if (typeof(observers.first) !== 'undefined') {
-        let chainedObserverChunk = observers.first;
-        while(chainedObserverChunk !== null) {
-          let contents = chainedObserverChunk.contents;
-          for (let id in contents) {
-            invalidateObserver(contents[id]);
-          }
-          chainedObserverChunk = chainedObserverChunk.next;
-        }
-      }
-    }
-  }
 
   function invalidateObserver(observer) {
     if (observer != context) {
