@@ -138,9 +138,11 @@ function createInstance(configuration) {
    *
    ***************************************************************/
 
+  // Custom observer creators
   const createRepeater = customCreateRepeater ? customCreateRepeater : defaultCreateRepeater;
   const createInvalidator = customCreateInvalidator ? customCreateInvalidator : defaultCreateInvalidator;
 
+  // Dependency interface
   const dependencyInterface = customDependencyInterfaceCreator ? 
     customDependencyInterfaceCreator(instance) 
     : 
@@ -149,6 +151,9 @@ function createInstance(configuration) {
   const recordDependencyOnArray = dependencyInterface.recordDependencyOnArray;
   const recordDependencyOnEnumeration = dependencyInterface.recordDependencyOnEnumeration;
   const recordDependencyOnProperty = dependencyInterface.recordDependencyOnProperty;
+  const invalidateArrayObservers = dependencyInterface.invalidateArrayObservers;
+  const invalidatePropertyObservers = dependencyInterface.invalidatePropertyObservers;
+  const invalidateEnumerateObservers = dependencyInterface.invalidateEnumerateObservers;
 
   // Object.assign(instance, require("./lib/causalityObject.js").bindToInstance(instance));
 
@@ -822,52 +827,6 @@ function createInstance(configuration) {
 
 
 
-
-  function invalidateArrayObservers(handler) {  
-    if (handler._arrayObservers !== null) {
-      invalidateObservers("_arrayObservers",
-                            handler._arrayObservers);
-    }
-  }
-
-  function invalidatePropertyObservers(handler, key) {
-    if (typeof(handler._propertyObservers) !== 'undefined' &&
-        typeof(handler._propertyObservers[key]) !== 'undefined') {
-      invalidateObservers("_propertyObservers." + key,
-                            handler._propertyObservers[key]);
-    }
-  }
-
-  function invalidateEnumerateObservers(handler) {
-    if (typeof(handler._enumerateObservers) !== 'undefined') {
-      invalidateObservers("_enumerateObservers",
-                            handler._enumerateObservers);
-    }
-  }
-
-  function invalidateObservers(description, observers) {
-    if (typeof(observers.initialized) !== 'undefined') {
-      if (state.blockInvalidation > 0) {
-        return;
-      }
-
-      let contents = observers.contents;
-      for (let id in contents) {
-        invalidateObserver(contents[id]);
-      }
-
-      if (typeof(observers.first) !== 'undefined') {
-        let chainedObserverChunk = observers.first;
-        while(chainedObserverChunk !== null) {
-          let contents = chainedObserverChunk.contents;
-          for (let id in contents) {
-            invalidateObserver(contents[id]);
-          }
-          chainedObserverChunk = chainedObserverChunk.next;
-        }
-      }
-    }
-  }
 
   function removeAllSources(observer) {
     const observerId = observer.id;
