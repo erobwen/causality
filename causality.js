@@ -841,8 +841,7 @@ function createInstance(configuration) {
     if (state.postponeInvalidation == 0) {
       while (nextObserverToInvalidate !== null) {
         let recorder = nextObserverToInvalidate;
-        nextObserverToInvalidate =
-          nextObserverToInvalidate.nextToNotify;
+        nextObserverToInvalidate = nextObserverToInvalidate.nextToNotify;
         // blockSideEffects(function() {
         recorder.invalidateAction();
         // });
@@ -897,10 +896,9 @@ function createInstance(configuration) {
 
   function defaultCreateInvalidator(description, doAfterChange) {
     return {
-      id: observerId++,
       type: 'invalidator',
+      id: observerId++,
       description: description,
-      independent : false,
       sources : [],
       nextToNotify: null,
       invalidateAction: doAfterChange,
@@ -909,12 +907,12 @@ function createInstance(configuration) {
       },
       record : function( action ){
         if( context == this || this.isRemoved ) return action();
-        //console.log('enteredContext.record');//DEBUG
         const activeContext = enterContext(this);
         const value = action();
         leaveContext( activeContext );
         return value;
-      }
+      },
+      returnValue: null
     }
   }
 
@@ -942,7 +940,7 @@ function createInstance(configuration) {
     const invalidator = createInvalidator(description, doAfterChange)
     enterContext(invalidator);
     invalidator.returnValue = doFirst( invalidator );
-    leaveContext( invalidator );
+    leaveContext(invalidator);
 
     return invalidator;
   }
@@ -959,29 +957,40 @@ function createInstance(configuration) {
   function defaultCreateRepeater(description, repeaterAction, repeaterNonRecordingAction, options) {
     return {
       type: "repeater", 
-      independent : false,
       id: observerId++,
-      nextToNotify: null,
-      sources : [],
       description: description,
+      sources : [],
+      nextToNotify: null,
       repeaterAction : modifyRepeaterAction(repeaterAction, options),
       nonRecordedAction: repeaterNonRecordingAction,
       options: options ? options : {},
-      restart: function() {
+      restart() {
         this.invalidateAction();
       },
-      invalidateAction: function() {
+      invalidateAction() {
         removeAllSources(this);
         repeaterDirty(this);
+        this.disposeChildren();
       },
-      dispose: function() {
-        //" + this.id + "." + this.description);
+      dispose() {
         detatchRepeater(this);
         removeAllSources(this);
+        this.disposeChildren();
+      },
+      disposeChildren() {
+        if (this.children) {
+          this.children.forEach(child => child.dispose());
+          this.children = null; 
+        }        
+      },
+      addChild(child) {
+        if (!this.children) this.children = [];
+        this.children.push(child);
       },
       nextDirty : null,
       previousDirty : null,
       lastRepeatTime: 0,
+      children: null
     }
   }
 
@@ -1059,7 +1068,11 @@ function createInstance(configuration) {
     if (!options) options = {};
 
     // Activate!
-    return refreshRepeater(createRepeater(description, repeaterAction, repeaterNonRecordingAction, options));
+    const repeater = createRepeater(description, repeaterAction, repeaterNonRecordingAction, options);
+    if (options.dependentOnParent && context.type === "repeater") {
+      context.addChild(repeater);
+    }
+    return refreshRepeater(repeater);
   }
 
   function refreshRepeater(repeater) {
@@ -1153,7 +1166,8 @@ function createInstance(configuration) {
   function log(entity, pattern) {
     state.recordingPaused++;
     updateContextState();
-    objectlog.log(entity, pattern);
+    // objectlog.log(entity, pattern);
+    console.log(entity, pattern);
     state.recordingPaused--;  
     updateContextState();
   }

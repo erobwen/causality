@@ -1,70 +1,69 @@
 'use strict';
 require = require("esm")(module);
-const {create, repeatOnChange, transaction, CausalityObject, cachedCallCount} = require("../causality.js").instance();
+const {create, repeatOnChange, repeat, transaction, cachedCallCount} = require("../causality.js").instance();
 const assert = require('assert');
 describe("Meta repeaters", function(){
 
-  // it("Test working", function(){
-  //   const events = [];
+  it("Test working", function(){
+    const events = [];
 
-  //   class Node extends CausalityObject {
-  //     constructor(value) {
-  //       super();
-  //       this.value = value;
-  //     }
+    class Node {
+      constructor(value) {
+        this.value = value;
+        return create(this);
+      }
 
-  //     emitHelloEvent(arg1, arg2) {
-  //       // log(">>>>>> pushing hello " + this.value + " <<<<<<<");
-  //       events.push("hello " + this.value);
-  //     }
-  //   };
+      emitHelloEvent(arg1, arg2) {
+        // log(">>>>>> pushing hello " + this.value + " <<<<<<<");
+        events.push("hello " + this.value);
+      }
+    };
 
-  //   let array = create([]);
-  //   let a = new Node('a');
-  //   let b = new Node('b');
-  //   let c = new Node('c');
-  //   let d = new Node('d');
+    let array = create([]);
+    let a = new Node('a');
+    let b = new Node('b');
+    let c = new Node('c');
+    let d = new Node('d');
 
-  //   array.push(a);
-  //   array.push(b);
-  //   array.push(c);
-  //   assert.equal(array.length, 3);
+    array.push(a);
+    array.push(b);
+    array.push(c);
+    assert.equal(array.length, 3);
 
-  //   // Meta repeater
-  //   repeatOnChange(function() {
-  //     // logGroup("Meta repeater: Installing other repeaters...");
-  //     array.forEach(function(node) {
-  //       // console.log(node);
-  //       node.repeat('emitHelloEvent', 'some', 'argument');
-  //     });
-		// 	// logUngroup();
-  //   });
+    // Meta repeater
+    repeatOnChange(function() {
+      // logGroup("Meta repeater: Installing other repeaters...");
+      array.forEach(function(node) {
+        // console.log(node);
+        repeat(() => {
+          node.emitHelloEvent('some', 'argument');
+        }, null, {dependentOnParent: true});
+      });
+			// logUngroup();
+    });
 
-  //   // Assert all repeaters run once upon creation
-  //   assert.equal(events.length, 3);
+    // Assert all repeaters run once upon creation
+    assert.equal(events.length, 3);
 
-  //   // Assert repeater on first node working
-  //   a.value = "A";
-  //   assert.equal(events.length, 4);
+    // Assert repeater on first node working
+    a.value = "A";
+    assert.equal(events.length, 4);
 
-  //   // console.log(a._repeaters.emitHelloEvent);
+    // console.log(a._repeaters.emitHelloEvent);
 
-  //   // console.log("============= trigger killing a ================");
-  //   // Assert add repeaer to new nodes
-  //   transaction(function() {
-  //     array.shift();
-  //     array.push(d);
-  //   });
-  //   // console.log("=============================");
-  //   assert.equal(events.length, 5);
+    // console.log("============= trigger killing a ================");
+    // Assert add repeaer to new nodes
+    transaction(function() {
+      array.shift();
+      array.push(d);
+    });
+    // console.log("=============================");
+    assert.equal(events.length, 7);
 
-  //   // console.log(a._repeaters.emitHelloEvent);
-  //   //
-  //   // Test no undead repeater, the
-  //   // a.value = "Abraka Dabra";
-  //   // // console.log(events);
-  //   // assert.equal(events.length, 5); // Fails, TODO: revive auto repeater killing
-  // });
+    // Test no undead repeater, the
+    a.value = "Abraka Dabra";
+    assert.equal(events.length, 7); // Fails, TODO: revive auto repeater killing
+  });
 
 
 
