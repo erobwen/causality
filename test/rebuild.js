@@ -52,6 +52,16 @@ describe("Re Build", function(){
       }
     }
 
+    find(value) {
+      if (this.value === value) {
+        return this;
+      } else if (this.value > value) {
+        return this.lower; 
+      } else if (this.value < value) {
+        return this.higher; 
+      }
+    }
+
     onReBuildCreate() {
       // log("onReBuildCreate")
     }
@@ -85,29 +95,33 @@ describe("Re Build", function(){
   it("Test rebuild", function(){
     const source = create([3]);
     let updateBuildEvents = [];
-    let tree; 
+    let root = create({tree: null}); 
 
     repeat(
       () => {
-        tree = buildTree(source);
+        root.tree = buildTree(source);
       },
       null, 
       { 
-        onStartBuildUpdate: () => { collecting = true; events.length = 0 },
+        onRefresh: () => { collecting = true; events.length = 0 },
         onEndBuildUpdate: () => { collecting = false; updateBuildEvents = events.slice(); events.length = 0; }
       }
     );
 
-    // logg();
-    // console.log(tree)
-    // logg();
+    logg();
+    log("inital...")
+    log(root)
+    
+    logg();
+    log("manipulate...")
     source.push(3.5);
-    // console.log(tree)
-    // console.log(updateBuildEvents);
-    // logg();
+    log(root)
+    log(updateBuildEvents);
+
+    logg();
+    log("manipulate...");
     source.shift();
-    // console.log(tree)
-    // console.log(updateBuildEvents);
-    // logg();
+    log(root)
+    log(updateBuildEvents);    
   });
 });

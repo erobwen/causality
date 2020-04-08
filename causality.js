@@ -572,15 +572,13 @@ function createInstance(configuration) {
         establishedObject.causalityForwardTo = proxy;
 
         inRepeater.newlyCreated.push(establishedObject);
-        emitCreationEvent(handler);
+        if (emitReCreationEvents) {
+          emitCreationEvent(handler);
+        }
         return establishedObject;
       } else {
         // Create a new one
         inRepeater.newlyCreated.push(proxy);
-      }
-
-      // Optionally emit event right now
-      if (emitReCreationEvents) {
         emitCreationEvent(handler);
       }
     } else {
@@ -786,14 +784,14 @@ function createInstance(configuration) {
       }
       if (observerSet.contentsCounter === sourcesObserverSetChunkSize) {
         let newChunk =
-            {
-              isRoot : false,
-              contents: {},
-              contentsCounter: 0,
-              next: null,
-              previous: null,
-              parent: null
-            };
+          {
+            isRoot : false,
+            contents: {},
+            contentsCounter: 0,
+            next: null,
+            previous: null,
+            parent: null
+          };
         if (observerSet.isRoot) {
           newChunk.parent = observerSet;
           observerSet.first = newChunk;
@@ -1192,7 +1190,6 @@ function createInstance(configuration) {
     }
 
     // Finish rebuilding
-    // log(repeater.newlyCreated)
     if (repeater.newlyCreated) {
       if (options.onStartBuildUpdate) options.onStartBuildUpdate();
       
@@ -1207,7 +1204,6 @@ function createInstance(configuration) {
         } else {
           // Send create on build message
           if (typeof(created.onReBuildCreate) === "function") created.onReBuildCreate();
-          if (!emitReCreationEvents) emitCreationEvent(created[objectMetaProperty].handler);
         }
       });
       repeater.newlyCreated = [];
