@@ -11,6 +11,12 @@ const { defaultDependencyInterfaceCreator } = require("./lib/defaultDependencyIn
 
 function createInstance(configuration) {
 
+  /***************************************************************
+   *
+   *  Coonfiguration
+   *
+   ***************************************************************/
+
   const {
     requireRepeaterName = false,
     requireInvalidatorName = false,
@@ -37,6 +43,8 @@ function createInstance(configuration) {
     cannotReadPropertyValue = null,
   } = configuration;  
 
+
+
   /***************************************************************
    *
    *  State
@@ -48,6 +56,139 @@ function createInstance(configuration) {
     blockInvalidation : 0,
     postponeInvalidation : 0
   };
+  let nextObjectId = 1;
+
+  let context = null;
+  let inActiveRecording = false;
+  let activeRecorder = null;
+
+  // Observers
+  let nextObserverToInvalidate = null;
+  let lastObserverToInvalidate = null;
+
+  // Invalidators
+  let recorderId = 0;
+
+  // Repeaters
+  let inRepeater = null;
+  let repeaterId = 0;
+  let firstDirtyRepeater = null;
+  let lastDirtyRepeater = null;
+  let refreshingAllDirtyRepeaters = false;
+
+
+  /***************************************************************
+   *
+   *  Constants
+   *
+   ***************************************************************/
+
+  const staticArrayOverrides = createStaticArrayOverrides();
+
+
+  /**********************************
+   *
+   *   Causality Global stacklets
+   *
+   **********************************/
+
+  function updateContextState() {
+    inActiveRecording = context !== null && state.invalidatorPaused === 0;
+    activeRecorder = (inActiveRecording) ? context : null;    
+    inRepeater = (context && context.type === "repeater") ? context: null;
+  }
+
+  function enterContext(enteredContext) {
+    enteredContext.parent = context;
+    context = enteredContext;
+    updateContextState();
+    return enteredContext;
+  }
+
+  function leaveContext( activeContext ) {    
+    if( context && activeContext === context ) {
+      context = context.parent;
+    } else {
+      throw new Error("Context missmatch");
+    }
+    updateContextState();
+  }
+
+
+  /************************************************************************
+   *
+   *  Instance
+   *
+   ************************************************************************/
+
+
+  const instance = {
+    // Main API
+    create,
+    c: create, 
+    invalidateOnChange,
+    repeatOnChange,
+    repeat: repeatOnChange,
+
+    // Modifiers
+    withoutRecording,
+    withoutReactions,
+
+    // Transaction
+    postponeReactions,
+    transaction : postponeReactions,
+
+    // Debugging and testing
+    // observeAll,
+    // inCachedCall,
+    clearRepeaterLists,
+    
+    // Logging
+    // log,
+    // logGroup,
+    // logUngroup,
+    // logToString,
+    // trace,
+    // objectlog,
+    // setObjectlog,
+    
+    // Advanced (only if you know what you are doing)
+    state,
+    enterContext,
+    leaveContext,
+    invalidateObservers
+  }; 
+
+
+  /***************************************************************
+   *
+   *  Customize
+   *
+   ***************************************************************/
+
+  const createRepeater = customCreateRepeater ? customCreateRepeater : defaultCreateRepeater;
+  const createInvalidator = customCreateInvalidator ? customCreateInvalidator : defaultCreateInvalidator;
+
+  const dependencyInterface = customDependencyInterfaceCreator ? 
+    customDependencyInterfaceCreator(invalidateObserver) 
+    : 
+    defaultDependencyInterfaceCreator(invalidateObserver);
+
+  const recordDependencyOnArray = dependencyInterface.recordDependencyOnArray;
+  const recordDependencyOnEnumeration = dependencyInterface.recordDependencyOnEnumeration;
+  const recordDependencyOnProperty = dependencyInterface.recordDependencyOnProperty;
+
+  // Object.assign(instance, require("./lib/causalityObject.js").bindToInstance(instance));
+
+
+
+  /************************************************************************
+   *
+   *  Module
+   *
+   ************************************************************************/
+
+  return instance;
 
 
   /***************************************************************
@@ -56,99 +197,103 @@ function createInstance(configuration) {
    *
    ***************************************************************/
 
-  let staticArrayOverrides = {
-    pop : function() {
-      let index = this.target.length - 1;
-      let result = this.target.pop();
+  function createStaticArrayOverrides() {
+    const result = {
+      pop : function() {
+        let index = this.target.length - 1;
+        let result = this.target.pop();
 
-      if (emitEvents) emitSpliceEvent(this, index, [result], null);
-      invalidateArrayObservers(this);
+        if (emitEvents) emitSpliceEvent(this, index, [result], null);
+        invalidateArrayObservers(this);
 
-      return result;
-    },
+        return result;
+      },
 
-    push : function() {
-      let index = this.target.length;
-      let argumentsArray = argumentsToArray(arguments);
-      this.target.push.apply(this.target, argumentsArray);
+      push : function() {
+        let index = this.target.length;
+        let argumentsArray = argumentsToArray(arguments);
+        this.target.push.apply(this.target, argumentsArray);
 
-      if (emitEvents) emitSpliceEvent(this, index, null, argumentsArray);
-      invalidateArrayObservers(this);
+        if (emitEvents) emitSpliceEvent(this, index, null, argumentsArray);
+        invalidateArrayObservers(this);
 
-      return this.target.length;
-    },
+        return this.target.length;
+      },
 
-    shift : function() {
-      let result = this.target.shift();
-      
-      if (emitEvents) emitSpliceEvent(this, 0, [result], null);
-      invalidateArrayObservers(this);
+      shift : function() {
+        let result = this.target.shift();
+        
+        if (emitEvents) emitSpliceEvent(this, 0, [result], null);
+        invalidateArrayObservers(this);
 
-      return result;
+        return result;
 
-    },
+      },
 
-    unshift : function() {
-      let argumentsArray = argumentsToArray(arguments);
-      this.target.unshift.apply(this.target, argumentsArray);
+      unshift : function() {
+        let argumentsArray = argumentsToArray(arguments);
+        this.target.unshift.apply(this.target, argumentsArray);
 
-      if (emitEvents) emitSpliceEvent(this, 0, null, argumentsArray);
-      invalidateArrayObservers(this);
+        if (emitEvents) emitSpliceEvent(this, 0, null, argumentsArray);
+        invalidateArrayObservers(this);
 
-      return this.target.length;
-    },
+        return this.target.length;
+      },
 
-    splice : function() {
-      let argumentsArray = argumentsToArray(arguments);
-      let index = argumentsArray[0];
-      let removedCount = argumentsArray[1];
-      if( typeof argumentsArray[1] === 'undefined' )
-        removedCount = this.target.length - index;
-      let added = argumentsArray.slice(2);
-      let removed = this.target.slice(index, index + removedCount);
-      let result = this.target.splice.apply(this.target, argumentsArray);
+      splice : function() {
+        let argumentsArray = argumentsToArray(arguments);
+        let index = argumentsArray[0];
+        let removedCount = argumentsArray[1];
+        if( typeof argumentsArray[1] === 'undefined' )
+          removedCount = this.target.length - index;
+        let added = argumentsArray.slice(2);
+        let removed = this.target.slice(index, index + removedCount);
+        let result = this.target.splice.apply(this.target, argumentsArray);
 
-      if (emitEvents) emitSpliceEvent(this, index, removed, added);
-      invalidateArrayObservers(this);
+        if (emitEvents) emitSpliceEvent(this, index, removed, added);
+        invalidateArrayObservers(this);
 
-      return result; // equivalent to removed
-    },
+        return result; // equivalent to removed
+      },
 
-    copyWithin: function(target, start, end) {
-      if( !start ) start = 0;
-      if( !end ) end = this.target.length;
-      if (target < 0) { start = this.target.length - target; }
-      if (start < 0) { start = this.target.length - start; }
-      if (end < 0) { start = this.target.length - end; }
-      end = Math.min(end, this.target.length);
-      start = Math.min(start, this.target.length);
-      if (start >= end) {
-        return;
+      copyWithin: function(target, start, end) {
+        if( !start ) start = 0;
+        if( !end ) end = this.target.length;
+        if (target < 0) { start = this.target.length - target; }
+        if (start < 0) { start = this.target.length - start; }
+        if (end < 0) { start = this.target.length - end; }
+        end = Math.min(end, this.target.length);
+        start = Math.min(start, this.target.length);
+        if (start >= end) {
+          return;
+        }
+        let removed = this.target.slice(target, target + end - start);
+        let added = this.target.slice(start, end);
+        let result = this.target.copyWithin(target, start, end);
+
+        if (emitEvents) emitSpliceEvent(this, target, added, removed);
+        invalidateArrayObservers(this);
+
+        return result;
       }
-      let removed = this.target.slice(target, target + end - start);
-      let added = this.target.slice(start, end);
-      let result = this.target.copyWithin(target, start, end);
-
-      if (emitEvents) emitSpliceEvent(this, target, added, removed);
-      invalidateArrayObservers(this);
-
-      return result;
-    }
-  };
-
-  ['reverse', 'sort', 'fill'].forEach(function(functionName) {
-    staticArrayOverrides[functionName] = function() {
-      let argumentsArray = argumentsToArray(arguments);
-      let removed = this.target.slice(0);
-      let result = this.target[functionName]
-          .apply(this.target, argumentsArray);
-
-      if (emitEvents) emitSpliceEvent(this, 0, removed, this.target.slice(0));
-      invalidateArrayObservers(this);
-
-      return result;
     };
-  });
+
+    ['reverse', 'sort', 'fill'].forEach(function(functionName) {
+      result[functionName] = function() {
+        let argumentsArray = argumentsToArray(arguments);
+        let removed = this.target.slice(0);
+        let result = this.target[functionName]
+            .apply(this.target, argumentsArray);
+
+        if (emitEvents) emitSpliceEvent(this, 0, removed, this.target.slice(0));
+        invalidateArrayObservers(this);
+
+        return result;
+      };
+    });
+
+    return result;
+  }
 
 
   /***************************************************************
@@ -500,7 +645,6 @@ function createInstance(configuration) {
    *
    ***************************************************************/
 
-  let nextId = 1;
   function create(createdTarget, buildId) {
     if (typeof(createdTarget) === 'undefined') {
       createdTarget = {};
@@ -551,7 +695,7 @@ function createInstance(configuration) {
     handler.proxy = proxy;
 
     handler.meta = {
-      id: nextId++,
+      id: nextObjectId++,
       buildId : buildId,
       forwardTo : null,
       target: createdTarget,
@@ -587,40 +731,6 @@ function createInstance(configuration) {
     return proxy;
   }
 
-
-
-  /**********************************
-   *
-   *   Causality Global stacklets
-   *
-   **********************************/
-
-  let context = null;
-  let inActiveRecording = false;
-  let activeRecorder = null;
-  let inRepeater = null;
-
-  function updateContextState() {
-    inActiveRecording = context !== null && state.invalidatorPaused === 0;
-    activeRecorder = (inActiveRecording) ? context : null;    
-    inRepeater = (context && context.type === "repeater") ? context: null;
-  }
-
-  function enterContext(enteredContext) {
-    enteredContext.parent = context;
-    context = enteredContext;
-    updateContextState();
-    return enteredContext;
-  }
-
-  function leaveContext( activeContext ) {    
-    if( context && activeContext === context ) {
-      context = context.parent;
-    } else {
-      throw new Error("Context missmatch");
-    }
-    updateContextState();
-  }
 
 
   /**********************************
@@ -706,19 +816,11 @@ function createInstance(configuration) {
 
   /**********************************
    *
-   *  Dependency invalidator
+   *  Setup dependency interface
    *
    **********************************/
 
 
-  const dependencyInterface = customDependencyInterfaceCreator ? 
-    customDependencyInterfaceCreator(invalidateObserver) 
-    : 
-    defaultDependencyInterfaceCreator(invalidateObserver);
-
-  const recordDependencyOnArray = dependencyInterface.recordDependencyOnArray;
-  const recordDependencyOnEnumeration = dependencyInterface.recordDependencyOnEnumeration;
-  const recordDependencyOnProperty = dependencyInterface.recordDependencyOnProperty;
 
 
   function invalidateArrayObservers(handler) {  
@@ -845,10 +947,6 @@ function createInstance(configuration) {
     updateContextState();
   }
 
-
-  let nextObserverToInvalidate = null;
-  let lastObserverToInvalidate = null;
-
   function proceedWithPostponedInvalidations() {
     if (state.postponeInvalidation == 0) {
       while (nextObserverToInvalidate !== null) {
@@ -915,8 +1013,6 @@ function createInstance(configuration) {
    *
    **********************************/
 
-  let recorderId = 0;
-
   function defaultCreateInvalidator(description, doAfterChange) {
     return {
       id: recorderId++,
@@ -940,7 +1036,6 @@ function createInstance(configuration) {
     }
   }
 
-  const createInvalidator = customCreateInvalidator ? customCreateInvalidator : defaultCreateInvalidator;
 
   function invalidateOnChange() {
     // description(optional), doFirst, doAfterChange. doAfterChange
@@ -978,8 +1073,6 @@ function createInstance(configuration) {
    *
    **********************************/
 
-  let firstDirtyRepeater = null;
-  let lastDirtyRepeater = null;
 
   function defaultCreateRepeater(description, repeaterAction, repeaterNonRecordingAction, options) {
     return {
@@ -1009,8 +1102,6 @@ function createInstance(configuration) {
       lastRepeatTime: 0,
     }
   }
-
-  const createRepeater = customCreateRepeater ? customCreateRepeater : defaultCreateRepeater;
 
   function clearRepeaterLists() {
     recorderId = 0;
@@ -1055,7 +1146,6 @@ function createInstance(configuration) {
     return repeaterAction;
   }
 
-  let repeaterId = 0;
   function repeatOnChange() { // description(optional), action
     // Arguments
     let description = '';
@@ -1157,8 +1247,6 @@ function createInstance(configuration) {
     refreshAllDirtyRepeaters();
   }
 
-  let refreshingAllDirtyRepeaters = false;
-
   function refreshAllDirtyRepeaters() {
     if (!refreshingAllDirtyRepeaters) {
       if (firstDirtyRepeater !== null) {
@@ -1174,55 +1262,6 @@ function createInstance(configuration) {
     }
   }
 
-
-  /************************************************************************
-   *
-   *  Instance
-   *
-   ************************************************************************/
-
-
-  const instance = {};
-  Object.assign(instance, {
-    // Main API
-    create,
-    c: create, 
-    invalidateOnChange,
-    repeatOnChange,
-    repeat: repeatOnChange,
-
-    // Modifiers
-    withoutRecording,
-    withoutReactions,
-
-    // Transaction
-    postponeReactions,
-    transaction : postponeReactions,
-
-    // Debugging and testing
-    // observeAll,
-    // inCachedCall,
-    clearRepeaterLists,
-    
-    // Logging
-    // log,
-    // logGroup,
-    // logUngroup,
-    // logToString,
-    // trace,
-    // objectlog,
-    // setObjectlog,
-    
-    // Advanced (only if you know what you are doing)
-    state,
-    enterContext,
-    leaveContext,
-    invalidateObservers
-  }); 
-
-  // Object.assign(instance, require("./lib/causalityObject.js").bindToInstance(instance));
-
-  return instance;
 }
   
 let instances = {};
