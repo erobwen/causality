@@ -615,8 +615,8 @@ function createInstance(configuration) {
     // logGroup(`enterContext: ${type} ${enteredContext.id} ${enteredContext.description}`);
     if (typeof(enteredContext.initialized) === 'undefined') {
       // Initialize context
-      enteredContext.disposeContextsRecursivley
-        = disposeContextsRecursivley;
+      // enteredContext.disposeContextsRecursivley
+        // = disposeContextsRecursivley;
       enteredContext.parent = null;
       enteredContext.independentParent = independentContext;
       enteredContext.child = null;
@@ -624,7 +624,7 @@ function createInstance(configuration) {
 
       // Connect with parent
       if (context !== null && !enteredContext.independent) {
-        addChild(context, enteredContext)
+        // addChild(context, enteredContext)
         enteredContext.parent = context;
         // Even a shared context like a cached call only has
         // the first callee as its parent. Others will just observe it.
@@ -663,7 +663,7 @@ function createInstance(configuration) {
     if( context && activeContext === context ) {
       //console.log("leaveContext " + activeContext.type, activeContext.id||'', "to", context.parent ? context.parent.id : 'null');//DEBUG
       if (context.independent) {
-        independentContext = context.independentParent;
+        independentContext = context.parent;
       }
       context = context.parent;
     }
@@ -671,45 +671,6 @@ function createInstance(configuration) {
   }
 
 
-
-  function disposeChildContexts(context) {
-    //console.warn("disposeChildContexts " + context.type, context.id||'');//DEBUG
-    // trace.context && logGroup(`disposeChildContexts: ${context.type} ${context.id}`);
-    if (context.child !== null && !context.child.independent) {
-      context.child.disposeContextsRecursivley();
-    }
-    context.child = null; // always dispose
-    if (context.children !== null) {
-      context.children.forEach(function (child) {
-        if (!child.independent) {
-          child.disposeContextsRecursivley();
-        }
-      });
-    }
-    context.children = []; // always clear
-    // trace.context && logUngroup();
-  }
-
-
-  function disposeContextsRecursivley() {
-    // trace.context && logGroup(`disposeContextsRecursivley ${this.id}`);
-    this.dispose();
-    this.isRemoved = true;
-    disposeChildContexts(this);
-    // trace.context && logUngroup();
-  }
-
-  // Optimization, do not create array if not needed.
-  function addChild(context, child) {
-    if (context.child === null && context.children === null) {
-      context.child = child;
-    } else if (context.children === null) {
-      context.children = [context.child, child];
-      context.child = null;
-    } else {
-      context.children.push(child);
-    }
-  }
 
   /**********************************
    *
@@ -1089,16 +1050,16 @@ function createInstance(configuration) {
 
   function defaultCreateInvalidator(description, doAfterChange) {
     return {
+      id: recorderId++,
       type: 'recording',
       description: description,
       independent : false,
-      id: recorderId++,
       sources : [],
+      nextToNotify: null,
       invalidateAction: doAfterChange,
       dispose : function() {
         removeAllSources(this);
       },
-      nextToNotify: null,
       record : function( action ){
         if( context == this || this.isRemoved ) return action();
         //console.log('enteredContext.record');//DEBUG
@@ -1313,7 +1274,8 @@ function createInstance(configuration) {
   }
 
   function repeaterDirty(repeater) { // TODO: Add update block on this stage?
-    disposeChildContexts(repeater);
+    repeater.dispose();
+    // disposeChildContexts(repeater);
     // disposeSingleChildContext(repeater);
 
     if (lastDirtyRepeater === null) {

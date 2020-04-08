@@ -1,3 +1,45 @@
+
+
+  function disposeChildContexts(context) {
+    //console.warn("disposeChildContexts " + context.type, context.id||'');//DEBUG
+    // trace.context && logGroup(`disposeChildContexts: ${context.type} ${context.id}`);
+    if (context.child !== null && !context.child.independent) {
+      context.child.disposeContextsRecursivley();
+    }
+    context.child = null; // always dispose
+    if (context.children !== null) {
+      context.children.forEach(function (child) {
+        if (!child.independent) {
+          child.disposeContextsRecursivley();
+        }
+      });
+    }
+    context.children = []; // always clear
+    // trace.context && logUngroup();
+  }
+
+
+  function disposeContextsRecursivley() {
+    // trace.context && logGroup(`disposeContextsRecursivley ${this.id}`);
+    this.dispose();
+    this.isRemoved = true;
+    disposeChildContexts(this);
+    // trace.context && logUngroup();
+  }
+
+  // Optimization, do not create array if not needed.
+  function addChild(context, child) {
+    if (context.child === null && context.children === null) {
+      context.child = child;
+    } else if (context.children === null) {
+      context.children = [context.child, child];
+      context.child = null;
+    } else {
+      context.children.push(child);
+    }
+  }
+
+
   /***************************************************************
    *
    *  Debug & helpers
