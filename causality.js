@@ -588,12 +588,9 @@ function createInstance(configuration) {
    *
    **********************************/
 
-  // let independentContext = null;
   let context = null;
-
   let inActiveRecording = false;
   let activeRecorder = null;
-
   let inRepeater = null;
 
   function updateContextState() {
@@ -602,63 +599,21 @@ function createInstance(configuration) {
     inRepeater = (context && context.type === "repeater") ? context: null;
   }
 
-  // occuring types: invalidator, repeater_context,
-  // cached_call, reCache, block_side_effects
   function enterContext(enteredContext) {
-    // logGroup(`enterContext: ${type} ${enteredContext.id} ${enteredContext.description}`);
-    if (typeof(enteredContext.initialized) === 'undefined') {
-      enteredContext.parent = null;
-      // enteredContext.child = null;
-      // enteredContext.children = null;
-
-      // Connect with parent
-      if (context !== null && !enteredContext.independent) {
-        // addChild(context, enteredContext)
-        enteredContext.parent = context;
-        // Even a shared context like a cached call only has
-        // the first callee as its parent. Others will just observe it.
-      } else {
-        enteredContext.independent = true;
-      }
-      // console.log(enteredContext)
-      // if (enteredContext.independent) {
-      //   independentContext = enteredContext;
-      // }
-
-      enteredContext.initialized = true;
-    } else {
-      // if (enteredContext.independent) {
-      //   independentContext = enteredContext;
-      // } else {
-      //   independentContext = enteredContext.independentParent;
-      // }
-    }
-    
-    // if (!enteredContext.independent)
-    // if (!enteredContext.independent)
-    // if (independentContext === null && !enteredContext.independent) {
-    //   throw new Error("should be!!");
-    // }
-
+    enteredContext.parent = context;
     context = enteredContext;
     updateContextState();
-    // logUngroup();
     return enteredContext;
   }
 
-
-  function leaveContext( activeContext ) {
-    
+  function leaveContext( activeContext ) {    
     if( context && activeContext === context ) {
-      //console.log("leaveContext " + activeContext.type, activeContext.id||'', "to", context.parent ? context.parent.id : 'null');//DEBUG
-      // if (context.independent) {
-        // independentContext = context.parent;
-      // }
       context = context.parent;
+    } else {
+      throw new Error("Context missmatch");
     }
     updateContextState();
   }
-
 
 
   /**********************************
