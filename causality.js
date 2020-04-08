@@ -588,25 +588,18 @@ function createInstance(configuration) {
    *
    **********************************/
 
-  let independentContext = null;
+  // let independentContext = null;
   let context = null;
 
   let inActiveRecording = false;
   let activeRecorder = null;
 
-  // let inCachedCall = {value: null};
   let inRepeater = null;
 
   function updateContextState() {
-    inActiveRecording = (context !== null) ? ((context.type === "invalidator" || context.type === "repeater_context") && state.invalidatorPaused === 0) : false;
-    activeRecorder = (inActiveRecording) ? context : null;
-    
-    // inCachedCall.value = null;
-    inRepeater = null;
-    if (independentContext !== null) {
-      // inCachedCall.value = (independentContext.type === "cached_call") ? independentContext : null; 
-      inRepeater = (independentContext.type === "repeater_context") ? independentContext : null;
-    }
+    inActiveRecording = context !== null && state.invalidatorPaused === 0;
+    activeRecorder = (inActiveRecording) ? context : null;    
+    inRepeater = (context && context.type === "repeater") ? context: null;
   }
 
   // occuring types: invalidator, repeater_context,
@@ -614,13 +607,9 @@ function createInstance(configuration) {
   function enterContext(enteredContext) {
     // logGroup(`enterContext: ${type} ${enteredContext.id} ${enteredContext.description}`);
     if (typeof(enteredContext.initialized) === 'undefined') {
-      // Initialize context
-      // enteredContext.disposeContextsRecursivley
-        // = disposeContextsRecursivley;
       enteredContext.parent = null;
-      enteredContext.independentParent = independentContext;
-      enteredContext.child = null;
-      enteredContext.children = null;
+      // enteredContext.child = null;
+      // enteredContext.children = null;
 
       // Connect with parent
       if (context !== null && !enteredContext.independent) {
@@ -632,24 +621,24 @@ function createInstance(configuration) {
         enteredContext.independent = true;
       }
       // console.log(enteredContext)
-      if (enteredContext.independent) {
-        independentContext = enteredContext;
-      }
+      // if (enteredContext.independent) {
+      //   independentContext = enteredContext;
+      // }
 
       enteredContext.initialized = true;
     } else {
-      if (enteredContext.independent) {
-        independentContext = enteredContext;
-      } else {
-        independentContext = enteredContext.independentParent;
-      }
+      // if (enteredContext.independent) {
+      //   independentContext = enteredContext;
+      // } else {
+      //   independentContext = enteredContext.independentParent;
+      // }
     }
     
     // if (!enteredContext.independent)
     // if (!enteredContext.independent)
-    if (independentContext === null && !enteredContext.independent) {
-      throw new Error("should be!!");
-    }
+    // if (independentContext === null && !enteredContext.independent) {
+    //   throw new Error("should be!!");
+    // }
 
     context = enteredContext;
     updateContextState();
@@ -662,9 +651,9 @@ function createInstance(configuration) {
     
     if( context && activeContext === context ) {
       //console.log("leaveContext " + activeContext.type, activeContext.id||'', "to", context.parent ? context.parent.id : 'null');//DEBUG
-      if (context.independent) {
-        independentContext = context.parent;
-      }
+      // if (context.independent) {
+        // independentContext = context.parent;
+      // }
       context = context.parent;
     }
     updateContextState();
@@ -1114,7 +1103,7 @@ function createInstance(configuration) {
 
   function defaultCreateRepeater(description, repeaterAction, repeaterNonRecordingAction, options) {
     return {
-      type: 'repeater_context', 
+      type: "repeater", 
       independent : false,
       id: repeaterId++,
       nextToNotify: null,
