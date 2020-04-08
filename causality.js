@@ -36,7 +36,7 @@ function createInstance(configuration) {
    ***************************************************************/
 
   const state = {
-    recordingPaused : 0,
+    invalidatorPaused : 0,
     blockInvalidation : 0,
     postponeInvalidation : 0
   };
@@ -594,22 +594,22 @@ function createInstance(configuration) {
   let inActiveRecording = false;
   let activeRecorder = null;
 
-  let inCachedCall = {value: null};
+  // let inCachedCall = {value: null};
   let inRepeater = null;
 
   function updateContextState() {
-    inActiveRecording = (context !== null) ? ((context.type === "recording" || context.type === "repeater_context") && state.recordingPaused === 0) : false;
+    inActiveRecording = (context !== null) ? ((context.type === "invalidator" || context.type === "repeater_context") && state.invalidatorPaused === 0) : false;
     activeRecorder = (inActiveRecording) ? context : null;
     
-    inCachedCall.value = null;
+    // inCachedCall.value = null;
     inRepeater = null;
     if (independentContext !== null) {
-      inCachedCall.value = (independentContext.type === "cached_call") ? independentContext : null; 
+      // inCachedCall.value = (independentContext.type === "cached_call") ? independentContext : null; 
       inRepeater = (independentContext.type === "repeater_context") ? independentContext : null;
     }
   }
 
-  // occuring types: recording, repeater_context,
+  // occuring types: invalidator, repeater_context,
   // cached_call, reCache, block_side_effects
   function enterContext(enteredContext) {
     // logGroup(`enterContext: ${type} ${enteredContext.id} ${enteredContext.description}`);
@@ -751,15 +751,15 @@ function createInstance(configuration) {
 
   /**********************************
    *
-   *  Dependency recording
+   *  Dependency invalidator
    *
    **********************************/
 
   function withoutRecording(action) {
-    state.recordingPaused++;
+    state.invalidatorPaused++;
     updateContextState();
     action();
-    state.recordingPaused--;
+    state.invalidatorPaused--;
     updateContextState();
   }
 
@@ -887,7 +887,7 @@ function createInstance(configuration) {
 
   function removeAllSources(observer) {
     const observerId = observer.id;
-    // trace.context && logGroup(`remove recording ${observer.id}`);
+    // trace.context && logGroup(`remove invalidator ${observer.id}`);
     // Clear out previous observations
     observer.sources.forEach(function(observerSet) {
       removeFromObserverSet(observerId, observerSet);
@@ -1051,7 +1051,7 @@ function createInstance(configuration) {
   function defaultCreateInvalidator(description, doAfterChange) {
     return {
       id: recorderId++,
-      type: 'recording',
+      type: 'invalidator',
       description: description,
       independent : false,
       sources : [],
@@ -1334,7 +1334,7 @@ function createInstance(configuration) {
 
     // Debugging and testing
     // observeAll,
-    inCachedCall,
+    // inCachedCall,
     clearRepeaterLists,
     
     // Logging
