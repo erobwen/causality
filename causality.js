@@ -415,6 +415,7 @@ function createInstance(configuration) {
       delete target[key];
       if(!( key in target )) { // Write protected?
         emitDeleteEvent(this, key, previousValue);
+        invalidatePropertyObservers(this, key);
         invalidateEnumerateObservers(this);
       }
       if( key in target ) return false; // Write protected?
