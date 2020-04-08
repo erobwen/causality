@@ -1,6 +1,7 @@
 'use strict'; 
 // require = require("esm")(module);
 const { argumentsToArray, configSignature, mergeInto } = require("./lib/utility.js");
+const objectlog = require("./lib/objectlog.js");
 const { defaultDependencyInterfaceCreator } = require("./lib/defaultDependencyInterface.js");
 
 // const log = console.log;
@@ -51,6 +52,13 @@ function createInstance(configuration) {
    *
    ***************************************************************/
 
+  // Public state, shareable with other modules. 
+  const state = {
+    recordingPaused : 0,
+    blockInvalidation : 0,
+    postponeInvalidation : 0
+  };
+
   // Object creation
   let nextObjectId = 1;
 
@@ -60,20 +68,14 @@ function createInstance(configuration) {
   let activeRecorder = null;
 
   // Observers
-  const state = {
-    invalidatorPaused : 0,
-    blockInvalidation : 0,
-    postponeInvalidation : 0
-  };
+  let observerId = 0;
   let nextObserverToInvalidate = null;
   let lastObserverToInvalidate = null;
 
   // Invalidators
-  let recorderId = 0;
 
   // Repeaters
   let inRepeater = null;
-  let repeaterId = 0;
   let firstDirtyRepeater = null;
   let lastDirtyRepeater = null;
   let refreshingAllDirtyRepeaters = false;
@@ -111,24 +113,20 @@ function createInstance(configuration) {
     transaction : postponeReactions,
 
     // Debugging and testing
-    // observeAll,
-    // inCachedCall,
     clearRepeaterLists,
     
     // Logging
-    // log,
-    // logGroup,
-    // logUngroup,
-    // logToString,
-    // trace,
-    // objectlog,
-    // setObjectlog,
+    log,
+    logGroup,
+    logUngroup,
+    logToString,
     
-    // Advanced (only if you know what you are doing)
+    // Advanced (only if you know what you are doing, typically used by plugins to causality)
     state,
     enterContext,
     leaveContext,
-    invalidateObserver
+    invalidateObserver, 
+    nextObserverId: () => { return observerId++ }
   }; 
 
 
@@ -173,22 +171,20 @@ function createInstance(configuration) {
    *
    **********************************/
 
+  function withoutRecording(action) {
+    state.recordingPaused++;
+    updateContextState();
+    action();
+    state.recordingPaused--;
+    updateContextState();
+  }
+
   function postponeReactions(callback) {
     state.postponeInvalidation++;
     callback();
     state.postponeInvalidation--;
     proceedWithPostponedInvalidations();
   }
-
-
-  function withoutRecording(action) {
-    state.invalidatorPaused++;
-    updateContextState();
-    action();
-    state.invalidatorPaused--;
-    updateContextState();
-  }
-
 
   function withoutReactions(callback) {
     state.blockInvalidation++;
@@ -204,7 +200,7 @@ function createInstance(configuration) {
    **********************************/
 
   function updateContextState() {
-    inActiveRecording = context !== null && state.invalidatorPaused === 0;
+    inActiveRecording = context !== null && state.recordingPaused === 0;
     activeRecorder = (inActiveRecording) ? context : null;    
     inRepeater = (context && context.type === "repeater") ? context: null;
   }
@@ -899,7 +895,7 @@ function createInstance(configuration) {
 
   function defaultCreateInvalidator(description, doAfterChange) {
     return {
-      id: recorderId++,
+      id: observerId++,
       type: 'invalidator',
       description: description,
       independent : false,
@@ -962,7 +958,7 @@ function createInstance(configuration) {
     return {
       type: "repeater", 
       independent : false,
-      id: repeaterId++,
+      id: observerId++,
       nextToNotify: null,
       sources : [],
       description: description,
@@ -988,7 +984,7 @@ function createInstance(configuration) {
   }
 
   function clearRepeaterLists() {
-    recorderId = 0;
+    observerId = 0;
     firstDirtyRepeater = null;
     lastDirtyRepeater = null;
   }
@@ -1146,6 +1142,40 @@ function createInstance(configuration) {
     }
   }
 
+  /***************************************************************
+   *
+   *  Debugging
+   *
+   ***************************************************************/
+   
+  function log(entity, pattern) {
+    state.recordingPaused++;
+    updateContextState();
+    objectlog.log(entity, pattern);
+    state.recordingPaused--;  
+    updateContextState();
+  }
+  
+  function logGroup(entity, pattern) {
+    state.recordingPaused++;
+    updateContextState();
+    objectlog.group(entity, pattern);
+    state.recordingPaused--;
+    updateContextState();
+  } 
+  
+  function logUngroup() {
+    objectlog.groupEnd(); 
+  } 
+
+  function logToString(entity, pattern) {
+    state.recordingPaused++;
+    updateContextState();
+    let result = objectlog.logToString(entity, pattern);
+    state.recordingPaused--;
+    updateContextState();
+    return result;
+  }
 }
   
 let instances = {};
