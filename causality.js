@@ -169,6 +169,36 @@ function createInstance(configuration) {
 
   /**********************************
    *
+   *   State ajustments
+   *
+   **********************************/
+
+  function postponeReactions(callback) {
+    state.postponeInvalidation++;
+    callback();
+    state.postponeInvalidation--;
+    proceedWithPostponedInvalidations();
+  }
+
+
+  function withoutRecording(action) {
+    state.invalidatorPaused++;
+    updateContextState();
+    action();
+    state.invalidatorPaused--;
+    updateContextState();
+  }
+
+
+  function withoutReactions(callback) {
+    state.blockInvalidation++;
+    callback();
+    state.blockInvalidation--;
+  }
+
+
+  /**********************************
+   *
    *   Causality Global stacklets
    *
    **********************************/
@@ -740,25 +770,9 @@ function createInstance(configuration) {
 
   /**********************************
    *
-   *  Postpone reactions / Transactions
-   *
-   **********************************/
-
-  function postponeReactions(callback) {
-    state.postponeInvalidation++;
-    callback();
-    state.postponeInvalidation--;
-    proceedWithPostponedInvalidations();
-  }
-
-
-
-  /**********************************
-   *
    *  Emit events & onChange
    *
    **********************************/
-
 
   function emitSpliceEvent(handler, index, removed, added) {
     if (emitEvents) {
@@ -821,24 +835,9 @@ function createInstance(configuration) {
 
   /**********************************
    *
-   *  Setup dependency interface
+   *   Reactive observers
    *
    **********************************/
-
-
-
-  /** -------------
-   *  Upon change
-   * -------------- */
-
-
-  function withoutRecording(action) {
-    state.invalidatorPaused++;
-    updateContextState();
-    action();
-    state.invalidatorPaused--;
-    updateContextState();
-  }
 
   function proceedWithPostponedInvalidations() {
     if (state.postponeInvalidation == 0) {
@@ -853,14 +852,6 @@ function createInstance(configuration) {
       lastObserverToInvalidate = null;
     }
   }
-
-  function withoutReactions(callback) {
-    state.blockInvalidation++;
-    callback();
-    state.blockInvalidation--;
-  }
-
-
 
   function invalidateObserver(observer) {
     if (observer != context) {
