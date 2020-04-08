@@ -142,18 +142,18 @@ function createInstance(configuration) {
   const createRepeater = customCreateRepeater ? customCreateRepeater : defaultCreateRepeater;
   const createInvalidator = customCreateInvalidator ? customCreateInvalidator : defaultCreateInvalidator;
 
-  // Dependency interface
+  // Dependency interface (plugin data structures connecting observer and observable)
   const dependencyInterface = customDependencyInterfaceCreator ? 
     customDependencyInterfaceCreator(instance) 
     : 
     defaultDependencyInterfaceCreator(instance);
-
   const recordDependencyOnArray = dependencyInterface.recordDependencyOnArray;
   const recordDependencyOnEnumeration = dependencyInterface.recordDependencyOnEnumeration;
   const recordDependencyOnProperty = dependencyInterface.recordDependencyOnProperty;
   const invalidateArrayObservers = dependencyInterface.invalidateArrayObservers;
-  const invalidatePropertyObservers = dependencyInterface.invalidatePropertyObservers;
   const invalidateEnumerateObservers = dependencyInterface.invalidateEnumerateObservers;
+  const invalidatePropertyObservers = dependencyInterface.invalidatePropertyObservers;
+  const removeAllSources = dependencyInterface.removeAllSources;
 
   // Object.assign(instance, require("./lib/causalityObject.js").bindToInstance(instance));
 
@@ -824,72 +824,6 @@ function createInstance(configuration) {
    *  Setup dependency interface
    *
    **********************************/
-
-
-
-
-  function removeAllSources(observer) {
-    const observerId = observer.id;
-    // trace.context && logGroup(`remove invalidator ${observer.id}`);
-    // Clear out previous observations
-    observer.sources.forEach(function(observerSet) {
-      removeFromObserverSet(observerId, observerSet);
-    
-    });
-    observer.sources.length = 0;  // From repeater itself.
-    // trace.context && logUngroup();
-  }
-
-  function removeFromObserverSet(id, observerSet) {
-    let observerSetContents = observerSet['contents'];
-    delete observerSetContents[id];
-    let noMoreObservers = false;
-    observerSet.contentsCounter--;
-    // trace.context && log(
-    //     "observerSet.contentsCounter: " +
-    //         observerSet.contentsCounter);
-    if (observerSet.contentsCounter == 0) {
-      if (observerSet.isRoot) {
-        if (observerSet.first === null &&
-            observerSet.last === null) {
-          noMoreObservers = true;
-        }
-      } else {
-        if (observerSet.parent.first === observerSet) {
-          observerSet.parent.first === observerSet.next;
-        }
-
-        if (observerSet.parent.last === observerSet) {
-          observerSet.parent.last
-            === observerSet.previous;
-        }
-
-        if (observerSet.next !== null) {
-          observerSet.next.previous =
-            observerSet.previous;
-        }
-
-        if (observerSet.previous !== null) {
-          observerSet.previous.next = observerSet.next;
-        }
-
-        observerSet.previous = null;
-        observerSet.next = null;
-
-        if (observerSet.parent.first === null &&
-            observerSet.parent.last === null) {
-          noMoreObservers = true;
-        }
-      }
-
-      if (noMoreObservers &&
-          typeof(observerSet.noMoreObserversCallback)
-          !== 'undefined') {
-        observerSet.noMoreObserversCallback();
-      }
-    }
-
-  }
 
 
 
