@@ -611,7 +611,7 @@ function createInstance(configuration) {
 
   // occuring types: recording, repeater_context,
   // cached_call, reCache, block_side_effects
-  function enterContext(type, enteredContext) {
+  function enterContext(enteredContext) {
     // logGroup(`enterContext: ${type} ${enteredContext.id} ${enteredContext.description}`);
     if (typeof(enteredContext.initialized) === 'undefined') {
       // Initialize context
@@ -619,10 +619,8 @@ function createInstance(configuration) {
         = disposeContextsRecursivley;
       enteredContext.parent = null;
       enteredContext.independentParent = independentContext;
-      enteredContext.type = type;
       enteredContext.child = null;
       enteredContext.children = null;
-      enteredContext.directlyInvokedByApplication = (context === null);
 
       // Connect with parent
       if (context !== null && !enteredContext.independent) {
@@ -1091,6 +1089,7 @@ function createInstance(configuration) {
 
   function defaultCreateInvalidator(description, doAfterChange) {
     return {
+      type: 'recording',
       description: description,
       independent : false,
       id: recorderId++,
@@ -1103,7 +1102,7 @@ function createInstance(configuration) {
       record : function( action ){
         if( context == this || this.isRemoved ) return action();
         //console.log('enteredContext.record');//DEBUG
-        const activeContext = enterContext(this.type, this);
+        const activeContext = enterContext(this);
         const value = action();
         leaveContext( activeContext );
         return value;
@@ -1134,7 +1133,6 @@ function createInstance(configuration) {
 
     // Recorder context
     const enteredContext = enterContext(
-      'recording', 
       createInvalidator(description, doAfterChange)
     );
 
@@ -1159,6 +1157,7 @@ function createInstance(configuration) {
 
   function defaultCreateRepeater(description, repeaterAction, repeaterNonRecordingAction, options) {
     return {
+      type: 'repeater_context', 
       independent : false,
       id: repeaterId++,
       nextToNotify: null,
@@ -1270,7 +1269,7 @@ function createInstance(configuration) {
     if (options.onRefresh) options.onRefresh(repeater);
         
     // Recorded action
-    const activeContext = enterContext('repeater_context', repeater);
+    const activeContext = enterContext(repeater);
     repeater.returnValue = repeater.repeaterAction(repeater)
 
     // Non recorded action
@@ -1397,7 +1396,7 @@ function createInstance(configuration) {
     invalidateObservers
   }); 
 
-  Object.assign(instance, require("./lib/causalityObject.js").bindToInstance(instance));
+  // Object.assign(instance, require("./lib/causalityObject.js").bindToInstance(instance));
 
   return instance;
 }
