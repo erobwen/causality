@@ -1,7 +1,7 @@
 'use strict'; 
 // require = require("esm")(module);
 const { argumentsToArray, configSignature, mergeInto } = require("./lib/utility.js");
-const objectlog = require("./lib/objectlog.js");
+const defaultObjectlog = require("./lib/objectlog.js");
 const { defaultDependencyInterfaceCreator } = require("./lib/defaultDependencyInterface.js");
 
 // const log = console.log;
@@ -42,6 +42,8 @@ function createInstance(configuration) {
     onWriteGlobal = null, 
     onReadGlobal = null, 
     cannotReadPropertyValue = null,
+
+    objectlog = defaultObjectlog,
   } = configuration;  
 
 
