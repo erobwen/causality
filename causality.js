@@ -19,7 +19,8 @@ function createInstance(configuration) {
     emitEvents = false, // either set onEventGlobal or define onChange on individual objects.
     sendEventsToObjects = true, // reserve onChange, onBuildCreate, onBuildRemove 
     onEventGlobal = null,
-
+    emitReCreationEvents = false,
+    
     customDependencyRecorder = null, //{recordDependencyOnArray, recordDependencyOnEnumeration, recordDependencyOnProperty, recordDependency}
     customCreateInvalidator = null, 
     customCreateRepeater = null,
@@ -556,27 +557,35 @@ function createInstance(configuration) {
       // onBuildChange // Only responds to changes during build / rebuild.
       // onBuildCreate
       // onBuildRemove
+
+      // Optimization. Here to avoid expensive decoration post object creation.
+      isRebuildOfOther: false,
     };
 
-    if (inRepeater !== null) {
-      if (buildId !== null) {
-        if (!inRepeater.newlyCreated) inRepeater.newlyCreated = [];
-        
-        if (inRepeater.buildIdObjectMap && typeof(inRepeater.buildIdObjectMap[buildId]) !== 'undefined') {
-          // Object identity previously created
-          let establishedObject = inRepeater.buildIdObjectMap[buildId];
-          establishedObject.causalityForwardTo = proxy;
+    if (inRepeater !== null && buildId !== null) {
+      if (!inRepeater.newlyCreated) inRepeater.newlyCreated = [];
+      
+      if (inRepeater.buildIdObjectMap && typeof(inRepeater.buildIdObjectMap[buildId]) !== 'undefined') {
+        // Object identity previously created
+        handler.meta.isRebuildOfOther = true;
+        let establishedObject = inRepeater.buildIdObjectMap[buildId];
+        establishedObject.causalityForwardTo = proxy;
 
-          inRepeater.newlyCreated.push(establishedObject);
-          emitCreationEvent(handler);
-          return establishedObject;
-        } else {
-          inRepeater.newlyCreated.push(proxy);
-        }
+        inRepeater.newlyCreated.push(establishedObject);
+        emitCreationEvent(handler);
+        return establishedObject;
+      } else {
+        // Create a new one
+        inRepeater.newlyCreated.push(proxy);
       }
-    }
 
-    emitCreationEvent(handler);
+      // Optionally emit event right now
+      if (emitReCreationEvents) {
+        emitCreationEvent(handler);
+      }
+    } else {
+      emitCreationEvent(handler);
+    }
     return proxy;
   }
 
@@ -682,6 +691,10 @@ function createInstance(configuration) {
   function emitEvent(handler, event) {
     event.object = handler.meta.proxy;
     event.objectId = handler.meta.id;
+
+    if (!emitReCreationEvents && handler.meta.isRebuildOfOther) {
+      return;
+    }
 
     if (onEventGlobal) {
       onEventGlobal(event);
@@ -1194,7 +1207,7 @@ function createInstance(configuration) {
         } else {
           // Send create on build message
           if (typeof(created.onReBuildCreate) === "function") created.onReBuildCreate();
-          emitCreationEvent(created[objectMetaProperty].handler);
+          if (!emitReCreationEvents) emitCreationEvent(created[objectMetaProperty].handler);
         }
       });
       repeater.newlyCreated = [];
