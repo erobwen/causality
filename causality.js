@@ -51,18 +51,20 @@ function createInstance(configuration) {
    *
    ***************************************************************/
 
-  const state = {
-    invalidatorPaused : 0,
-    blockInvalidation : 0,
-    postponeInvalidation : 0
-  };
+  // Object creation
   let nextObjectId = 1;
 
+  // Stack
   let context = null;
   let inActiveRecording = false;
   let activeRecorder = null;
 
   // Observers
+  const state = {
+    invalidatorPaused : 0,
+    blockInvalidation : 0,
+    postponeInvalidation : 0
+  };
   let nextObserverToInvalidate = null;
   let lastObserverToInvalidate = null;
 
@@ -86,41 +88,11 @@ function createInstance(configuration) {
   const staticArrayOverrides = createStaticArrayOverrides();
 
 
-  /**********************************
-   *
-   *   Causality Global stacklets
-   *
-   **********************************/
-
-  function updateContextState() {
-    inActiveRecording = context !== null && state.invalidatorPaused === 0;
-    activeRecorder = (inActiveRecording) ? context : null;    
-    inRepeater = (context && context.type === "repeater") ? context: null;
-  }
-
-  function enterContext(enteredContext) {
-    enteredContext.parent = context;
-    context = enteredContext;
-    updateContextState();
-    return enteredContext;
-  }
-
-  function leaveContext( activeContext ) {    
-    if( context && activeContext === context ) {
-      context = context.parent;
-    } else {
-      throw new Error("Context missmatch");
-    }
-    updateContextState();
-  }
-
-
   /************************************************************************
    *
    *  Instance
    *
    ************************************************************************/
-
 
   const instance = {
     // Main API
@@ -156,7 +128,7 @@ function createInstance(configuration) {
     state,
     enterContext,
     leaveContext,
-    invalidateObservers
+    invalidateObserver
   }; 
 
 
@@ -170,16 +142,15 @@ function createInstance(configuration) {
   const createInvalidator = customCreateInvalidator ? customCreateInvalidator : defaultCreateInvalidator;
 
   const dependencyInterface = customDependencyInterfaceCreator ? 
-    customDependencyInterfaceCreator(invalidateObserver) 
+    customDependencyInterfaceCreator(instance) 
     : 
-    defaultDependencyInterfaceCreator(invalidateObserver);
+    defaultDependencyInterfaceCreator(instance);
 
   const recordDependencyOnArray = dependencyInterface.recordDependencyOnArray;
   const recordDependencyOnEnumeration = dependencyInterface.recordDependencyOnEnumeration;
   const recordDependencyOnProperty = dependencyInterface.recordDependencyOnProperty;
 
   // Object.assign(instance, require("./lib/causalityObject.js").bindToInstance(instance));
-
 
 
   /************************************************************************
@@ -189,6 +160,35 @@ function createInstance(configuration) {
    ************************************************************************/
 
   return instance;
+
+
+  /**********************************
+   *
+   *   Causality Global stacklets
+   *
+   **********************************/
+
+  function updateContextState() {
+    inActiveRecording = context !== null && state.invalidatorPaused === 0;
+    activeRecorder = (inActiveRecording) ? context : null;    
+    inRepeater = (context && context.type === "repeater") ? context: null;
+  }
+
+  function enterContext(enteredContext) {
+    enteredContext.parent = context;
+    context = enteredContext;
+    updateContextState();
+    return enteredContext;
+  }
+
+  function leaveContext( activeContext ) {    
+    if( context && activeContext === context ) {
+      context = context.parent;
+    } else {
+      throw new Error("Context missmatch");
+    }
+    updateContextState();
+  }
 
 
   /***************************************************************
