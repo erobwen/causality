@@ -10,19 +10,23 @@ const { argumentsToArray, configSignature, mergeInto } = require("./lib/utility.
 function createInstance(configuration) {
 
   const {
-    objectMetaProperty = "causality",
-    objectMetaForwardToProperty = "causalityForwardTo",
-    objectCallbacks = true, // reserve onChange, onBuildCreate, onBuildRemove 
-    notifyChange = false, // either set onChangeGlobal or define onChange on individual objects.
-    customDependencyRecorder = null,
-    customCreateInvalidator = null, 
-    customCreateRepeater = null,
-    cannotReadPropertyValue = null,
     requireRepeaterName = false,
     requireInvalidatorName = false,
-    onChangeGlobal = null,
+
+    objectMetaProperty = "causality",
+    objectMetaForwardToProperty = "causalityForwardTo",
+
+    emitEvents = false, // either set onEventGlobal or define onChange on individual objects.
+    sendEventsToObjects = true, // reserve onChange, onBuildCreate, onBuildRemove 
+    onEventGlobal = null,
+
+    customDependencyRecorder = null, //{recordDependencyOnArray, recordDependencyOnEnumeration, recordDependencyOnProperty, recordDependency}
+    customCreateInvalidator = null, 
+    customCreateRepeater = null,
+
     onWriteGlobal = null, 
     onReadGlobal = null, 
+    cannotReadPropertyValue = null,
   } = configuration;  
 
   /***************************************************************
@@ -49,7 +53,7 @@ function createInstance(configuration) {
       let index = this.target.length - 1;
       let result = this.target.pop();
 
-      if (notifyChange) emitSpliceEvent(this, index, [result], null);
+      if (emitEvents) emitSpliceEvent(this, index, [result], null);
       invalidateArrayObservers(this);
 
       return result;
@@ -60,7 +64,7 @@ function createInstance(configuration) {
       let argumentsArray = argumentsToArray(arguments);
       this.target.push.apply(this.target, argumentsArray);
 
-      if (notifyChange) emitSpliceEvent(this, index, null, argumentsArray);
+      if (emitEvents) emitSpliceEvent(this, index, null, argumentsArray);
       invalidateArrayObservers(this);
 
       return this.target.length;
@@ -69,7 +73,7 @@ function createInstance(configuration) {
     shift : function() {
       let result = this.target.shift();
       
-      if (notifyChange) emitSpliceEvent(this, 0, [result], null);
+      if (emitEvents) emitSpliceEvent(this, 0, [result], null);
       invalidateArrayObservers(this);
 
       return result;
@@ -80,7 +84,7 @@ function createInstance(configuration) {
       let argumentsArray = argumentsToArray(arguments);
       this.target.unshift.apply(this.target, argumentsArray);
 
-      if (notifyChange) emitSpliceEvent(this, 0, null, argumentsArray);
+      if (emitEvents) emitSpliceEvent(this, 0, null, argumentsArray);
       invalidateArrayObservers(this);
 
       return this.target.length;
@@ -96,7 +100,7 @@ function createInstance(configuration) {
       let removed = this.target.slice(index, index + removedCount);
       let result = this.target.splice.apply(this.target, argumentsArray);
 
-      if (notifyChange) emitSpliceEvent(this, index, removed, added);
+      if (emitEvents) emitSpliceEvent(this, index, removed, added);
       invalidateArrayObservers(this);
 
       return result; // equivalent to removed
@@ -117,7 +121,7 @@ function createInstance(configuration) {
       let added = this.target.slice(start, end);
       let result = this.target.copyWithin(target, start, end);
 
-      if (notifyChange) emitSpliceEvent(this, target, added, removed);
+      if (emitEvents) emitSpliceEvent(this, target, added, removed);
       invalidateArrayObservers(this);
 
       return result;
@@ -131,7 +135,7 @@ function createInstance(configuration) {
       let result = this.target[functionName]
           .apply(this.target, argumentsArray);
 
-      if (notifyChange) emitSpliceEvent(this, 0, removed, this.target.slice(0));
+      if (emitEvents) emitSpliceEvent(this, 0, removed, this.target.slice(0));
       invalidateArrayObservers(this);
 
       return result;
@@ -546,7 +550,7 @@ function createInstance(configuration) {
       handler : handler,
       proxy : proxy,
 
-      // Reserved properties that you can override IF objectCallbacks is set to true. 
+      // Reserved properties that you can override IF sendEventsToObjects is set to true. 
       // onChange
       // onBuildChange // Only responds to changes during build / rebuild.
       // onBuildCreate
@@ -604,45 +608,6 @@ function createInstance(configuration) {
     }
   }
 
-  function disposeChildContexts(context) {
-    //console.warn("disposeChildContexts " + context.type, context.id||'');//DEBUG
-    // trace.context && logGroup(`disposeChildContexts: ${context.type} ${context.id}`);
-    if (context.child !== null && !context.child.independent) {
-      context.child.disposeContextsRecursivley();
-    }
-    context.child = null; // always dispose
-    if (context.children !== null) {
-      context.children.forEach(function (child) {
-        if (!child.independent) {
-          child.disposeContextsRecursivley();
-        }
-      });
-    }
-    context.children = []; // always clear
-    // trace.context && logUngroup();
-  }
-
-
-  function disposeContextsRecursivley() {
-    // trace.context && logGroup(`disposeContextsRecursivley ${this.id}`);
-    this.dispose();
-    this.isRemoved = true;
-    disposeChildContexts(this);
-    // trace.context && logUngroup();
-  }
-
-  // Optimization, do not create array if not needed.
-  function addChild(context, child) {
-    if (context.child === null && context.children === null) {
-      context.child = child;
-    } else if (context.children === null) {
-      context.children = [context.child, child];
-      context.child = null;
-    } else {
-      context.children.push(child);
-    }
-  }
-
   // occuring types: recording, repeater_context,
   // cached_call, reCache, block_side_effects
   function enterContext(type, enteredContext) {
@@ -695,18 +660,6 @@ function createInstance(configuration) {
 
 
   function leaveContext( activeContext ) {
-    // DEBUG
-    if( context && activeContext && (context !== activeContext) && !context.independent ){
-      // console.trace("leaveContext mismatch " + activeContext.type, activeContext.id||'');
-      if( !context ) console.log('current context null');
-      else {
-        // console.log("current context " + context.type, context.id||'');
-        if( context.parent ){
-          console.log("parent context " + context.parent.type, context.parent.id||'');
-        }
-      }
-    }
-    
     
     if( context && activeContext === context ) {
       //console.log("leaveContext " + activeContext.type, activeContext.id||'', "to", context.parent ? context.parent.id : 'null');//DEBUG
@@ -718,24 +671,44 @@ function createInstance(configuration) {
     updateContextState();
   }
 
-  // An independent context: has no parent/child relation to its parent. 
-  function independently(action) { 
-    const activeContext = enterContext("independently", {
-      independent : true,
-      dispose : () => {}
-    });
-    action();
-    leaveContext( activeContext );
+
+
+  function disposeChildContexts(context) {
+    //console.warn("disposeChildContexts " + context.type, context.id||'');//DEBUG
+    // trace.context && logGroup(`disposeChildContexts: ${context.type} ${context.id}`);
+    if (context.child !== null && !context.child.independent) {
+      context.child.disposeContextsRecursivley();
+    }
+    context.child = null; // always dispose
+    if (context.children !== null) {
+      context.children.forEach(function (child) {
+        if (!child.independent) {
+          child.disposeContextsRecursivley();
+        }
+      });
+    }
+    context.children = []; // always clear
+    // trace.context && logUngroup();
   }
 
-  /* exists as a fallback for async recording without active
-   * contexts. Used when not in recording context.
-   */
-  function emptyContext(){
-    return {
-      record( action ){
-        return action()
-      }
+
+  function disposeContextsRecursivley() {
+    // trace.context && logGroup(`disposeContextsRecursivley ${this.id}`);
+    this.dispose();
+    this.isRemoved = true;
+    disposeChildContexts(this);
+    // trace.context && logUngroup();
+  }
+
+  // Optimization, do not create array if not needed.
+  function addChild(context, child) {
+    if (context.child === null && context.children === null) {
+      context.child = child;
+    } else if (context.children === null) {
+      context.children = [context.child, child];
+      context.child = null;
+    } else {
+      context.children.push(child);
     }
   }
 
@@ -762,13 +735,13 @@ function createInstance(configuration) {
 
 
   function emitSpliceEvent(handler, index, removed, added) {
-    if (notifyChange) {
+    if (emitEvents) {
       emitEvent(handler, {type: 'splice', index, removed, added});
     }
   }
 
   function emitSpliceReplaceEvent(handler, key, value, previousValue) {
-    if (notifyChange) {
+    if (emitEvents) {
       emitEvent(handler, {
         type: 'splice',
         index: key,
@@ -778,7 +751,7 @@ function createInstance(configuration) {
   }
 
   function emitSetEvent(handler, key, value, previousValue) {
-    if (notifyChange) {
+    if (emitEvents) {
       emitEvent(handler, {
         type: 'set',
         property: key,
@@ -788,7 +761,7 @@ function createInstance(configuration) {
   }
 
   function emitDeleteEvent(handler, key, previousValue) {
-    if (notifyChange) {
+    if (emitEvents) {
       emitEvent(handler, {
         type: 'delete',
         property: key,
@@ -797,7 +770,7 @@ function createInstance(configuration) {
   }
 
   function emitCreationEvent(handler) {
-    if (notifyChange) {
+    if (emitEvents) {
       emitEvent(handler, {type: 'create'})
     }
   }
@@ -806,11 +779,11 @@ function createInstance(configuration) {
     event.object = handler.meta.proxy;
     event.objectId = handler.meta.id;
 
-    if (onChangeGlobal) {
-      onChangeGlobal(event);
+    if (onEventGlobal) {
+      onEventGlobal(event);
     }
 
-    if (objectCallbacks && typeof(handler.target.onChange) === 'function') { // Consider. Put on queue and fire on end of reaction? onReactionEnd onTransactionEnd 
+    if (sendEventsToObjects && typeof(handler.target.onChange) === 'function') { // Consider. Put on queue and fire on end of reaction? onReactionEnd onTransactionEnd 
       handler.target.onChange(event);
     }
   }
@@ -1301,9 +1274,7 @@ function createInstance(configuration) {
 
     // Non recorded action
     if (repeater.nonRecordedAction !== null) {
-      independently(() => { // Do not own repeaters & such started in
-        repeater.nonRecordedAction( repeater.returnValue );
-      })
+      repeater.nonRecordedAction( repeater.returnValue );
     }
 
     // Finish rebuilding
@@ -1402,12 +1373,6 @@ function createInstance(configuration) {
     // Transaction
     postponeReactions,
     transaction : postponeReactions,
-
-    // Independently
-    // enterIndependentContext,
-    // leaveIndependentContext,
-    independently,
-    emptyContext,
 
     // Debugging and testing
     // observeAll,

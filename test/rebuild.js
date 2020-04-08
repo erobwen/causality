@@ -7,8 +7,8 @@ const causality = require("../causality.js")
 const events = [];
 const instance = causality.instance({
   name: "rebuild", 
-  notifyChange: true, 
-  onChangeGlobal: (event) => {
+  emitEvents: true, 
+  onEventGlobal: (event) => {
     events.push(event);
   }
 });
