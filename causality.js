@@ -1132,16 +1132,12 @@ function createInstance(configuration) {
     }
 
     // Recorder context
-    const enteredContext = enterContext(
-      createInvalidator(description, doAfterChange)
-    );
+    const invalidator = createInvalidator(description, doAfterChange)
+    enterContext(invalidator);
+    invalidator.returnValue = doFirst( invalidator );
+    leaveContext( invalidator );
 
-    //console.log("doFirst in context " + enteredContext.type, enteredContext.id||'');//DEBUG
-    enteredContext.returnValue = doFirst( enteredContext );
-    //if( context ) console.log("after doFirst context " + enteredContext.type, enteredContext.id||'');//DEBUG
-    leaveContext( enteredContext );
-
-    return enteredContext;
+    return invalidator;
   }
 
 
