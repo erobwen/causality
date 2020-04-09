@@ -46,7 +46,7 @@ function createInstance(configuration) {
     objectlog = defaultObjectlog,
   } = configuration;  
 
-
+  // console.log(objectlog)
 
   /***************************************************************
    *
