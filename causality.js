@@ -27,7 +27,7 @@ function createInstance(configuration) {
       // onChange
       // onBuildCreate
       // onBuildRemove
-      // TODO: onRemovedObserver, onRemovedLastObserver ? 
+      // onRemovedLastObserver 
     onEventGlobal = null,
     emitReCreationEvents = false,
     
