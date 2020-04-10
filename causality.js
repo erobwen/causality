@@ -1,14 +1,10 @@
 'use strict'; 
 // require = require("esm")(module);
 const { argumentsToArray, configSignature, mergeInto } = require("./lib/utility.js");
-const defaultObjectlog = require("./lib/objectlog.js");
+const { objectlog } = require("./lib/objectlog.js");
+const defaultObjectlog = objectlog;
 const { defaultDependencyInterfaceCreator } = require("./lib/defaultDependencyInterface.js");
 
-// const log = console.log;
-// const logg = (string) => {
-//   console.log("-------------" + string + "-------------");
-// };
-// log; logg;
 
 function createInstance(configuration) {
 
@@ -119,6 +115,10 @@ function createInstance(configuration) {
     
     // Logging
     log,
+    loge : objectlog.loge, // "event"
+    logs : objectlog.logs, // "separator"
+    logss : objectlog.logss,
+    logsss : objectlog.logsss,
     logGroup,
     logUngroup,
     logToString,
