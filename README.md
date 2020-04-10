@@ -13,24 +13,24 @@ Installation: npm install causalityjs --save
 
 # Usage
 
-    import {create, repeat} from "causality";
+    import {observable, repeat} from "causality";
 
 
 ## Browser
 Place the file 'causality.js' where it can be served to the client, and then in your HTML:
 
     <script type="module">
-      import {create, repeat} from "path/to/causality.js";
+      import {observable, repeat} from "path/to/causality.js";
     </script>
 
 # Quick Example
 
 This is just to show a simple example of what causality is all about, using the simple repeatOnChange primitive.
 
-    import {create, repeatOnChange} from "causality";
+    import {observable, repeatOnChange} from "causality";
 
-    var x = create({propA: 11});
-    var y = create({propB: 11, propC: 100});
+    var x = observable({propA: 11});
+    var y = observable({propB: 11, propC: 100});
     var z;
 
     repeatOnChange(function(){
@@ -64,24 +64,24 @@ Causality objects also have the following methods.
 
 # Causality Global Functions
 
-The basic primitives of causality are create, repeatOnChange, invalidateOnChange and withoutSideEffects. With only these, it is possible to create quite powerful reactive abstractions.
+The basic primitives of causality are observable, repeatOnChange, invalidateOnChange and withoutSideEffects. With only these, it is possible to create quite powerful reactive abstractions.
 
 ## create
 
 With create you simply create a causality object. The create function takes any other Javascript object as input. Example usage:
 
-    create({a: 1, b: 2, c: 3});
-    create([1, 2, 3]);
-    create(new MyClass());
+    observable({a: 1, b: 2, c: 3});
+    observable([1, 2, 3]);
+    observable(new MyClass());
 
 A causality object is an object that can be observed by causality. This means that changes in causality objects will be detected automatically by the causality framework. While it is possible to mix the use of causality object and plain Javascript object, it is not recommended to do so, as changes in plain Javascript objects will go undetected by causality.
 
 In every other aspect, a causality object behaves just as an ordinary Javascript object would. So you could for example write:
 
-    var x = create({a: 1, b: 2});
+    var x = observable({a: 1, b: 2});
     var y = x.a + b.2; // should result in 3!
 
-    var l = create([]);
+    var l = observable([]);
     l.push("item1");
     l.push("item2");
     l.pop();
@@ -149,8 +149,8 @@ This way it becomes easy to enforce one-directional data flows while still allow
 When working with causality it could be useful to sometimes break the rules. Reading data without creating a dependency could for example be useful for debug printouts. In the following code, the debug printout itself would create a false dependency on `z.value`  if it wasnt for the withoutRecording clause.
 
     let x = null
-    let y = create({ value: false });
-    let z = create({ value: 10});
+    let y = observable({ value: false });
+    let z = observable({ value: 10});
 
     repeatOnChange(function() {
         withoutRecording(function() {
@@ -181,7 +181,7 @@ Causality object come equipped with the following powerful features.
 
 If you simply want to get a stream of events that happens to a causality object, simply write
 
-    let x = create({});
+    let x = observable({});
     x.observe(function(event) { console.log(event); });
     x.y = 42; // should give a "set" event to the console.
 
@@ -196,7 +196,7 @@ There is a famous quote from programmer Jeff Atwood (author of blog Coding Horro
 
 Well, at least cache invalidation just got much more simple thanks to causality/cached. With cached, causality completley automates the process of cache invalidation. It works as follows:
 
-    x = create({
+    x = observable({
         fun : function() {
             this.y  + this.z}
         }
@@ -241,9 +241,9 @@ On the surface, reCached works similar to cached, with a first notable differenc
 But there is more to it. reCached really starts to shine when you start to create objects within the reCached function call. If you do so, you can add a cacheId to the created objects. Created objects will then retain their indentity over several reCachings.
 
 
-    x = create({
+    x = observable({
         getView : function() {
-            return create({ viewY : x.y}, 'xViewId');
+            return observable({ viewY : x.y}, 'xViewId');
         },
         y : 42
     });
@@ -259,9 +259,9 @@ This is just a simple example, but the reCache function is very capable. You can
 The assuming of the previous identity is instant at the very createion of an objects inside the reCache. This means you can even set external references to created objects inside the reCache.
 
     aGlobalView = null
-    x = create({
+    x = observable({
         getView : function() {
-            let view = create({ viewY : x.y}, 'xViewId'); // The old identity is reused at this point, but the state of view will be as if newly created.
+            let view = observable({ viewY : x.y}, 'xViewId'); // The old identity is reused at this point, but the state of view will be as if newly created.
             globalView = view;
             return view;
         },

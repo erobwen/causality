@@ -1,12 +1,12 @@
 'use strict';
 require = require("esm")(module);
-const {create,repeatOnChange} = require("../causality.js").instance();
+const {observable,repeatOnChange} = require("../causality.js").instance();
 const assert = require('assert');
 describe("Observe", function(){
 
   // it("Test observe object", function(){
   //   let events = [];
-  //   let x = create();
+  //   let x = observable();
   //   x.observe(function(event) {
   //     events.push(event);
   //   });
@@ -26,11 +26,11 @@ describe("Observe", function(){
 		// 	return state;
 		// }
 		
-  //   let controller = create({
+  //   let controller = observable({
 		// 	haveObserver : false
 		// });
 
-		// let specimen = create({});
+		// let specimen = observable({});
 		
 		// let observationCounter = 0;
 		

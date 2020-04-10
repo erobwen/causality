@@ -1,6 +1,6 @@
 'use strict';
 require = require("esm")(module);
-const {create, repeatOnChange, repeat, transaction, cachedCallCount} = require("../causality.js").instance();
+const {observable, repeatOnChange, repeat, transaction, cachedCallCount} = require("../causality.js").instance();
 const assert = require('assert');
 describe("Meta repeaters", function(){
 
@@ -10,7 +10,7 @@ describe("Meta repeaters", function(){
     class Node {
       constructor(value) {
         this.value = value;
-        return create(this);
+        return observable(this);
       }
 
       emitHelloEvent(arg1, arg2) {
@@ -19,7 +19,7 @@ describe("Meta repeaters", function(){
       }
     };
 
-    let array = create([]);
+    let array = observable([]);
     let a = new Node('a');
     let b = new Node('b');
     let c = new Node('c');
@@ -70,7 +70,7 @@ describe("Meta repeaters", function(){
     class Node {
       constructor(value) {
         this.value = value;
-        return create(this);
+        return observable(this);
       }
 
       emitHelloEvent(arg1, arg2) {
@@ -79,7 +79,7 @@ describe("Meta repeaters", function(){
       }
     };
 
-    let array = create([]);
+    let array = observable([]);
     let a = new Node('a');
     let b = new Node('b');
     let c = new Node('c');
@@ -103,7 +103,7 @@ describe("Meta repeaters", function(){
     // Assert all repeaters run once upon creation
     assert.equal(events.length, 3);
 
-    let arrayB = create([]);
+    let arrayB = observable([]);
     arrayB.push(b);
     arrayB.push(c);
     arrayB.push(d);

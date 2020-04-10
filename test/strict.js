@@ -1,13 +1,13 @@
 'use strict';
 require = require("esm")(module);
-const {create} = require("../causality.js").instance();
+const {observable} = require("../causality.js").instance();
 const assert = require('assert');
 
 describe("Proxy object traps", function () {
-  const box = create();
+  const box = observable();
 
   it('forwardTo',  function () {
-    box.causalityForwardTo = create({ name: "forwardTo"});
+    box.causalityForwardTo = observable({ name: "forwardTo"});
     box.other = null;
     box.causalityForwardTo = null;
   });
@@ -35,10 +35,10 @@ describe("Proxy object traps", function () {
 });
 
 describe("Array object traps", function () {
-  const stack = create([]);
+  const stack = observable([]);
 
   it('forwardTo',  function () {
-    stack.causalityForwardTo = create(['aa','bb']);
+    stack.causalityForwardTo = observable(['aa','bb']);
     stack[2] = false;
     stack.causalityForwardTo = null;
   });

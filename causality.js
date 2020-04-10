@@ -96,8 +96,8 @@ function createInstance(configuration) {
 
   const instance = {
     // Main API
-    create,
-    c: create, 
+    observable,
+    c: observable, 
     invalidateOnChange,
     repeatOnChange,
     repeat: repeatOnChange,
@@ -678,7 +678,7 @@ function createInstance(configuration) {
    *
    ***************************************************************/
 
-  function create(createdTarget, buildId) {
+  function observable(createdTarget, buildId) {
     if (typeof(createdTarget) === 'undefined') {
       createdTarget = {};
     }

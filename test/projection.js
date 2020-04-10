@@ -5,7 +5,7 @@ if (!causality.causalityObject) causality.causalityObject = require("../lib/caus
 const {CausalityObject, cachedCallCount} = causality.causalityObject; 
 
 
-const {create,resetObjectIds,observeAll, transaction} = require("../causality.js").instance();
+const {observable,resetObjectIds,observeAll, transaction} = require("../causality.js").instance();
 const assert = require('assert');
 
 describe("Projections", function(){
@@ -25,8 +25,8 @@ describe("Projections", function(){
     newNode.next = null;
     newNode.previous = null;
 
-    return create(newNode, cacheId);
-    // return create({ // This code somehow generates set events for last. This might have to do with Node.js internals... 
+    return observable(newNode, cacheId);
+    // return observable({ // This code somehow generates set events for last. This might have to do with Node.js internals... 
     //     value : value,
     //     next: null,
     //     previous: null,
@@ -41,11 +41,11 @@ describe("Projections", function(){
   };
 
   var createTransparentListNode = function(value, cacheId) {
-    return create({value : value}, cacheId);
+    return observable({value : value}, cacheId);
   };
 
   var createListHead = function(cacheId) {
-    return create({
+    return observable({
       first: null,
       last: null
     }, cacheId);
@@ -60,8 +60,8 @@ describe("Projections", function(){
     }
 
     flattenArrayPreOrder() {
-      let result = create([], this.causality.id + "_array");
-      result.push(create({value: this.value}, this.causality.id + "_node"));
+      let result = observable([], this.causality.id + "_array");
+      result.push(observable({value: this.value}, this.causality.id + "_node"));
 
       this.children.forEach(function(child) {
         let childList = child.flattenArrayPreOrder();
@@ -73,8 +73,8 @@ describe("Projections", function(){
 
     flattenArrayPreOrderRecursive() {
       // console.log("flattenArrayPreOrderRecursive " + this.causality.id + "_array");
-      let result = create([], this.causality.id + "_array");
-      result.push(create({value: this.value}, this.causality.id + "_node"));
+      let result = observable([], this.causality.id + "_array");
+      result.push(observable({value: this.value}, this.causality.id + "_node"));
 
       this.children.forEach(function(child) {
         let childList = child.reCached('flattenArrayPreOrderRecursive');
@@ -378,7 +378,7 @@ describe("Projections", function(){
 });
 
 // let cnt = 0;
-// const state = create({});
+// const state = observable({});
 // let out = {};
 //
 // repeatOnChange(function(){

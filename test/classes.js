@@ -1,6 +1,6 @@
 'use strict';
 require = require("esm")(module);
-const {create,repeatOnChange} = require("../causality.js").instance();
+const {observable,repeatOnChange} = require("../causality.js").instance();
 const assert = require('assert');
 
 describe("Classes", function () {
@@ -9,7 +9,7 @@ describe("Classes", function () {
 	  constructor( myid ){
 		  this.propA = myid;
       this.propB = 0;
-      return create( this );
+      return observable( this );
     }
 
     dostuff()

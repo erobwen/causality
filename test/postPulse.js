@@ -47,8 +47,8 @@ describe("Post pulse", function(){
 		// });
 
   //   //console.log('start');
-  //   let x = causality.create({});
-		// x.y = causality.create({});
+  //   let x = causality.observable({});
+		// x.y = causality.observable({});
 
   //   // Set up for comparison
   //   expected[3][0].object.y = x.y;
@@ -58,7 +58,7 @@ describe("Post pulse", function(){
 		// causality.transaction(function() {
 		// 	x.foo = 42;
 		// 	x.y.bar = 2;
-		// 	x.z = causality.create({});
+		// 	x.z = causality.observable({});
 		// });
 
   //   //console.log('cleanup');

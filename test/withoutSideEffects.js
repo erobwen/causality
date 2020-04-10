@@ -1,16 +1,16 @@
 'use strict';
 require = require("esm")(module);
-// const {create,withoutSideEffects} = require("../causality.js").instance();
+// const {observable,withoutSideEffects} = require("../causality.js").instance();
 const assert = require('assert');
 
 describe("Without side effects", function(){
 
   // it("Test no side effects", function(){
 
-  //   let x = create({});
-  //   let x2 = create([]);
+  //   let x = observable({});
+  //   let x2 = observable([]);
   //   let returnValue = withoutSideEffects(function() {
-  //     const y = create({});
+  //     const y = observable({});
   //     y.v = 42;
 
   //     try{

@@ -1,6 +1,6 @@
 'use strict';
 require = require("esm")(module);
-const {create,repeat,withoutRecording,
+const {observable,repeat,withoutRecording,
       } = require("../causality.js").instance();
 const assert = require('assert');
        // enterIndependentContext,leaveIndependentContext
@@ -8,7 +8,7 @@ const assert = require('assert');
 describe("Without recording", function(){
 
   it("Non recording", function(){
-    const x = create({ important: true, irellevant: true});
+    const x = observable({ important: true, irellevant: true});
     let result = false;
     let repeatCount = 0;
     repeat(()=>{
@@ -39,7 +39,7 @@ describe("Without recording", function(){
 
 
   it("Recording", function(){
-    const x = create({ important: true, irellevant: true});
+    const x = observable({ important: true, irellevant: true});
     let result = false;
     let repeatCount = 0;
     repeat(()=>{
@@ -73,8 +73,8 @@ describe("Without recording", function(){
   //   // introducing a way to create independent contexts inside other
   //   // contexts.
 
-  //   const x = create({});
-  //   const y = create({
+  //   const x = observable({});
+  //   const y = observable({
   //     onChange: () => {
   //       y_changes_count ++;
   //     }

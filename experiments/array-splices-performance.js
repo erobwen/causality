@@ -163,16 +163,16 @@ var target = [];
 target.onChange = () => {
   count++;
 };
-var mylist = create(target);
+var mylist = observable(target);
 
 console.time("causality");
 while( mylist.length < amount ){
   let obj = {
 		name: "Bert",
 		birth: new Date(1980,5,5),
-		hobby: create(['causality', 'muffins']),
+		hobby: observable(['causality', 'muffins']),
 	};
-  let xobj = create(obj);
+  let xobj = observable(obj);
 	mylist.push(xobj);
 }
 for( let i in mylist ){

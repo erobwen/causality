@@ -1,14 +1,14 @@
 require = require("esm")(module);
-const {create,invalidateOnChange,repeatOnChange,c} = require("../causality.js").instance();
+const {observable,invalidateOnChange,repeatOnChange,c} = require("../causality.js").instance();
 // console.log(causality);
-// import {create,invalidateOnChange,repeatOnChange,c} from "../causality.js";
+// import {observable,invalidateOnChange,repeatOnChange,c} from "../causality.js";
 const assert = require('assert');
 
 describe("invalidateOnChange", function () {
 
   let cnt = 0;
-  const x = create({propA: 11});
-  const y = create({propB: 11, propC: 100});
+  const x = observable({propA: 11});
+  const y = observable({propB: 11, propC: 100});
   let z;
   invalidateOnChange(function () {
     z = x.propA + y.propB;
@@ -38,8 +38,8 @@ describe("invalidateOnChange", function () {
 describe("repeatOnChange", function () {
 
   let cnt = 0;
-  const x = create({propA: 11});
-  const y = create({propB: 11, propC: 100});
+  const x = observable({propA: 11});
+  const y = observable({propB: 11, propC: 100});
   let z;
 
   repeatOnChange(function () {

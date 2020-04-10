@@ -1,7 +1,7 @@
 'use strict';
 require = require("esm")(module);
 const assert = require('assert');
-const {c, create, repeatOnChange, invalidateOnChange         } = require("../causality.js").instance();
+const {c, observable, repeatOnChange, invalidateOnChange         } = require("../causality.js").instance();
 
 
 const log = console.log;
@@ -28,7 +28,7 @@ describe("Cached", function(){
       }
     }
 
-    const summarizer = create(new Summarizer());
+    const summarizer = observable(new Summarizer());
 
     // Fill cache
     let sum = summarizer.sum();

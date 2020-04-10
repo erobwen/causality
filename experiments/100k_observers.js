@@ -15,9 +15,9 @@ while( mylist.length < amount ){
     var obj = {
         name: "Bert",
         birth: new Date(1980,5,5),
-        hobby: create(['causality', 'muffins']),
+        hobby: observable(['causality', 'muffins']),
     };
-    var xobj = create(obj);
+    var xobj = observable(obj);
     mylist.push(xobj);
 
     repeatOnChange(function(){
@@ -60,7 +60,7 @@ console.timeEnd("mobx");
 log( count );
 
 //
-// var source = create([23, 4, 6]);
+// var source = observable([23, 4, 6]);
 // var i = 0;
 // while (i++ < 30) {
 //     console.log("Install repeater" + i);

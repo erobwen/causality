@@ -8,13 +8,13 @@ describe("Overlays", function(){
   it('testing', function () {
     // Simple object
     // console.log(" Simple object ===========================")
-    let x = causality.create({name: "original"});
+    let x = causality.observable({name: "original"});
     x.foo = 1;
     assert.equal(x.foo, 1);
 
     // Create forwardTo
     // console.log(" Create forwardTo ===========================")
-    let xOverlay = causality.create({ name: "forwardTo"});
+    let xOverlay = causality.observable({ name: "forwardTo"});
     x.causalityForwardTo = xOverlay;
     // console.log(x.causality.handler);
     // console.log(x.causality.handler.causality);

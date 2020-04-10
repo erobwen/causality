@@ -12,8 +12,8 @@ const instance = causality.instance({
     events.push(event);
   }
 });
-const {create, withoutSideEffects, repeat } = instance;
-const c = create; 
+const {observable, withoutSideEffects, repeat } = instance;
+const c = observable; 
 
 const log = console.log;
 const logg = (string) => {
@@ -85,7 +85,7 @@ describe("Re Build", function(){
   function buildTree(source) {
     let result;
     source.forEach((value, index) => {
-      const node = create(new Node(value), "node_" + value);
+      const node = observable(new Node(value), "node_" + value);
       if (index === 0) {
         result = node; 
       } else {
@@ -97,9 +97,9 @@ describe("Re Build", function(){
 
 
   it("Test rebuild", function(){
-    const source = create([3]);
+    const source = observable([3]);
     let updateBuildEvents = [];
-    let tree = create({root: null}); 
+    let tree = observable({root: null}); 
 
     repeat(
       () => {
