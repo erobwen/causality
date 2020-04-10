@@ -113,7 +113,7 @@ function createInstance(configuration) {
     // Debugging and testing
     clearRepeaterLists,
     
-    // Logging
+    // Logging (these log commands do automatic withoutRecording to avoid your logs destroying your test-setup) 
     log,
     loge : objectlog.loge, // "event"
     logs : objectlog.logs, // "separator"
@@ -840,10 +840,10 @@ function createInstance(configuration) {
   function proceedWithPostponedInvalidations() {
     if (state.postponeInvalidation == 0) {
       while (nextObserverToInvalidate !== null) {
-        let recorder = nextObserverToInvalidate;
+        let observer = nextObserverToInvalidate;
         nextObserverToInvalidate = nextObserverToInvalidate.nextToNotify;
         // blockSideEffects(function() {
-        recorder.invalidateAction();
+        observer.invalidateAction();
         // });
       }
       lastObserverToInvalidate = null;

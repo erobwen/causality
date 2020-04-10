@@ -1,4 +1,6 @@
-require('../causality').install();
+require = require("esm")(module);
+const {observable, repeat} = require("../causality.js").instance();
+
 var mobx = require('mobx');
 const log = console.log.bind(console);
 
@@ -147,15 +149,15 @@ console.time("causality");
 count = 0;
 mylist = [];
 while( mylist.length < amount ){
-    let obj = {
+  let obj = {
 		name: "Bert",
 		birth: new Date(1980,5,5),
 		hobby: observable(['causality', 'muffins']),
 	};
-    let xobj = observable(obj);
+  let xobj = observable(obj);
 	mylist.push(xobj);
 
-	repeatOnChange(function(){
+	repeat(function(){
 		count += xobj.hobby.length;
 	});
 }
