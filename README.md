@@ -89,11 +89,11 @@ In every other aspect, a causality object behaves just as an ordinary Javascript
 
 If you find it too cumbersome to write "create" upon every object creation, you can use its alias "c":
 
-    c({a: 1, b: 2});
+    o({a: 1, b: 2});
 
 In addition, causality objects gain additional methods, such as cached, reCached and observe. These methods will not show up on any printout of the object, nor in any listing of the objects keys.
 
-    var ojb = c({});
+    var ojb = o({});
     obj.observe(function(event) {console.log(event)});
     obj.x = 42 // Should result in event printout.
 
@@ -353,4 +353,4 @@ This project is a spin-off project from liquid (https://github.com/erobwen/liqui
 
 Causality is based on 10+ years of original research into reactive programming. I was the original author of the 10+ years old "Reactive Programming" article of Wikipedia and have been exploring this domain for a long time.
 
-The logotype of causality is based on the ¤ symbol.
+The logotype of causality is based on the o symbol.

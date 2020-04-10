@@ -1,7 +1,7 @@
 // 'use strict';
 // require = require("esm")(module);
 // const assert = require('assert');
-// const {c, repeatOnChange, CausalityObject, cachedCallCount} = require("../causality.js").instance();
+// const {o, repeatOnChange, CausalityObject, cachedCallCount} = require("../causality.js").instance();
 
 // const log = console.log;
 
@@ -9,7 +9,7 @@
 //   function buildHeap(value) {
 //     var childrenStartValue = value - 5;
 //     var childrenCount = 0;
-//     var children = c([]);
+//     var children = o([]);
 //     while(childrenCount < 3) {
 //       var childValue = childrenStartValue;
 //       if (childValue > 0) {

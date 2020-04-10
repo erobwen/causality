@@ -22,7 +22,7 @@ const state = {};
 function stateGet( id, o ){
     if( state[id] ) return state[id];
     state[id] = o;
-    o.obs = c({id});
+    o.obs = o({id});
     return o;
 }
 
@@ -30,7 +30,7 @@ class C {
     constructor( id ){
         if( state[id] ) return state[id];
         state[id] = this;
-        this.obs = c({id});
+        this.obs = o({id});
 
         const props = this.constructor.properties || {};
         const name = this.constructor.name;
@@ -40,7 +40,7 @@ class C {
                 const propS = '_' + prop;
                 const nameR = `${name}.${prop}`;
 
-                this[propS] = c([]);
+                this[propS] = o([]);
                 setTimeout(()=>
                            
                            repeat(nameR, async con=>{
@@ -82,7 +82,7 @@ class C {
     }
 
     _updateArray( prop, content ){
-		if( !this[prop] ) return this[prop] = c(Array.from(content));
+		if( !this[prop] ) return this[prop] = o(Array.from(content));
 		this[prop].splice( 0, this[prop].length, ... content );
 		return this[prop];
 	}

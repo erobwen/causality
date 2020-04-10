@@ -97,7 +97,7 @@ function createInstance(configuration) {
   const instance = {
     // Main API
     observable,
-    c: observable, 
+    o: observable, 
     invalidateOnChange,
     repeatOnChange,
     repeat: repeatOnChange,

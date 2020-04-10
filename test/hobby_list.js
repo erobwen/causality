@@ -1,12 +1,12 @@
 'use strict';
 require = require("esm")(module);
-const {c,repeatOnChange} = require("../causality.js").instance({name: "hobby"});
+const {o,repeatOnChange} = require("../causality.js").instance({name: "hobby"});
 const assert = require('assert');
 
 describe("object tree modifications", function(){
 
 	let cnt = 0;
-	const state = c({});
+	const state = o({});
 	let out = {};
 	
 	repeatOnChange(function(){
@@ -25,13 +25,13 @@ describe("object tree modifications", function(){
 	});
 
 	it("Setting a", function(){
-		state.a = c({name:"Apa"});
+		state.a = o({name:"Apa"});
 		assert.equal(cnt,2);
 		assert.equal(out.a, undefined);
 	});
 
 	it("Setting a.hobby", function(){
-		state.a.hobby = c([]);
+		state.a.hobby = o([]);
 		assert.equal(cnt,3);
 		//log(state['a'].hobby);
 		//log(state['a'].hobby.length);

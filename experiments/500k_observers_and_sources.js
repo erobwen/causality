@@ -7,7 +7,7 @@ var start, end, time;
 // Test 100k observers on array
 start = new Date().getTime();
 //
-// x = c(['a']);
+// x = o(['a']);
 // var index = 0;
 // while(index++ < 100000) {
 //     repeatOnChange(function() {
@@ -25,7 +25,7 @@ start = new Date().getTime();
 // Test 100k observers on object
 start = new Date().getTime();
 
-x = c({z: 5});
+x = o({z: 5});
 var index;
 
 index = 0;
@@ -49,7 +49,7 @@ start = new Date().getTime();
 var s = [];
 index = 0;
 while(index++ < 500000) {
-    s.push(c({w: 42}));
+    s.push(o({w: 42}));
 }
 console.log(s.length);
 // startTrace();

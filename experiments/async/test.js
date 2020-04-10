@@ -7,7 +7,7 @@ let cntL = 0;
 let cntA = 0;
 let cntD = 0;
 
-const state = c({});
+const state = o({});
 
 
 renderL();

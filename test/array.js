@@ -1,13 +1,13 @@
 'use strict';
 require = require("esm")(module);
-const {c} = require("../causality.js").instance();
+const {o} = require("../causality.js").instance();
 const assert = require('assert');
 //const log = console.log.bind(console);
 
 // Tests based on mobx test/array.js
 describe("arrays", function () {
   it('should behave like arrays', function () {
-    var a = c([]);
+    var a = o([]);
 
     assert.equal(a.length, 0);
     assert.deepEqual(Object.keys(a), []);
@@ -79,7 +79,7 @@ describe("arrays", function () {
   });
 
   it('should differ undefined from nonexisting', function () {
-    var a = c([]);
+    var a = o([]);
     var sum = function () {
       return -1 + a.reduce(function (a, b) {
         return a + b;
@@ -101,14 +101,14 @@ describe("arrays", function () {
   });
 
   it('should sort', function () {
-    var a = c([3, 1, 2]);
+    var a = o([3, 1, 2]);
 
     assert.deepEqual(a.sort(), [1, 2, 3]);
     assert.deepEqual([...a], [1, 2, 3]);
   });
 
   it('should find and remove', function () {
-    var a   = c([10, 20, 20]);
+    var a   = o([10, 20, 20]);
     var idx = -1;
 
     function predicate(item, index) {
@@ -142,8 +142,8 @@ describe("arrays", function () {
   });
 
   it('should concat', function () {
-    var a1 = c([1, 2]);
-    var a2 = c([3, 4]);
+    var a1 = o([1, 2]);
+    var a2 = o([3, 4]);
     assert.deepEqual(a1.concat(a2), [1, 2, 3, 4])
   });
 });

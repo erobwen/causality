@@ -134,7 +134,7 @@ function differentialSplices(previous, array) {
 
 function observeArraySlices(array, observerFunction) {
   // Setup previous
-  var previous = c([]);
+  var previous = o([]);
   array.forEach(function(element) {previous.push(element)});
 
   repeatOnChange(function() {
@@ -143,7 +143,7 @@ function observeArraySlices(array, observerFunction) {
       var splices = differentialSplices(previous, array);
       if (splices.length > 0) {
         // Remember array for next time
-        previous = c([]);
+        previous = o([]);
         array.forEach(function(element) {previous.push(element)});
 
         // Notify

@@ -1,7 +1,7 @@
 require = require("esm")(module);
-const {observable,invalidateOnChange,repeatOnChange,c} = require("../causality.js").instance();
+const {observable,invalidateOnChange,repeatOnChange,o} = require("../causality.js").instance();
 // console.log(causality);
-// import {observable,invalidateOnChange,repeatOnChange,c} from "../causality.js";
+// import {observable,invalidateOnChange,repeatOnChange,o} from "../causality.js";
 const assert = require('assert');
 
 describe("invalidateOnChange", function () {
@@ -72,7 +72,7 @@ describe("heap structure", function () {
   function buildHeap(value) {
     var childrenStartValue = value - 5;
     var childrenCount      = 0;
-    var children           = c([]);
+    var children           = o([]);
     while (childrenCount <= 3) {
       var childValue = childrenStartValue--;
       if (childValue > 0) {
@@ -80,7 +80,7 @@ describe("heap structure", function () {
       }
       childrenCount++;
     }
-    return c({
+    return o({
       value: value,
       children: children
     });

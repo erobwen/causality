@@ -1,6 +1,6 @@
 'use strict';
 require = require("esm")(module);
-const {c, repeat,trace} = require("../causality.js").instance({name: "array-splices", emitEvents: true});
+const {o, repeat,trace} = require("../causality.js").instance({name: "array-splices", emitEvents: true});
 const assert = require('assert');
 //const log = console.log.bind(console);
 // trace.nestedRepeater = false;
@@ -14,7 +14,7 @@ describe("array-splices", function(){
 		result = event;
   };
   // arrayTarget.onChange();
-	var observedArray = c(arrayTarget);
+	var observedArray = o(arrayTarget);
 
 	it('should report changes', function(){
 		observedArray[1] = 'z';

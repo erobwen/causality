@@ -1,7 +1,7 @@
 'use strict';
 require = require("esm")(module);
 const assert = require('assert');
-const {c, observable, repeatOnChange, invalidateOnChange         } = require("../causality.js").instance();
+const {o, observable, repeatOnChange, invalidateOnChange         } = require("../causality.js").instance();
 
 
 const log = console.log;
