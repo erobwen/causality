@@ -2,6 +2,7 @@
 // require = require("esm")(module);
 const { argumentsToArray, configSignature, mergeInto } = require("./lib/utility.js");
 const { objectlog } = require("./lib/objectlog.js");
+const { createCachingFunction } = require("./lib/caching.js");
 const defaultObjectlog = objectlog;
 const { defaultDependencyInterfaceCreator } = require("./lib/defaultDependencyInterface.js");
 
@@ -30,6 +31,8 @@ function createInstance(configuration) {
       // onRemovedLastObserver 
     onEventGlobal = null,
     emitReCreationEvents = false,
+
+    // allowNonObservableReferences = true, // Allow observables to refer to non referables. TODO?
     
     customDependencyInterfaceCreator = null, //{recordDependencyOnArray, recordDependencyOnEnumeration, recordDependencyOnProperty, recordDependency}
     customCreateInvalidator = null, 
@@ -128,7 +131,10 @@ function createInstance(configuration) {
     enterContext,
     leaveContext,
     invalidateObserver, 
-    nextObserverId: () => { return observerId++ }
+    nextObserverId: () => { return observerId++ },
+
+    // Libraries
+    caching: createCachingFunction(observable)
   }; 
 
 
@@ -990,7 +996,57 @@ function createInstance(configuration) {
       nextDirty : null,
       previousDirty : null,
       lastRepeatTime: 0,
-      children: null
+      children: null,
+      refresh() {
+        const repeater = this; 
+        const options = repeater.options;
+        if (options.onRefresh) options.onRefresh(repeater);
+            
+        // Recorded action
+        const activeContext = enterContext(repeater);
+        repeater.returnValue = repeater.repeaterAction(repeater)
+
+        // Non recorded action
+        if (repeater.nonRecordedAction !== null) {
+          repeater.nonRecordedAction( repeater.returnValue );
+        }
+
+        // Finish rebuilding
+        if (repeater.newlyCreated) {
+          if (options.onStartBuildUpdate) options.onStartBuildUpdate();
+          
+          const newIdMap = {}
+          repeater.newlyCreated.forEach((created) => {
+            newIdMap[created[objectMetaProperty].buildId] = created;
+            if (created[objectMetaForwardToProperty] !== null) {
+              // Push changes to established object.
+              let forwardTo = created[objectMetaForwardToProperty];
+              created[objectMetaForwardToProperty] = null;
+              mergeInto(created, forwardTo);
+            } else {
+              // Send create on build message
+              if (typeof(created.onReBuildCreate) === "function") created.onReBuildCreate();
+            }
+          });
+          repeater.newlyCreated = [];
+
+          // Send on build remove messages
+          for (let id in repeater.buildIdObjectMap) {
+            if (typeof(newIdMap[id]) === "undefined") {
+              const object = repeater.buildIdObjectMap[id];
+              if (typeof(object.onReBuildRemove) === "function") object.onReBuildRemove();
+            }
+          }
+
+          // Set new map
+          repeater.buildIdObjectMap = newIdMap;
+          
+          if (options.onEndBuildUpdate) options.onEndBuildUpdate();
+        }
+
+        leaveContext( activeContext );
+        return repeater;
+      }
     }
   }
 
@@ -1072,58 +1128,9 @@ function createInstance(configuration) {
     if (options.dependentOnParent && context.type === "repeater") {
       context.addChild(repeater);
     }
-    return refreshRepeater(repeater);
+    return repeater.refresh();
   }
 
-  function refreshRepeater(repeater) {
-    const options = repeater.options;
-    if (options.onRefresh) options.onRefresh(repeater);
-        
-    // Recorded action
-    const activeContext = enterContext(repeater);
-    repeater.returnValue = repeater.repeaterAction(repeater)
-
-    // Non recorded action
-    if (repeater.nonRecordedAction !== null) {
-      repeater.nonRecordedAction( repeater.returnValue );
-    }
-
-    // Finish rebuilding
-    if (repeater.newlyCreated) {
-      if (options.onStartBuildUpdate) options.onStartBuildUpdate();
-      
-      const newIdMap = {}
-      repeater.newlyCreated.forEach((created) => {
-        newIdMap[created[objectMetaProperty].buildId] = created;
-        if (created[objectMetaForwardToProperty] !== null) {
-          // Push changes to established object.
-          let forwardTo = created[objectMetaForwardToProperty];
-          created[objectMetaForwardToProperty] = null;
-          mergeInto(created, forwardTo);
-        } else {
-          // Send create on build message
-          if (typeof(created.onReBuildCreate) === "function") created.onReBuildCreate();
-        }
-      });
-      repeater.newlyCreated = [];
-
-      // Send on build remove messages
-      for (let id in repeater.buildIdObjectMap) {
-        if (typeof(newIdMap[id]) === "undefined") {
-          const object = repeater.buildIdObjectMap[id];
-          if (typeof(object.onReBuildRemove) === "function") object.onReBuildRemove();
-        }
-      }
-
-      // Set new map
-      repeater.buildIdObjectMap = newIdMap;
-      
-      if (options.onEndBuildUpdate) options.onEndBuildUpdate();
-    }
-
-    leaveContext( activeContext );
-    return repeater;
-  }
 
   function repeaterDirty(repeater) { // TODO: Add update block on this stage?
     repeater.dispose();
@@ -1149,7 +1156,7 @@ function createInstance(configuration) {
         while (firstDirtyRepeater !== null) {
           let repeater = firstDirtyRepeater;
           detatchRepeater(repeater);
-          refreshRepeater(repeater);
+          repeater.refresh();
         }
 
         refreshingAllDirtyRepeaters = false;
@@ -1205,3 +1212,5 @@ export function instance(configuration) {
   }
   return instances[signature];
 }                                                                   
+
+
