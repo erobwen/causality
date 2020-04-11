@@ -960,7 +960,7 @@ function createInstance(configuration) {
    **********************************/
 
 
-  function defaultCreateRepeater(description, repeaterAction, repeaterNonRecordingAction, options) {
+  function defaultCreateRepeater(description, repeaterAction, repeaterNonRecordingAction, options, finishRebuilding) {
     return {
       type: "repeater", 
       id: observerId++,
@@ -1044,7 +1044,7 @@ function createInstance(configuration) {
   function finishRebuilding(repeater) {
     const options = repeater.options;
     if (options.onStartBuildUpdate) options.onStartBuildUpdate();
-    
+
     const newIdMap = {}
     repeater.newlyCreated.forEach((created) => {
       newIdMap[created[objectMetaProperty].buildId] = created;
@@ -1127,7 +1127,7 @@ function createInstance(configuration) {
     if (!options) options = {};
 
     // Activate!
-    const repeater = createRepeater(description, repeaterAction, repeaterNonRecordingAction, options);
+    const repeater = createRepeater(description, repeaterAction, repeaterNonRecordingAction, options, finishRebuilding);
     if (options.dependentOnParent && context.type === "repeater") {
       context.addChild(repeater);
     }
