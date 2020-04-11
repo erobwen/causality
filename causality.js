@@ -1012,37 +1012,7 @@ function createInstance(configuration) {
         }
 
         // Finish rebuilding
-        if (repeater.newlyCreated) {
-          if (options.onStartBuildUpdate) options.onStartBuildUpdate();
-          
-          const newIdMap = {}
-          repeater.newlyCreated.forEach((created) => {
-            newIdMap[created[objectMetaProperty].buildId] = created;
-            if (created[objectMetaForwardToProperty] !== null) {
-              // Push changes to established object.
-              let forwardTo = created[objectMetaForwardToProperty];
-              created[objectMetaForwardToProperty] = null;
-              mergeInto(created, forwardTo);
-            } else {
-              // Send create on build message
-              if (typeof(created.onReBuildCreate) === "function") created.onReBuildCreate();
-            }
-          });
-          repeater.newlyCreated = [];
-
-          // Send on build remove messages
-          for (let id in repeater.buildIdObjectMap) {
-            if (typeof(newIdMap[id]) === "undefined") {
-              const object = repeater.buildIdObjectMap[id];
-              if (typeof(object.onReBuildRemove) === "function") object.onReBuildRemove();
-            }
-          }
-
-          // Set new map
-          repeater.buildIdObjectMap = newIdMap;
-          
-          if (options.onEndBuildUpdate) options.onEndBuildUpdate();
-        }
+        if (repeater.newlyCreated) finishRebuilding(this);
 
         leaveContext( activeContext );
         return repeater;
@@ -1069,6 +1039,39 @@ function createInstance(configuration) {
     if (repeater.previousDirty) {
       repeater.previousDirty.nextDirty = repeater.nextDirty;
     }
+  }
+
+  function finishRebuilding(repeater) {
+    const options = repeater.options;
+    if (options.onStartBuildUpdate) options.onStartBuildUpdate();
+    
+    const newIdMap = {}
+    repeater.newlyCreated.forEach((created) => {
+      newIdMap[created[objectMetaProperty].buildId] = created;
+      if (created[objectMetaForwardToProperty] !== null) {
+        // Push changes to established object.
+        let forwardTo = created[objectMetaForwardToProperty];
+        created[objectMetaForwardToProperty] = null;
+        mergeInto(created, forwardTo);
+      } else {
+        // Send create on build message
+        if (typeof(created.onReBuildCreate) === "function") created.onReBuildCreate();
+      }
+    });
+    repeater.newlyCreated = [];
+
+    // Send on build remove messages
+    for (let id in repeater.buildIdObjectMap) {
+      if (typeof(newIdMap[id]) === "undefined") {
+        const object = repeater.buildIdObjectMap[id];
+        if (typeof(object.onReBuildRemove) === "function") object.onReBuildRemove();
+      }
+    }
+
+    // Set new map
+    repeater.buildIdObjectMap = newIdMap;
+    
+    if (options.onEndBuildUpdate) options.onEndBuildUpdate();
   }
 
   function modifyRepeaterAction(repeaterAction, {throttle=0, debounce=0}) {
