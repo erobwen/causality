@@ -57,20 +57,23 @@ function createInstance(configuration) {
   const state = {
     recordingPaused : 0,
     blockInvalidation : 0,
-    postponeInvalidation : 0
+    postponeInvalidation : 0,
+  
+    // Object creation
+    nextObjectId: 1,
+  
+    // Stack
+    context: null,
+
+    // Observers
+    observerId: 0,
+    inActiveRecording: false,
+    nextObserverToInvalidate: null,
+    lastObserverToInvalidate: null,
   };
 
-  // Object creation
-  let nextObjectId = 1;
 
-  // Stack
-  let context = null;
 
-  // Observers
-  let observerId = 0;
-  let inActiveRecording = false;
-  let nextObserverToInvalidate = null;
-  let lastObserverToInvalidate = null;
 
   // Repeaters
   let inRepeater = null;
@@ -121,7 +124,7 @@ function createInstance(configuration) {
     enterContext,
     leaveContext,
     invalidateObserver, 
-    nextObserverId: () => { return observerId++ },
+    nextObserverId: () => { return state.observerId++ },
 
     // Libraries
     caching: createCachingFunction(observable)
@@ -222,20 +225,20 @@ function createInstance(configuration) {
    **********************************/
 
   function updateContextState() {
-    inActiveRecording = context !== null && state.recordingPaused === 0;
-    inRepeater = (context && context.type === "repeater") ? context: null;
+    state.inActiveRecording = state.context !== null && state.recordingPaused === 0;
+    inRepeater = (state.context && state.context.type === "repeater") ? state.context: null;
   }
 
   function enterContext(enteredContext) {
-    enteredContext.parent = context;
-    context = enteredContext;
+    enteredContext.parent = state.context;
+    state.context = enteredContext;
     updateContextState();
     return enteredContext;
   }
 
   function leaveContext( activeContext ) {    
-    if( context && activeContext === context ) {
-      context = context.parent;
+    if( state.context && activeContext === state.context ) {
+      state.context = state.context.parent;
     } else {
       throw new Error("Context missmatch");
     }
@@ -371,7 +374,7 @@ function createInstance(configuration) {
     } else if (key === objectMetaProperty) {
       return this.meta;
     } else {
-      if (inActiveRecording) recordDependencyOnArray(context, this);
+      if (state.inActiveRecording) recordDependencyOnArray(state.context, this);
       return target[key];
     }
   }
@@ -467,7 +470,7 @@ function createInstance(configuration) {
       return cannotReadPropertyValue;
     }
 
-    if (inActiveRecording) recordDependencyOnArray(context, this);
+    if (state.inActiveRecording) recordDependencyOnArray(state.context, this);
     let result   = Object.keys(target);
     result.push('length');
     return result;
@@ -483,7 +486,7 @@ function createInstance(configuration) {
       return cannotReadPropertyValue;
     }
 
-    if (inActiveRecording) recordDependencyOnArray(context, this);
+    if (state.inActiveRecording) recordDependencyOnArray(state.context, this);
     return key in target;
   }
 
@@ -513,7 +516,7 @@ function createInstance(configuration) {
       return cannotReadPropertyValue;
     }
 
-    if (inActiveRecording) recordDependencyOnArray(context, this);
+    if (state.inActiveRecording) recordDependencyOnArray(state.context, this);
     return Object.getOwnPropertyDescriptor(target, key);
   }
 
@@ -544,7 +547,7 @@ function createInstance(configuration) {
       return this.meta;
     } else {  
       if (typeof(key) !== 'undefined') {
-        if (inActiveRecording) recordDependencyOnProperty(context, this, key);
+        if (state.inActiveRecording) recordDependencyOnProperty(state.context, this, key);
 
         let scan = target;
         while ( scan !== null && typeof(scan) !== 'undefined' ) {
@@ -638,7 +641,7 @@ function createInstance(configuration) {
       return cannotReadPropertyValue;
     }
  
-    if (inActiveRecording) recordDependencyOnEnumeration(context, this);
+    if (state.inActiveRecording) recordDependencyOnEnumeration(state.context, this);
 
     let keys = Object.keys(target);
     // keys.push('id');
@@ -656,7 +659,7 @@ function createInstance(configuration) {
       return cannotReadPropertyValue;
     }
  
-    if (inActiveRecording) recordDependencyOnEnumeration(context, this)
+    if (state.inActiveRecording) recordDependencyOnEnumeration(state.context, this)
     return key in target;
   }
 
@@ -686,7 +689,7 @@ function createInstance(configuration) {
       return cannotReadPropertyValue;
     }
  
-    if (inActiveRecording) recordDependencyOnEnumeration(context, this)
+    if (state.inActiveRecording) recordDependencyOnEnumeration(state.context, this)
     return Object.getOwnPropertyDescriptor(target, key);
   }
 
@@ -747,7 +750,7 @@ function createInstance(configuration) {
     handler.proxy = proxy;
 
     handler.meta = {
-      id: nextObjectId++,
+      id: state.nextObjectId++,
       buildId : buildId,
       forwardTo : null,
       target: createdTarget,
@@ -858,38 +861,38 @@ function createInstance(configuration) {
 
   function proceedWithPostponedInvalidations() {
     if (state.postponeInvalidation == 0) {
-      while (nextObserverToInvalidate !== null) {
-        let observer = nextObserverToInvalidate;
-        nextObserverToInvalidate = nextObserverToInvalidate.nextToNotify;
+      while (state.nextObserverToInvalidate !== null) {
+        let observer = state.nextObserverToInvalidate;
+        state.nextObserverToInvalidate = state.nextObserverToInvalidate.nextToNotify;
         // blockSideEffects(function() {
         observer.invalidateAction();
         // });
       }
-      lastObserverToInvalidate = null;
+      state.lastObserverToInvalidate = null;
     }
   }
 
   function invalidateObserver(observer) {
-    if (observer != context) {
-      // if( trace.contextMismatch && context && context.id ){
+    if (observer != state.context) {
+      // if( trace.contextMismatch && state.context && state.context.id ){
       //   console.log("invalidateObserver mismatch " + observer.type, observer.id||'');
-      //   if( !context ) console.log('current context null');
+      //   if( !state.context ) console.log('current state.context null');
       //   else {
-      //     console.log("current context " + context.type, context.id||'');
-      //     if( context.parent ){
-      //       console.log("parent context " + context.parent.type, context.parent.id||'');
+      //     console.log("current state.context " + state.context.type, state.context.id||'');
+      //     if( state.context.parent ){
+      //       console.log("parent state.context " + state.context.parent.type, state.context.parent.id||'');
       //     }
       //   }
       // }
       
       observer.dispose(); // Cannot be any more dirty than it already is!
       if (state.postponeInvalidation > 0) {
-        if (lastObserverToInvalidate !== null) {
-          lastObserverToInvalidate.nextToNotify = observer;
+        if (state.lastObserverToInvalidate !== null) {
+          state.lastObserverToInvalidate.nextToNotify = observer;
         } else {
-          nextObserverToInvalidate = observer;
+          state.nextObserverToInvalidate = observer;
         }
-        lastObserverToInvalidate = observer;
+        state.lastObserverToInvalidate = observer;
       } else {
         // blockSideEffects(function() {
         observer.invalidateAction();
@@ -916,7 +919,7 @@ function createInstance(configuration) {
   function defaultCreateInvalidator(description, doAfterChange) {
     return {
       type: 'invalidator',
-      id: observerId++,
+      id: state.observerId++,
       description: description,
       sources : [],
       nextToNotify: null,
@@ -925,7 +928,7 @@ function createInstance(configuration) {
         removeAllSources(this);
       },
       record : function( action ){
-        if( context == this || this.isRemoved ) return action();
+        if( state.context == this || this.isRemoved ) return action();
         const activeContext = enterContext(this);
         const value = action();
         leaveContext( activeContext );
@@ -976,7 +979,7 @@ function createInstance(configuration) {
   function defaultCreateRepeater(description, repeaterAction, repeaterNonRecordingAction, options, finishRebuilding) {
     return {
       type: "repeater", 
-      id: observerId++,
+      id: state.observerId++,
       description: description,
       sources : [],
       nextToNotify: null,
@@ -1034,7 +1037,7 @@ function createInstance(configuration) {
   }
 
   function clearRepeaterLists() {
-    observerId = 0;
+    state.observerId = 0;
     firstDirtyRepeater = null;
     lastDirtyRepeater = null;
   }
@@ -1141,8 +1144,8 @@ function createInstance(configuration) {
 
     // Activate!
     const repeater = createRepeater(description, repeaterAction, repeaterNonRecordingAction, options, finishRebuilding);
-    if (options.dependentOnParent && context.type === "repeater") {
-      context.addChild(repeater);
+    if (options.dependentOnParent && state.context.type === "repeater") {
+      state.context.addChild(repeater);
     }
     return repeater.refresh();
   }
