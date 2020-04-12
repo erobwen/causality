@@ -33,15 +33,14 @@ const defaultConfiguration = {
 
   // allowNonObservableReferences: true, // Allow observables to refer to non referables. TODO?
   
-  customDependencyInterfaceCreator: null, //{recordDependencyOnArray, recordDependencyOnEnumeration, recordDependencyOnProperty, recordDependency}
-  customCreateInvalidator: null, 
-  customCreateRepeater: null,
-
   onWriteGlobal: null, 
   onReadGlobal: null, 
   cannotReadPropertyValue: null,
 
-  usedObjectlog: defaultObjectlog,
+  customObjectlog: null,
+  customDependencyInterfaceCreator: null, //{recordDependencyOnArray, recordDependencyOnEnumeration, recordDependencyOnProperty, recordDependency}
+  customCreateInvalidator: null, 
+  customCreateRepeater: null,
 }
 
 
@@ -66,15 +65,12 @@ function createInstance(configuration) {
 
   // Stack
   let context = null;
-  let inActiveRecording = false;
-  let activeRecorder = null;
 
   // Observers
   let observerId = 0;
+  let inActiveRecording = false;
   let nextObserverToInvalidate = null;
   let lastObserverToInvalidate = null;
-
-  // Invalidators
 
   // Repeaters
   let inRepeater = null;
@@ -155,8 +151,10 @@ function createInstance(configuration) {
   const invalidatePropertyObservers = dependencyInterface.invalidatePropertyObservers;
   const removeAllSources = dependencyInterface.removeAllSources;
 
-  // Object.assign(instance, require("./lib/causalityObject.js").bindToInstance(instance));
+  // Object log
+  const usedObjectlog = configuration.customObjectlog ? configuration.customObjectlog : defaultObjectlog;
 
+  // Object.assign(instance, require("./lib/causalityObject.js").bindToInstance(instance));
 
   /***************************************************************
    *
@@ -185,8 +183,7 @@ function createInstance(configuration) {
     emitReCreationEvents,
     onWriteGlobal, 
     onReadGlobal, 
-    cannotReadPropertyValue,
-    usedObjectlog,
+    cannotReadPropertyValue
   } = configuration;  
 
 
@@ -226,7 +223,6 @@ function createInstance(configuration) {
 
   function updateContextState() {
     inActiveRecording = context !== null && state.recordingPaused === 0;
-    activeRecorder = (inActiveRecording) ? context : null;    
     inRepeater = (context && context.type === "repeater") ? context: null;
   }
 
@@ -375,7 +371,7 @@ function createInstance(configuration) {
     } else if (key === objectMetaProperty) {
       return this.meta;
     } else {
-      if (inActiveRecording) recordDependencyOnArray(activeRecorder, this);
+      if (inActiveRecording) recordDependencyOnArray(context, this);
       return target[key];
     }
   }
@@ -471,7 +467,7 @@ function createInstance(configuration) {
       return cannotReadPropertyValue;
     }
 
-    if (inActiveRecording) recordDependencyOnArray(activeRecorder, this);
+    if (inActiveRecording) recordDependencyOnArray(context, this);
     let result   = Object.keys(target);
     result.push('length');
     return result;
@@ -487,7 +483,7 @@ function createInstance(configuration) {
       return cannotReadPropertyValue;
     }
 
-    if (inActiveRecording) recordDependencyOnArray(activeRecorder, this);
+    if (inActiveRecording) recordDependencyOnArray(context, this);
     return key in target;
   }
 
@@ -517,7 +513,7 @@ function createInstance(configuration) {
       return cannotReadPropertyValue;
     }
 
-    if (inActiveRecording) recordDependencyOnArray(activeRecorder, this);
+    if (inActiveRecording) recordDependencyOnArray(context, this);
     return Object.getOwnPropertyDescriptor(target, key);
   }
 
@@ -548,7 +544,7 @@ function createInstance(configuration) {
       return this.meta;
     } else {  
       if (typeof(key) !== 'undefined') {
-        if (inActiveRecording) recordDependencyOnProperty(activeRecorder, this, key);
+        if (inActiveRecording) recordDependencyOnProperty(context, this, key);
 
         let scan = target;
         while ( scan !== null && typeof(scan) !== 'undefined' ) {
@@ -642,7 +638,7 @@ function createInstance(configuration) {
       return cannotReadPropertyValue;
     }
  
-    if (inActiveRecording) recordDependencyOnEnumeration(activeRecorder, this);
+    if (inActiveRecording) recordDependencyOnEnumeration(context, this);
 
     let keys = Object.keys(target);
     // keys.push('id');
@@ -660,7 +656,7 @@ function createInstance(configuration) {
       return cannotReadPropertyValue;
     }
  
-    if (inActiveRecording) recordDependencyOnEnumeration(activeRecorder, this)
+    if (inActiveRecording) recordDependencyOnEnumeration(context, this)
     return key in target;
   }
 
@@ -690,7 +686,7 @@ function createInstance(configuration) {
       return cannotReadPropertyValue;
     }
  
-    if (inActiveRecording) recordDependencyOnEnumeration(activeRecorder, this)
+    if (inActiveRecording) recordDependencyOnEnumeration(context, this)
     return Object.getOwnPropertyDescriptor(target, key);
   }
 
