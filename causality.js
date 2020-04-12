@@ -70,18 +70,13 @@ function createInstance(configuration) {
     inActiveRecording: false,
     nextObserverToInvalidate: null,
     lastObserverToInvalidate: null,
+
+    // Repeaters
+    inRepeater: null,
+    firstDirtyRepeater: null,
+    lastDirtyRepeater: null,
+    refreshingAllDirtyRepeaters: false,
   };
-
-
-
-
-  // Repeaters
-  let inRepeater = null;
-  let firstDirtyRepeater = null;
-  let lastDirtyRepeater = null;
-  let refreshingAllDirtyRepeaters = false;
-
-
 
 
   /************************************************************************
@@ -226,7 +221,7 @@ function createInstance(configuration) {
 
   function updateContextState() {
     state.inActiveRecording = state.context !== null && state.recordingPaused === 0;
-    inRepeater = (state.context && state.context.type === "repeater") ? state.context: null;
+    state.inRepeater = (state.context && state.context.type === "repeater") ? state.context: null;
   }
 
   function enterContext(enteredContext) {
@@ -761,23 +756,23 @@ function createInstance(configuration) {
       isRebuildOfOther: false,
     };
 
-    if (inRepeater !== null && buildId !== null) {
-      if (!inRepeater.newlyCreated) inRepeater.newlyCreated = [];
+    if (state.inRepeater !== null && buildId !== null) {
+      if (!state.inRepeater.newlyCreated) state.inRepeater.newlyCreated = [];
       
-      if (inRepeater.buildIdObjectMap && typeof(inRepeater.buildIdObjectMap[buildId]) !== 'undefined') {
+      if (state.inRepeater.buildIdObjectMap && typeof(state.inRepeater.buildIdObjectMap[buildId]) !== 'undefined') {
         // Object identity previously created
         handler.meta.isRebuildOfOther = true;
-        let establishedObject = inRepeater.buildIdObjectMap[buildId];
+        let establishedObject = state.inRepeater.buildIdObjectMap[buildId];
         establishedObject.causalityForwardTo = proxy;
 
-        inRepeater.newlyCreated.push(establishedObject);
+        state.inRepeater.newlyCreated.push(establishedObject);
         if (emitReCreationEvents) {
           emitCreationEvent(handler);
         }
         return establishedObject;
       } else {
         // Create a new one
-        inRepeater.newlyCreated.push(proxy);
+        state.inRepeater.newlyCreated.push(proxy);
         emitCreationEvent(handler);
       }
     } else {
@@ -1038,16 +1033,16 @@ function createInstance(configuration) {
 
   function clearRepeaterLists() {
     state.observerId = 0;
-    firstDirtyRepeater = null;
-    lastDirtyRepeater = null;
+    state.firstDirtyRepeater = null;
+    state.lastDirtyRepeater = null;
   }
 
   function detatchRepeater(repeater) {
-    if (lastDirtyRepeater === repeater) {
-      lastDirtyRepeater = repeater.previousDirty;
+    if (state.lastDirtyRepeater === repeater) {
+      state.lastDirtyRepeater = repeater.previousDirty;
     }
-    if (firstDirtyRepeater === repeater) {
-      firstDirtyRepeater = repeater.nextDirty;
+    if (state.firstDirtyRepeater === repeater) {
+      state.firstDirtyRepeater = repeater.nextDirty;
     }
     if (repeater.nextDirty) {
       repeater.nextDirty.previousDirty = repeater.previousDirty;
@@ -1156,29 +1151,29 @@ function createInstance(configuration) {
     // disposeChildContexts(repeater);
     // disposeSingleChildContext(repeater);
 
-    if (lastDirtyRepeater === null) {
-      lastDirtyRepeater = repeater;
-      firstDirtyRepeater = repeater;
+    if (state.lastDirtyRepeater === null) {
+      state.lastDirtyRepeater = repeater;
+      state.firstDirtyRepeater = repeater;
     } else {
-      lastDirtyRepeater.nextDirty = repeater;
-      repeater.previousDirty = lastDirtyRepeater;
-      lastDirtyRepeater = repeater;
+      state.lastDirtyRepeater.nextDirty = repeater;
+      repeater.previousDirty = state.lastDirtyRepeater;
+      state.lastDirtyRepeater = repeater;
     }
 
     refreshAllDirtyRepeaters();
   }
 
   function refreshAllDirtyRepeaters() {
-    if (!refreshingAllDirtyRepeaters) {
-      if (firstDirtyRepeater !== null) {
-        refreshingAllDirtyRepeaters = true;
-        while (firstDirtyRepeater !== null) {
-          let repeater = firstDirtyRepeater;
+    if (!state.refreshingAllDirtyRepeaters) {
+      if (state.firstDirtyRepeater !== null) {
+        state.refreshingAllDirtyRepeaters = true;
+        while (state.firstDirtyRepeater !== null) {
+          let repeater = state.firstDirtyRepeater;
           detatchRepeater(repeater);
           repeater.refresh();
         }
 
-        refreshingAllDirtyRepeaters = false;
+        state.refreshingAllDirtyRepeaters = false;
       }
     }
   }
