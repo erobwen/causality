@@ -2,50 +2,51 @@
 // require = require("esm")(module);
 const { argumentsToArray, configSignature, mergeInto } = require("./lib/utility.js");
 const { objectlog } = require("./lib/objectlog.js");
-const { createCachingFunction } = require("./lib/caching.js");
 const defaultObjectlog = objectlog;
+const { createCachingFunction } = require("./lib/caching.js");
 const { defaultDependencyInterfaceCreator } = require("./lib/defaultDependencyInterface.js");
 
 
+/***************************************************************
+ *
+ *  Default coonfiguration
+ *
+ ***************************************************************/
+
+
+const defaultConfiguration = {
+  requireRepeaterName: false,
+  requireInvalidatorName: false,
+
+  objectMetaProperty: "causality",
+  objectMetaForwardToProperty: "causalityForwardTo",
+
+  emitEvents: false, // either set onEventGlobal or define onChange on individual objects.
+  sendEventsToObjects: true,
+    // Reserved properties that you can override on observables IF sendEventsToObjects is set to true. 
+    // onChange
+    // onBuildCreate
+    // onBuildRemove
+    // onRemovedLastObserver 
+  onEventGlobal: null,
+  emitReCreationEvents: false,
+
+  // allowNonObservableReferences: true, // Allow observables to refer to non referables. TODO?
+  
+  customDependencyInterfaceCreator: null, //{recordDependencyOnArray, recordDependencyOnEnumeration, recordDependencyOnProperty, recordDependency}
+  customCreateInvalidator: null, 
+  customCreateRepeater: null,
+
+  onWriteGlobal: null, 
+  onReadGlobal: null, 
+  cannotReadPropertyValue: null,
+
+  usedObjectlog: defaultObjectlog,
+}
+
+
 function createInstance(configuration) {
-
-  /***************************************************************
-   *
-   *  Coonfiguration
-   *
-   ***************************************************************/
-
-  const {
-    requireRepeaterName = false,
-    requireInvalidatorName = false,
-
-    objectMetaProperty = "causality",
-    objectMetaForwardToProperty = "causalityForwardTo",
-
-    emitEvents = false, // either set onEventGlobal or define onChange on individual objects.
-    sendEventsToObjects = true,
-      // Reserved properties that you can override on observables IF sendEventsToObjects is set to true. 
-      // onChange
-      // onBuildCreate
-      // onBuildRemove
-      // onRemovedLastObserver 
-    onEventGlobal = null,
-    emitReCreationEvents = false,
-
-    // allowNonObservableReferences = true, // Allow observables to refer to non referables. TODO?
-    
-    customDependencyInterfaceCreator = null, //{recordDependencyOnArray, recordDependencyOnEnumeration, recordDependencyOnProperty, recordDependency}
-    customCreateInvalidator = null, 
-    customCreateRepeater = null,
-
-    onWriteGlobal = null, 
-    onReadGlobal = null, 
-    cannotReadPropertyValue = null,
-
-    objectlog = defaultObjectlog,
-  } = configuration;  
-
-  // console.log(objectlog)
+  // console.log(usedObjectlog)
 
   /***************************************************************
    *
@@ -82,13 +83,6 @@ function createInstance(configuration) {
   let refreshingAllDirtyRepeaters = false;
 
 
-  /***************************************************************
-   *
-   *  Constants
-   *
-   ***************************************************************/
-
-  const staticArrayOverrides = createStaticArrayOverrides();
 
 
   /************************************************************************
@@ -118,10 +112,10 @@ function createInstance(configuration) {
     
     // Logging (these log commands do automatic withoutRecording to avoid your logs destroying your test-setup) 
     log,
-    loge : objectlog.loge, // "event"
-    logs : objectlog.logs, // "separator"
-    logss : objectlog.logss,
-    logsss : objectlog.logsss,
+    loge : (string) => { usedObjectlog.loge(string) }, // "event"
+    logs : () => { usedObjectlog.logs() }, // "separator"
+    logss : () => { usedObjectlog.logss() },
+    logsss : () => { usedObjectlog.logss() },
     logGroup,
     logUngroup,
     logToString,
@@ -145,12 +139,12 @@ function createInstance(configuration) {
    ***************************************************************/
 
   // Custom observer creators
-  const createRepeater = customCreateRepeater ? customCreateRepeater : defaultCreateRepeater;
-  const createInvalidator = customCreateInvalidator ? customCreateInvalidator : defaultCreateInvalidator;
+  const createRepeater = configuration.customCreateRepeater ? configuration.customCreateRepeater : defaultCreateRepeater;
+  const createInvalidator = configuration.customCreateInvalidator ? configuration.customCreateInvalidator : defaultCreateInvalidator;
 
   // Dependency interface (plugin data structures connecting observer and observable)
-  const dependencyInterface = customDependencyInterfaceCreator ? 
-    customDependencyInterfaceCreator(instance) 
+  const dependencyInterface = configuration.customDependencyInterfaceCreator ? 
+    configuration.customDependencyInterfaceCreator(instance) 
     : 
     defaultDependencyInterfaceCreator(instance);
   const recordDependencyOnArray = dependencyInterface.recordDependencyOnArray;
@@ -164,13 +158,36 @@ function createInstance(configuration) {
   // Object.assign(instance, require("./lib/causalityObject.js").bindToInstance(instance));
 
 
-  /************************************************************************
+  /***************************************************************
    *
-   *  Module
+   *  Constants
    *
-   ************************************************************************/
+   ***************************************************************/
 
-  return instance;
+  const staticArrayOverrides = createStaticArrayOverrides();
+
+
+
+  /****************************************************
+   *
+   *          Deploy configuration
+   *
+   ****************************************************/
+
+  const {
+    requireRepeaterName,
+    requireInvalidatorName,
+    objectMetaProperty,
+    objectMetaForwardToProperty,
+    emitEvents,
+    sendEventsToObjects,
+    onEventGlobal,
+    emitReCreationEvents,
+    onWriteGlobal, 
+    onReadGlobal, 
+    cannotReadPropertyValue,
+    usedObjectlog,
+  } = configuration;  
 
 
   /**********************************
@@ -1176,8 +1193,8 @@ function createInstance(configuration) {
   function log(entity, pattern) {
     state.recordingPaused++;
     updateContextState();
-    // objectlog.log(entity, pattern);
-    console.log(entity, pattern);
+    usedObjectlog.log(entity, pattern);
+    // console.log(entity, pattern);
     state.recordingPaused--;  
     updateContextState();
   }
@@ -1185,29 +1202,39 @@ function createInstance(configuration) {
   function logGroup(entity, pattern) {
     state.recordingPaused++;
     updateContextState();
-    objectlog.group(entity, pattern);
+    usedObjectlog.group(entity, pattern);
     state.recordingPaused--;
     updateContextState();
   } 
   
   function logUngroup() {
-    objectlog.groupEnd(); 
+    usedObjectlog.groupEnd(); 
   } 
 
   function logToString(entity, pattern) {
     state.recordingPaused++;
     updateContextState();
-    let result = objectlog.logToString(entity, pattern);
+    let result = usedObjectlog.logToString(entity, pattern);
     state.recordingPaused--;
     updateContextState();
     return result;
   }
+
+
+  /************************************************************************
+   *
+   *  Return instance
+   *
+   ************************************************************************/
+
+  return instance;
 }
   
 let instances = {};
 
 export function instance(configuration) {
   if(!configuration) configuration = {};
+  configuration = {...defaultConfiguration, ...configuration};
   const signature = configSignature(configuration);
   
   if (typeof(instances[signature]) === 'undefined') {
