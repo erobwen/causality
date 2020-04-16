@@ -154,6 +154,7 @@ function createInstance(configuration) {
 
   // Object.assign(instance, require("./lib/causalityObject.js").bindToInstance(instance));
 
+
   /***************************************************************
    *
    *  Constants
@@ -975,6 +976,7 @@ function createInstance(configuration) {
     return {
       type: "repeater", 
       id: state.observerId++,
+      firstTime: true, 
       description: description,
       sources : [],
       nextToNotify: null,
@@ -1007,25 +1009,38 @@ function createInstance(configuration) {
       nextDirty : null,
       previousDirty : null,
       lastRepeatTime: 0,
+      waitOnNonRecordedAction: 0,
       children: null,
       refresh() {
         const repeater = this; 
         const options = repeater.options;
         if (options.onRefresh) options.onRefresh(repeater);
             
-        // Recorded action
+        // Recorded action (cause and/or effect)
         const activeContext = enterContext(repeater);
         repeater.returnValue = repeater.repeaterAction(repeater)
 
-        // Non recorded action
+        // Non recorded action (only effect)
+        const { debounce=0, fireImmediately=true } = options; 
         if (repeater.nonRecordedAction !== null) {
-          repeater.nonRecordedAction( repeater.returnValue );
+          if (debounce === 0 || this.firstTime) {
+            if (fireImmediately || !this.firstTime) repeater.nonRecordedAction( repeater.returnValue );
+          } else {
+            if (repeater.waitOnNonRecordedAction) clearTimeout(repeater.waitOnNonRecordedAction);
+            repeater.waitOnNonRecordedAction = setTimeout(() => {
+              repeater.nonRecordedAction( repeater.returnValue );
+              repeater.waitOnNonRecordedAction = null;
+            }, debounce);
+          }
+        } else if (debounce > 0) {
+          throw new Error("Debounce has to be used together with a non-recorded action.");
         }
 
         // Finish rebuilding
         if (repeater.newlyCreated) finishRebuilding(this);
 
         leaveContext( activeContext );
+        this.firstTime = false; 
         return repeater;
       }
     }
@@ -1085,7 +1100,7 @@ function createInstance(configuration) {
     if (options.onEndBuildUpdate) options.onEndBuildUpdate();
   }
 
-  function modifyRepeaterAction(repeaterAction, {throttle=0, debounce=0}) {
+  function modifyRepeaterAction(repeaterAction, {throttle=0}) {
     if (throttle > 0) {
       return function(repeater) {
         let time = Date.now();
@@ -1099,10 +1114,6 @@ function createInstance(configuration) {
         }
       }
     } 
-
-    if (debounce > 0) {
-      // TODO
-    }
 
     return repeaterAction;
   }
