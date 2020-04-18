@@ -1,10 +1,8 @@
-'use strict'; 
-// require = require("esm")(module);
-const { argumentsToArray, configSignature, mergeInto } = require("./lib/utility.js");
-const { objectlog } = require("./lib/objectlog.js");
+import { argumentsToArray, configSignature, mergeInto } from "./lib/utility.js";
+import { objectlog } from "./lib/objectlog.js";
 const defaultObjectlog = objectlog;
-const { createCachingFunction } = require("./lib/caching.js");
-const { defaultDependencyInterfaceCreator } = require("./lib/defaultDependencyInterface.js");
+import { createCachingFunction } from "./lib/caching.js";
+import { defaultDependencyInterfaceCreator } from "./lib/defaultDependencyInterface.js";
 
 
 /***************************************************************
@@ -1248,4 +1246,4 @@ export function instance(configuration) {
   return instances[signature];
 }                                                                   
 
-
+export default instance;
