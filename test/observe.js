@@ -1,6 +1,6 @@
 'use strict';
 require = require("esm")(module);
-const {observable,repeatOnChange} = require("../causality.js").instance();
+const {observable,repeat} = require("../causality.js").instance();
 const assert = require('assert');
 describe("Observe", function(){
 
@@ -35,7 +35,7 @@ describe("Observe", function(){
 		// let observationCounter = 0;
 		
 		// // Install observer using a repeater
-		// repeatOnChange(function() {
+		// repeat(function() {
 		// 	if (controller.haveObserver) {
 		// 		specimen.observe(function() {
 		// 			observationCounter++;

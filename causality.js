@@ -86,10 +86,8 @@ function createInstance(configuration) {
   const instance = {
     // Main API
     observable,
-    o: observable, 
     invalidateOnChange,
-    repeatOnChange,
-    repeat: repeatOnChange,
+    repeat,
 
     // Modifiers
     withoutRecording,
@@ -1116,7 +1114,7 @@ function createInstance(configuration) {
     return repeaterAction;
   }
 
-  function repeatOnChange() { // description(optional), action
+  function repeat() { // description(optional), action
     // Arguments
     let description = '';
     let repeaterAction;

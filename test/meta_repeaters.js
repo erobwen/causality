@@ -1,6 +1,6 @@
 'use strict';
 require = require("esm")(module);
-const {observable, repeatOnChange, repeat, transaction, cachedCallCount} = require("../causality.js").instance();
+const {observable, repeat, transaction, cachedCallCount} = require("../causality.js").instance();
 const assert = require('assert');
 describe("Meta repeaters", function(){
 

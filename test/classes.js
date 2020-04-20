@@ -1,6 +1,6 @@
 'use strict';
 require = require("esm")(module);
-const {observable,repeatOnChange} = require("../causality.js").instance();
+const {observable,repeat} = require("../causality.js").instance();
 const assert = require('assert');
 
 describe("Classes", function () {
@@ -22,7 +22,7 @@ describe("Classes", function () {
   const x = new MyCausalityClass( 11 );
   let z;
 
-  repeatOnChange(function () {
+  repeat(function () {
     cnt++;
     z = x.propA + x.dostuff();
   });

@@ -1,15 +1,15 @@
 'use strict';
 require = require("esm")(module);
-const {o,repeatOnChange} = require("../causality.js").instance({name: "hobby"});
+const {observable,repeat} = require("../causality.js").instance({name: "hobby"});
 const assert = require('assert');
 
 describe("object tree modifications", function(){
 
 	let cnt = 0;
-	const state = o({});
+	const state = observable({});
 	let out = {};
 	
-	repeatOnChange(function(){
+	repeat(function(){
 		// console.log("=== Reevaluate ===");
 		cnt++;
 		for( let key in state ){
@@ -25,13 +25,13 @@ describe("object tree modifications", function(){
 	});
 
 	it("Setting a", function(){
-		state.a = o({name:"Apa"});
+		state.a = observable({name:"Apa"});
 		assert.equal(cnt,2);
 		assert.equal(out.a, undefined);
 	});
 
 	it("Setting a.hobby", function(){
-		state.a.hobby = o([]);
+		state.a.hobby = observable([]);
 		assert.equal(cnt,3);
 		//log(state['a'].hobby);
 		//log(state['a'].hobby.length);

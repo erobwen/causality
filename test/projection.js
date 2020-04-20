@@ -381,7 +381,7 @@ describe("Projections", function(){
 // const state = observable({});
 // let out = {};
 //
-// repeatOnChange(function(){
+// repeat(function(){
 //     // console.log("=== Reevaluate ===");
 //     cnt++;
 //     for( let key in state ){

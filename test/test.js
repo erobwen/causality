@@ -1,7 +1,5 @@
 require = require("esm")(module);
-const {observable,invalidateOnChange,repeatOnChange,o} = require("../causality.js").instance();
-// console.log(causality);
-// import {observable,invalidateOnChange,repeatOnChange,o} from "../causality.js";
+const {observable,invalidateOnChange,repeat} = require("../causality.js").instance();
 const assert = require('assert');
 
 describe("invalidateOnChange", function () {
@@ -35,14 +33,14 @@ describe("invalidateOnChange", function () {
 });
 
 
-describe("repeatOnChange", function () {
+describe("repeat", function () {
 
   let cnt = 0;
   const x = observable({propA: 11});
   const y = observable({propB: 11, propC: 100});
   let z;
 
-  repeatOnChange(function () {
+  repeat(function () {
     cnt++;
     z = x.propA + y.propB;
   });
@@ -72,7 +70,7 @@ describe("heap structure", function () {
   function buildHeap(value) {
     var childrenStartValue = value - 5;
     var childrenCount      = 0;
-    var children           = o([]);
+    var children           = observable([]);
     while (childrenCount <= 3) {
       var childValue = childrenStartValue--;
       if (childValue > 0) {
@@ -80,7 +78,7 @@ describe("heap structure", function () {
       }
       childrenCount++;
     }
-    return o({
+    return observable({
       value: value,
       children: children
     });
@@ -113,7 +111,7 @@ describe("heap structure", function () {
   var heap    = buildHeap(14);
   var heapSum = 0;
 
-  repeatOnChange(function () {
+  repeat(function () {
     heapSum       = summarize(heap);
     var heapNodeCount = nodeCount(heap);
   });
