@@ -143,30 +143,4 @@ describe("Meta repeaters", function(){
     c.value = "Chaos";
     assert.equal(events.length, 5); // Note c was killed because it was started from array that got popped. There is no "user count" on these repeaters. Perhaps it still should be alive fom arrayB? 
   });
-
-
-  // it("Test unique signatures", function(){
-  //   const events = [];
-
-  //   class Node extends CausalityObject {
-  //     constructor(value) {
-  //       super();
-  //       this.value = value;
-  //     }
-
-  //     emitHelloEvent(arg1, arg2) {
-  //       // log(">>>>>> pushing hello " + this.value + " <<<<<<<");
-  //       events.push("hello " + this.value);
-  //     }
-  //   };
-
-  //   let a = new Node('a');
-  //   a.repeat('emitHelloEvent', 'some', 'argument');
-  //   a.repeat('emitHelloEvent', 2);
-  //   a.repeat('emitHelloEvent', 54);
-  //   a.repeat('emitHelloEvent', 54);
-
-  //   // Assert all repeaters run once upon creation
-  //   assert.equal(events.length, 3);
-  // });
 });

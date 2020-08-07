@@ -29,6 +29,5 @@
     "mocha": "^6.2.2",
     "mobx": "^5.15.4"
   },
-  "dependencies": {
-  }
+  "dependencies": {}
 }
