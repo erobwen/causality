@@ -205,8 +205,6 @@ Some perhaps non-conclusive experiments indicate that causality could potentiall
 
 Causality also offers some experimental features that can not be found in MobX, such as reBuild, withoutSideEffects and the possibility for global observation of all objects ever created. On the other hand, MobX is a more mature library with a large supporting community and better integration with other libraries.
 
-![Alt text](/doc/performance.png?raw=true "Causality Logotype")
-
 # Trivia
 
 Causality is to be a foundation to a isomorphic application framework that will feature full stack data binding and reactive programming (https://github.com/erobwen/liquid). It is useful to anyone that would like to do reactive programming in Javascript (https://en.wikipedia.org/wiki/Reactive_programming).
