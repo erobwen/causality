@@ -19,11 +19,12 @@ Installation: npm install causalityjs --save
 
 This is just to show a simple example of what causality is all about, using the simple repeat primitive.
 
-    import {observable, repeat} from "causality";
+    import {instance} from "causality";
+    let causality = instance(); // Possibility to configure causality
 
-    var x = observable({propA: 11});
-    var y = observable({propB: 11, propC: 100});
-    var z;
+    let x = observable({propA: 11});
+    let y = observable({propB: 11, propC: 100});
+    let z;
 
     repeat(function(){
         z = x.propA + y.propB;  // Sets up a reactive setting of variable z
@@ -40,6 +41,10 @@ However, there are a lot more interesting features to try out.
 
 
 # Features
+
+## Configuration 
+
+Causality is configured using the instance function. This creates a possibility of creating multiple unrelated and differently configured instances of causality itself. 
 
 ## observable
 
