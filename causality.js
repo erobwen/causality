@@ -25,7 +25,6 @@ const defaultConfiguration = {
     // onChange
     // onBuildCreate
     // onBuildRemove
-    // onRemovedLastObserver 
   onEventGlobal: null,
   emitReCreationEvents: false,
 
@@ -760,7 +759,7 @@ function createInstance(configuration) {
         // Object identity previously created
         handler.meta.isRebuildOfOther = true;
         let establishedObject = state.inRepeater.buildIdObjectMap[buildId];
-        establishedObject.causalityForwardTo = proxy;
+        establishedObject.causalityForwardTo = proxy; // Hardcode here? seems like a bug if changed?
 
         state.inRepeater.newlyCreated.push(establishedObject);
         if (emitReCreationEvents) {

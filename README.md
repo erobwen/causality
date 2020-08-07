@@ -1,5 +1,4 @@
 
-
 # Causality
 
 ![Alt text](/docs/logotype.png?raw=true "Causality Logotype")
@@ -16,24 +15,17 @@ Installation: npm install causalityjs --save
     import {observable, repeat} from "causality";
 
 
-## Browser
-Place the file 'causality.js' where it can be served to the client, and then in your HTML:
-
-    <script type="module">
-      import {observable, repeat} from "path/to/causality.js";
-    </script>
-
 # Quick Example
 
-This is just to show a simple example of what causality is all about, using the simple repeatOnChange primitive.
+This is just to show a simple example of what causality is all about, using the simple repeat primitive.
 
-    import {observable, repeatOnChange} from "causality";
+    import {observable, repeat} from "causality";
 
     var x = observable({propA: 11});
     var y = observable({propB: 11, propC: 100});
     var z;
 
-    repeatOnChange(function(){
+    repeat(function(){
         z = x.propA + y.propB;  // Sets up a reactive setting of variable z
     });
     // z is now 22
@@ -44,31 +36,14 @@ This is just to show a simple example of what causality is all about, using the 
     x.propA = 2;
     // z is now 4
 
-However, the real power of causality lies in its more advanced primitives, cached and reCached which allow advanced reactive construction of data structures.
+However, there are a lot more interesting features to try out. 
 
 
 # Features
 
-Causality supports the following powerful reactive primitives typically available in the global scope (unless otherwise specified):
+## observable
 
-* create
-* repeatOnChange
-* invalidateOnChange
-* withoutSideEffects  (prevents side effects on observable objects)
-
-Causality objects also have the following methods.
-
-* cached
-* reCached
-* observe
-
-# Causality Global Functions
-
-The basic primitives of causality are observable, repeatOnChange, invalidateOnChange and withoutSideEffects. With only these, it is possible to create quite powerful reactive abstractions.
-
-## create
-
-With create you simply create a causality object. The create function takes any other Javascript object as input. Example usage:
+With observable you simply create a causality object. The observable function takes any other Javascript object as input. Example usage:
 
     observable({a: 1, b: 2, c: 3});
     observable([1, 2, 3]);
@@ -87,31 +62,53 @@ In every other aspect, a causality object behaves just as an ordinary Javascript
     l.pop();
     console.log(l); // should print out ["item1"];
 
-If you find it too cumbersome to write "create" upon every object creation, you can use its alias "c":
+If you find it too cumbersome to write "observable" upon every object creation, you can create an alias "o":
 
     o({a: 1, b: 2});
 
-In addition, causality objects gain additional methods, such as cached, reCached and observe. These methods will not show up on any printout of the object, nor in any listing of the objects keys.
+To access the inner workings of a causality object, you can access it by the causality property. For example write object.causality.id to get a system wide unique id for that particular object. 
 
-    var ojb = o({});
-    obj.observe(function(event) {console.log(event)});
-    obj.x = 42 // Should result in event printout.
+## repeat
 
-## repeatOnChange
+Repeat is typically used to enforce some certain data constraint. Such as reactive validation of a form, or calculation of some. In its basic form, it is simply a function that is reevaluated every time any of the data it read changes. For example:
 
-Repeat on change is typically used to enforce some certain data constraint. Such as reactive validation of a form, or calculation of some. In its basic form, it is simply a function that is reevaluated every time any of the data it read changes. For example:
+    repeat(function() {  x.value = y.value + z.value; });
 
-    repeatOnChange(function() {  x.value = y.value + z.value; });
-
-This will cause x.value to be assigned to y.value + z.value any time either y.value or z.value changes. The good part is that you can write any kind of code inside the function. There can be loops, function calls, recursive functions. Anything. And no matter what code is there, causality will allways keep track of what data has been read by the repeater function at any given moment.
-
-If you think "repeatOnChange" is to cumbersome to type, you can simply write "repeat" instead, which is an alias for repeatOnChange.
+This will cause x.value to be assigned to y.value + z.value any time either y.value or z.value changes. The good part is that you can write any kind of code inside the function. There can be loops, function calls, recursive functions. Anything. And no matter what code is there, causality will always keep track of what data has been read by the repeater function at any given moment.
 
 It will however not detect changes in local variables, so for example if local or global variable y is assigned in this example, there will be no reevaluation of x.value. In practice however, this is in general not a limitation as application code typically reacts to changes to a specific model, rather than changes in local variables.
 
+## Re Building with repeat
+repeat is equipped with some special features when it comes to creating data structures. Assume that you have an algorithm that constructs a data structure. For example a balanced index structure of some sort. However, when the input data is changed and the algorithm needs to repeat once more, you do not want a completely new output data structure.  Instead, you want to execute the algorithm once more, and at the end of it, compare the difference to the result of the last run, and update the previous result in a minimal way. This is something that is supported with causality! 
+
+React users might notice that this is actually a generalization of how React works with the synthetic dom. But instead of being limited to just dom structures, causality can do this trick for any data structure!
+
+For example: 
+
+    repeat(() => {
+        for(let input of inputArray) {
+            addToIndex(observable({value: input.value},"buildId" + input.id))
+        }
+    })
+    
+Note that the only difference is that we added a unique build id for each created object in the data structure. This way causality will know what previously created object correspond to the objects created at each repetition.
+   
+## Non recorded action with repeat
+A repeater can mix cause and effect, and there are some preventive measures in place to prevent a repeater from activating itself. So, in many cases it is safe to use a repeater with a single action (comparable to autorun in MobX). However, there could be situations where you would like to distinguish more between cause and effect. To do that, a second argument for the repeater is an action that is not recorded. 
+
+    repeater([description for debug], recordedAction, nonRecordedAction, options)
+
+The options object contains further configurations for the non-recorded action. Namley debounce and fireImmediatley. 
+
 ## invalidateOnChange
 
-Sometimes you do not want to repeat what you did previously upon change in any read data, at least not instantly. For more control, you might want to use invalidateOnChange. It works as follows:
+There is a famous quote from programmer Jeff Atwood (author of blog Coding Horrors):
+
+*There are two hard things in computer science: cache invalidation, naming things, and off-by-one errors.*
+
+Well, at least cache invalidation just got much more simple thanks to invalidateOnChange. While you could use a repeat to invalidate a cache, invalidateOnChange is a more basic primitive that is optimized for this specific purpose. For example, if a cache is filled up using lazy evaluation, it is convenient to just clear the cache without any direct reevaluation. 
+
+Here is an example:
 
     invalidateOnChange(
         function() {
@@ -122,27 +119,7 @@ Sometimes you do not want to repeat what you did previously upon change in any r
         }
     );
 
-In this case, if y.value is changed for instance, it will only mean that the second function is run, setting xIsValid to false. invalidateOnChange is in particularly useful when integrating causality with other frameworks. For example, rendering code could be run using invalidateOnChange, and the second function could simply invalidate a certain view-component. Later, at a secondary stage when all causality code has finished runnig, we could deal with all invalidated view-components in a more rational way. There is a possibility to add functions that will execute when all causality code finishes.
-
-
-    addPostPulseAction(function() {
-        if (!xIsValid) {
-            ...
-        }
-    });
-
-
-## withoutSideEffects
-
-What if you want to build a framwork, where you for example want to enforce that a view creating function never makes any changes in the model? Now it is very simple to do so! When you write a "withoutSideEffects" call, the restricted code inside it can only modify objects that were created inside the restricted code section.
-
-    ...
-    withoutSideEffects(function() {
-        .... // restricted code
-    })
-    ...
-
-This way it becomes easy to enforce one-directional data flows while still allowing general Javascript code.
+In this case, if y.value is changed for instance, it will only mean that the second function is run, setting xIsValid to false. invalidateOnChange is in particularly useful when integrating causality with other frameworks. For example, rendering code could be run using invalidateOnChange, and the second function could simply invalidate a certain view-component. 
 
 ## withoutRecording and withoutReactions
 
@@ -152,7 +129,7 @@ When working with causality it could be useful to sometimes break the rules. Rea
     let y = observable({ value: false });
     let z = observable({ value: 10});
 
-    repeatOnChange(function() {
+    repeat(function() {
         withoutRecording(function() {
             console.log("Repeating with these values:");
             console.log(y.value);
@@ -170,166 +147,45 @@ When working with causality it could be useful to sometimes break the rules. Rea
         y.value = true;
     });
 
-There are probably less use cases for beeing able to change data without triggering any reactions, using withoutReactions, it is available nevertheless.
+There are probably less use cases for being able to change data without triggering any reactions, using withoutReactions, it is available nevertheless.
+
+## Emiting Events   
+
+Somtimes you just need to observe objects, and record events. For this purpose you can activate emitEvents in the causality configuration. If this is set to true, then causality will try to send events both globally, to an onEventGlobal callback that you can setup in the causality configuration.
+ 
+Activating  emitEvents in conjunction with sendEventsToObjects will also cause causality to try to send events to your observable objects as well. 
+
+ - onChange
+ - onBuildCreate
+ - onBuildRemove
+
+onChange will send a message to the object, containing information about what happened.
+
+The onBuildCreate and onBuildRemove events will be sent specifically when doing reBuild. They correspond to the React concepts of componentDidMount and componentWillUnmount but for a generalized data structure re building framework.
+
+## causalityForwardsTo
+
+The re building mechanism internally uses a forwarding mechanism that can be used directly. To use it, simply type myObject.causalityForwardsTo = otherObject. This will cause myObject have the identity of myObject, but the state of otherObject. Quite useful for some very special scenarios. 
 
 
-# Causality Object Functions
+## transaction
 
-Causality object come equipped with the following powerful features.
-
-## observe
-
-If you simply want to get a stream of events that happens to a causality object, simply write
-
-    let x = observable({});
-    x.observe(function(event) { console.log(event); });
-    x.y = 42; // should give a "set" event to the console.
-
-There are three kinds of events generated. For causality objects, set and delete events will be generated. For causality arrays, splice events will be generated, in addition to set and delete events.
-
-
-## cached
-
-There is a famous quote from programmer Jeff Atwood (author of blog Coding Horrors):
-
-*There are two hard things in computer science: cache invalidation, naming things, and off-by-one errors.*
-
-Well, at least cache invalidation just got much more simple thanks to causality/cached. With cached, causality completley automates the process of cache invalidation. It works as follows:
-
-    x = observable({
-        fun : function() {
-            this.y  + this.z}
-        }
-        y : 20,
-        z : 22
-    });
-    console.log(x.fun()); // will output 42. P
-
-    console.log(x.cached('fun')); // Will also output, 42.
-    console.log(x.cached('fun')); // Will also output, 42. But this time it will used the cached value.
-
-    x.y = 30;  // This will automatically invalidate your cache! Hardest problem in programming solved! That easy!
-
-It is just as simple as that. If you have arguments you want to pass to the cached function, simply list them after the function name, in a sort of lisp-like in-order:
-
-    x.cached('someFunction', arg1, arg2, arg3);
-
-Every unique sequence of arguments given to cached will result in a new separate function cache.
-
-If you want to write a recursive function it can be useful to cache each recursive function call, making it necessary only to reevaluate exactly the function call that needs reevaluation. If you however want to write a function whose recursive function calls are only cached if its parent function call is cached, the following syntax can be useful.
-
-    x.cachedInCache('fun');
-
-When not inside another cached function call, the above syntax will simply be equivalent to x.fun(), but when inside another cached function, it will be equivalent to x.cached('fun').
-
-A reCache can be removed using the following command:
-
-    x.tryUncache('fun');
-
-The cache will not be removed while some other causality dependee (cached, reCached, repeatOnChange etc.) depends on it.
-
-
-## reCached
-
-Re Cached is simply put the crown-jewel of causality. If you thought cached was exciting, it is noting compared to reCached. It has the following features:
-
-* Conservative change propagation.
-* Stable object identities of created objects.
-
-On the surface, reCached works similar to cached, with a first notable difference. When any value read during a reCache evaluatino is changed, the reCached function will not simply invalidate the cache. It will also re-valuate the cache, compare the new cached return-value to the previously cached return value, and ONLY if the return value has really changed it will signal change to any dependent function cache/reCache, repeatOnChage, invalidateOnChange.
-
-But there is more to it. reCached really starts to shine when you start to create objects within the reCached function call. If you do so, you can add a cacheId to the created objects. Created objects will then retain their indentity over several reCachings.
-
-
-    x = observable({
-        getView : function() {
-            return observable({ viewY : x.y}, 'xViewId');
-        },
-        y : 42
-    });
-
-    xView = x.reCache('getView');
-    console.log(xView.viewY); // This will now show 42
-
-    x.y = 45;  // This will create the view to reevaluate.
-    console.log(xView.viewY); // This will now show 45! The result of the reevaluation has been merged into the same object we got the first time we ran reCache!
-
-This is just a simple example, but the reCache function is very capable. You can create all sorts of data structures within the reCached function, whenver you give an id to the created objects, you will reuse the identity of the previously created object with the same id, that was created in a previous evaluation of the reCache.
-
-The assuming of the previous identity is instant at the very createion of an objects inside the reCache. This means you can even set external references to created objects inside the reCache.
-
-    aGlobalView = null
-    x = observable({
-        getView : function() {
-            let view = observable({ viewY : x.y}, 'xViewId'); // The old identity is reused at this point, but the state of view will be as if newly created.
-            globalView = view;
-            return view;
-        },
-        y : 42
-    });
-
-    view = x.reCache('getView');
-
-Even if getView is reCached, the global view will still point to the same view.
-
-The purpose of reCache is to reactivley transform data structures, where a small change in the original data structure will lead to a small change in the resulting data structure.
-
-For example, assume you write an algorithm that flattens a tree in pre-order. Then, if you add one node in the original tree, it will result in a limited change in the array or linked list that is the result of the reCache. This has to do with the identity reuse.
-
-![Alt text](/docs/reCached.png?raw=true "Causality Logotype")
-
-This is similar to the technique used in React where elements of the synthetic dom are given ids, so that they are matched with elements in the existing dom. The minimal update is then found, and merged into the existing dom. reCaching generalizes this technique so that it can easily be employed for any data transformation, and attatches it to a sophisticated system of cache invalidation!
-
-The reason why cached does not feature the identity preservation of reCached, is that when a cache created by cached is invalidated, we want all memory used by the cache to be released. With reCache, it is decided that the cache will be in place as long as it is not explicitly removed using the tryUncache command.
-
-A reCache can be removed using the following command:
-
-    x.tryUncache('getView');
-
-The cache will not be removed while some other causality dependee (cached, reCached, repeatOnChange etc.) depends on it.
-
-# Miscellaneous:
-
-There are som additional causality object functions that might be useful. These are mostly used internally, but could potentially find other uses.
-
-    a.mergeFrom(b);
-
-This merges data from b to a. Works on both array and object. If a and b are arrays, causality will run a sequence of (minimal) splice commands to make a the same sequence as b. For non-numeric keys, if any key is defined in a but not in b, the property will not be overwritten. Returns tha a.
-
-    a.forwardTo(b); // a temporarily assumes the state of b (while keeping its identity).
-    a.removeForwarding(); // a retains its state from before running forwardTo.
-    a.mergeAndRemoveForwarding();  // If previously forwarded to b, the state of b is merged into a, and the forwarding is removed.
-
-The above methods can be used for temporarily borrowing the identity of an object.
-
-# Pulses and Transactions
-
-Causality works in pulses. At the end of a pulse, all reactive changes has taken place and causality has performed all necessary internal cleanup. At the end of the pulse, there is also a possibility for the application to attach hooks as mentioned previously:
-
-    addPostPulseAction(function() { console.log("Pulse done!"); });
-
-Any modification to a causality object will start and end a pulse, such as simply writing "x.y = 42" unless we are already in a pulse. But it is also possible to explicitly start a pulse.
-
-    pulse(function() {
-        do();
-        some();
-        things();
-    });
-
-Note however, that reactive changes will also take place imediatley inside the pulse. It is just causalitys internal cleanup that will be left until the end of the pulse. So for example, reactive changes that is the result of the "do()" call will have effect on the "some()" call. The main usage of pulses is when integrating causality with other frameworks. When we want to run a number of commands, and after all reactive changes has taken place, we want to continue execution.
-
-In other situations there is a need to modify a lot of data before any kind of reactive response takes place. Typically for efficiency. Then it is useful to use transaction:
+It is possible to do many changes at once, before causality has a chance to responde to any of the changes. This can be done by the use of "transaction".  Here is an example: 
 
     transaction(function() {
        x.a = 12;
        x.b = 30;
     })
 
-A transaction should typically only write data, as reading data inside a transaction might result in reading non-updated data.
+Warning: A transaction should typically only write data, as reading data inside a transaction might result in reading non-updated data since all repeaters are frozen inside the transaction.
 
-The transaction will implicitly create a pulse if not already in a pulse.
+# Removed Features
 
-Note: If any observer function is registered to an object, events will be sent directly to the observer function both during a transaction and a pulse.
+Since version 2.0 a few features were removed, as they seemed too esoteric to be practically used. For example cached, reCached, withoutSideEffects etc. if you miss any of these features, please let us know. 
+
+# React Integration
+
+It is fairly simple to integrate causality with react. The only thing you have to do is to run all render functions wrapped in invalidateUponChange. If change occurs, register the react component as dirty, and later, when all model changes are finished, we run forceUpdate on all dirty components. 
 
 # Community
 
@@ -341,16 +197,16 @@ For discussions in Swedish:
 
 https://gitter.im/avantgarde_web_development/Lobby
 
-# Comparison
+# Comparison to MobX
 
-Causality could work as a replacement for MobX. Some early, and perhaps non-conclusive experiments indicate that causality could potentially be almost twice as fast as MobX. It also takes full advantage of ES6/proxies. Causality also offers more advanced features such as cached, reCached and withoutSideEffects. On the other hand, MobX is a more mature library with a large supporting community and better integration with other libraries.
+Causality is comparable to MobX. 
+
+Some perhaps non-conclusive experiments indicate that causality could potentially be almost twice as fast as MobX. Causality also takes full advantage of ES6/proxies which makes it comparable to MobX version 5 and above. 
+
+Causality also offers some experimental features that can not be found in MobX, such as reBuild, withoutSideEffects and the possibility for global observation of all objects ever created. On the other hand, MobX is a more mature library with a large supporting community and better integration with other libraries.
 
 ![Alt text](/doc/performance.png?raw=true "Causality Logotype")
 
 # Trivia
 
-This project is a spin-off project from liquid (https://github.com/erobwen/liquid). This is a scaled down library that captures the essence of liquid's reactive core, and in addition takes full use of ES6 proxies. It is useful to anyone that would like to do reactive programming in Javascript (https://en.wikipedia.org/wiki/Reactive_programming). It could also provide an alternative to MobX.
-
-Causality is based on 10+ years of original research into reactive programming. I was the original author of the 10+ years old "Reactive Programming" article of Wikipedia and have been exploring this domain for a long time.
-
-The logotype of causality is based on the o symbol.
+Causality is to be a foundation to a isomorphic application framework that will feature full stack data binding and reactive programming (https://github.com/erobwen/liquid). It is useful to anyone that would like to do reactive programming in Javascript (https://en.wikipedia.org/wiki/Reactive_programming).
