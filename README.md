@@ -184,9 +184,32 @@ It is possible to do many changes at once, before causality has a chance to resp
 
 Warning: A transaction should typically only write data, as reading data inside a transaction might result in reading non-updated data since all repeaters are frozen inside the transaction.
 
-# Removed Features
+# Release Notes for 3.0
+
+## Removed features
 
 Since version 2.0 a few features were removed, as they seemed too esoteric to be practically used. For example cached, reCached, withoutSideEffects etc. if you miss any of these features, please let us know. 
+
+## Migration
+
+The 3.0 version uses is a factory that can create multiple instances of causality. Creating a causality instance with default configuration is done as follows. 
+
+```js
+import CausalityFactory from "/vendor/causalityjs/causality.js";
+const Causality = CausalityFactory();
+```
+You can name a configuration with the "name" property. Doing so makes it possible to retrieve the same instance from another call to the factory function. A named configuration is created the first time by using the configuration, on successive calls by using the same name, configuration settings will be ignored and you will just be given the instance created the first time that name was used. 
+
+`Causality.create` has been renamed `Causality.observable`.
+
+
+`Causality.independently` is no longer needed for repeaters created inside other repeaters. If nesting is wanted, use
+```js
+Causality.repeat( repeaterActions, {dependentOnParent: true});
+```
+
+`obj.observe(listener)` has been replaced with a single `obj.onChange` listener. Enable events with config `{emitEvents:true, sendEventsToObjects: true}`. It is also possible to globaly observe events by setting onEventGlobal in the configuration.
+
 
 # React Integration
 
