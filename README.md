@@ -12,7 +12,9 @@ Installation: npm install causalityjs --save
 
 # Usage
 
-    import {observable, repeat} from "causality";
+    import {instance} from "causality";
+    let causality = instance(); // Create an instance with possibility to configure it.
+    let { observable, repeat } = causality;
 
 
 # Quick Example
