@@ -1,6 +1,6 @@
 'use strict';
 require = require("esm")(module);
-const causality = require("../causality.js").instance();
+const causality = require("../causality.js").getWorld();
 const assert = require('assert');
 
 describe("Post pulse", function(){

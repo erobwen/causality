@@ -12,17 +12,21 @@ Installation: npm install causalityjs --save
 
 # Usage
 
-    import {instance} from "causality";
-    let causality = instance(); // Create an instance with possibility to configure it.
-    let { observable, repeat } = causality;
+It is possible to create several instances of causality, called worlds, each with its separate config and dependencies. As the name implies, you typically just create one single causality world for your app to use. But you can sometimes benefit from created several isolated worlds where causality isolates observation and event propagation within each world.
+
+    import getWorld from "causality";
+    let myWorld = getWorld({name: "myWorld", ...moreOptions}); // Create an instance with possibility to configure it.
+    let { observable, repeat } = myWorld;
+
+Calling getWorld multiple times with the same unique name given in the configuration, will return the same world object. Only the options given the first time will be considered. For consequtive calls with the same world name, the options will be ignored.
 
 
 # Quick Example
 
 This is just to show a simple example of what causality is all about, using the simple repeat primitive.
 
-    import {instance} from "causality";
-    let causality = instance(); // Possibility to configure causality
+    import getWorld from "causality";
+    let { observable, repeat } = getWorld();
 
     let x = observable({propA: 11});
     let y = observable({propB: 11, propC: 100});
@@ -43,10 +47,6 @@ However, there are a lot more interesting features to try out.
 
 
 # Features
-
-## Configuration 
-
-Causality is configured using the instance function. This creates a possibility of creating multiple unrelated and differently configured instances of causality itself. 
 
 ## observable
 

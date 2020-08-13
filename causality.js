@@ -41,7 +41,7 @@ const defaultConfiguration = {
 }
 
 
-function createInstance(configuration) {
+function createWorld(configuration) {
   // console.log(usedObjectlog)
 
   /***************************************************************
@@ -85,6 +85,7 @@ function createInstance(configuration) {
   const instance = {
     // Main API
     observable,
+    create: observable, // observable alias that is more neutral
     invalidateOnChange,
     repeat,
 
@@ -1232,15 +1233,15 @@ function createInstance(configuration) {
   
 let instances = {};
 
-export function instance(configuration) {
+export function getWorld(configuration) {
   if(!configuration) configuration = {};
   configuration = {...defaultConfiguration, ...configuration};
   const signature = configSignature(configuration);
   
   if (typeof(instances[signature]) === 'undefined') {
-    instances[signature] = createInstance(configuration);
+    instances[signature] = createWorld(configuration);
   }
   return instances[signature];
-}                                                                   
+}
 
-export default instance;
+export default getWorld;

@@ -5,7 +5,7 @@ const causality = require("../causality.js")
 
 // Setup instance
 const events = [];
-const instance = causality.instance({
+const instance = causality.getWorld({
   name: "rebuild", 
   emitEvents: true, 
   onEventGlobal: (event) => {

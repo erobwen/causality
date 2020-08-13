@@ -1,5 +1,5 @@
 require = require("esm")(module);
-const {observable, repeat} = require("../causality.js").instance();
+const {observable, repeat} = require("../causality.js").getWorld();
 
 var mobx = require('mobx');
 const log = console.log.bind(console);

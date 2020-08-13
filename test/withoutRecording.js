@@ -1,7 +1,7 @@
 'use strict';
 require = require("esm")(module);
 const {observable,repeat,withoutRecording,
-      } = require("../causality.js").instance();
+      } = require("../causality.js").getWorld();
 const assert = require('assert');
        // enterIndependentContext,leaveIndependentContext
 

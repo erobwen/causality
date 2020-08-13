@@ -1,6 +1,6 @@
 'use strict';
 require = require("esm")(module);
-const {observable} = require("../causality.js").instance();
+const {observable} = require("../causality.js").getWorld();
 const assert = require('assert');
 
 describe("Proxy object traps", function () {

@@ -1,5 +1,5 @@
 require = require("esm")(module);
-const {observable,invalidateOnChange,repeat} = require("../causality.js").instance();
+const {observable,invalidateOnChange,repeat} = require("../causality.js").getWorld();
 const assert = require('assert');
 
 describe("invalidateOnChange", function () {
