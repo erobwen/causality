@@ -85,7 +85,7 @@ This will cause x.value to be assigned to y.value + z.value any time either y.va
 
 It will however not detect changes in local variables, so for example if local or global variable y is assigned in this example, there will be no reevaluation of x.value. In practice however, this is in general not a limitation as application code typically reacts to changes to a specific model, rather than changes in local variables.
 
-## Re Building with repeat
+## Using repeat with rebuilding keys
 repeat is equipped with some special features when it comes to creating data structures. Assume that you have an algorithm that constructs a data structure. For example a balanced index structure of some sort. However, when the input data is changed and the algorithm needs to repeat once more, you do not want a completely new output data structure.  Instead, you want to execute the algorithm once more, and at the end of it, compare the difference to the result of the last run, and update the previous result in a minimal way. This is something that is supported with causality! 
 
 React users might notice that this is actually a generalization of how React works with the synthetic dom. But instead of being limited to just dom structures, causality can do this trick for any data structure!
@@ -107,13 +107,15 @@ A repeater can mix cause and effect, and there are some preventive measures in p
 
 The options object contains further configurations for the non-recorded action. Namley debounce and fireImmediatley. 
 
+The return value of the recorded action will be sent as an argument to the nonRecorded action, similar to how reaction works in MobX.
+
 ## invalidateOnChange
 
 There is a famous quote from programmer Jeff Atwood (author of blog Coding Horrors):
 
 *There are two hard things in computer science: cache invalidation, naming things, and off-by-one errors.*
 
-Well, at least cache invalidation just got much more simple thanks to invalidateOnChange. While you could use a repeat to invalidate a cache, invalidateOnChange is a more basic primitive that is optimized for this specific purpose. For example, if a cache is filled up using lazy evaluation, it is convenient to just clear the cache without any direct reevaluation. 
+Well, at least cache invalidation just got much more simple thanks to invalidateOnChange. While you could use a repeat to invalidate a cache, invalidateOnChange is a more basic primitive that is optimized for this specific purpose (it is used by repeat internally). For example, if a cache is filled up using lazy evaluation, it is convenient to just clear the cache without any direct reevaluation. 
 
 Here is an example:
 
@@ -190,32 +192,35 @@ Warning: A transaction should typically only write data, as reading data inside 
 
 ## Removed features
 
-Since version 2.0 a few features were removed, as they seemed too esoteric to be practically used. For example cached, reCached, withoutSideEffects etc. if you miss any of these features, please let us know. 
+Since version 2.0 a few features were removed, as they seemed too esoteric to be practically used. For example cached, reCached, withoutSideEffects etc. if you miss any of these features, please let us know. The idea is that using rebuilding keys in a standard repeat should replace reCached, and that cached functions can be implemented fairly easily using invalidateOnChange.
 
 ## Migration
 
-The 3.0 version uses is a factory that can create multiple instances of causality. Creating a causality instance with default configuration is done as follows. 
+The 3.0 version uses a getWorld function that can create multiple instances of causality.  
 
 ```js
-import CausalityFactory from "/vendor/causalityjs/causality.js";
-const Causality = CausalityFactory();
+import getWorld from "/vendor/causalityjs/causality.js";
+const myCausalityWorld = getWorld({name: "myCausalityWorld", ...moreOptions});
+const { repeat, invalidateOnChange, observable } = myCausalityWorld;
 ```
 You can name a configuration with the "name" property. Doing so makes it possible to retrieve the same instance from another call to the factory function. A named configuration is created the first time by using the configuration, on successive calls by using the same name, configuration settings will be ignored and you will just be given the instance created the first time that name was used. 
 
-`Causality.create` has been renamed `Causality.observable`.
+`Causality.create` has been renamed `Causality.observable`. However, create still exists as an alias.  
 
 
-`Causality.independently` is no longer needed for repeaters created inside other repeaters. If nesting is wanted, use
+`Causality.independently` is no longer needed for repeaters created inside other repeaters, since now, the default behaviour is that sub-repeaters will become independent of their parents. This means they will not be removed before their parent is re-run. If nesting is wanted, use
 ```js
 Causality.repeat( repeaterActions, {dependentOnParent: true});
 ```
 
-`obj.observe(listener)` has been replaced with a single `obj.onChange` listener. Enable events with config `{emitEvents:true, sendEventsToObjects: true}`. It is also possible to globaly observe events by setting onEventGlobal in the configuration.
+`obj.observe(listener)` has been replaced with a single `obj.onChange` listener. Enable events with config `{emitEvents:true, sendEventsToObjects: true}`. It is also possible to globaly observe events by setting onEventGlobal in the configuration. 
+
+You can also intercept reading and writing to any object in the world by setting onReadGlobal and onWriteGlobal in the configuration. That can be useful for security features. 
 
 
 # React Integration
 
-It is fairly simple to integrate causality with react. The only thing you have to do is to run all render functions wrapped in invalidateUponChange. If change occurs, register the react component as dirty, and later, when all model changes are finished, we run forceUpdate on all dirty components. 
+It is fairly simple to integrate causality with react. The only thing you have to do is to run all render functions wrapped in invalidateUponChange. If change occurs, register the react component as dirty, and later, when all model changes are finished, we run forceUpdate on all dirty components. There will be a package for this purpose, perhaps later this year. 
 
 # Community
 
@@ -233,8 +238,8 @@ Causality is comparable to MobX.
 
 Some perhaps non-conclusive experiments indicate that causality could potentially be almost twice as fast as MobX. Causality also takes full advantage of ES6/proxies which makes it comparable to MobX version 5 and above. 
 
-Causality also offers some experimental features that can not be found in MobX, such as reBuild, withoutSideEffects and the possibility for global observation of all objects ever created. On the other hand, MobX is a more mature library with a large supporting community and better integration with other libraries.
+Causality also offers some experimental features that can not be found in MobX, such as data structure rebuilding using rebuild keys. On the other hand, MobX is a more mature library with a large supporting community and better integration with other libraries.
 
-# Trivia
+# Context
 
-Causality is to be a foundation to a isomorphic application framework that will feature full stack data binding and reactive programming (https://github.com/erobwen/liquid). It is useful to anyone that would like to do reactive programming in Javascript (https://en.wikipedia.org/wiki/Reactive_programming).
+Causality is to be a foundation to an isomorphic application framework called "liquefy" that will feature full stack data binding and reactive programming (https://github.com/erobwen/liquid). It is useful to anyone that would like to do reactive programming in Javascript (https://en.wikipedia.org/wiki/Reactive_programming).
