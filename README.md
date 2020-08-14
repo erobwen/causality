@@ -162,7 +162,7 @@ There are probably less use cases for being able to change data without triggeri
 
 Somtimes you just need to observe objects, and record events. For this purpose you can activate emitEvents in the causality configuration. If this is set to true, then causality will try to send events both globally, to an onEventGlobal callback that you can setup in the causality configuration.
  
-Activating  emitEvents in conjunction with sendEventsToObjects will also cause causality to try to send events to your observable objects as well. 
+Activating emitEvents in conjunction with sendEventsToObjects will also cause causality to try to send events to your observable objects as well. 
 
  - onChange
  - onBuildCreate
@@ -170,7 +170,7 @@ Activating  emitEvents in conjunction with sendEventsToObjects will also cause c
 
 onChange will send a message to the object, containing information about what happened.
 
-The onBuildCreate and onBuildRemove events will be sent specifically when doing reBuild. They correspond to the React concepts of componentDidMount and componentWillUnmount but for a generalized data structure re building framework.
+The onBuildCreate and onBuildRemove events will be sent specifically when doing data structure rebuilding. They correspond to the React concepts of componentDidMount and componentWillUnmount but for a generalized data structure re building framework.
 
 ## causalityForwardsTo
 
