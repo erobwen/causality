@@ -15,6 +15,7 @@ import { defaultDependencyInterfaceCreator } from "./lib/defaultDependencyInterf
 const defaultConfiguration = {
   requireRepeaterName: false,
   requireInvalidatorName: false,
+  warnOnNestedRepeater: true,
 
   objectMetaProperty: "causality",
   objectMetaForwardToProperty: "causalityForwardTo",
@@ -169,6 +170,7 @@ function createInstance(configuration) {
   const {
     requireRepeaterName,
     requireInvalidatorName,
+    warnOnNestedRepeater,
     objectMetaProperty,
     objectMetaForwardToProperty,
     emitEvents,
@@ -519,6 +521,7 @@ function createInstance(configuration) {
    ***************************************************************/
 
 
+//  let loopy=0;
   function getHandlerObject(target, key) {
     key = key.toString();
 
@@ -542,6 +545,10 @@ function createInstance(configuration) {
 
         let scan = target;
         while ( scan !== null && typeof(scan) !== 'undefined' ) {
+//          if( loopy++ > 10000 ){
+//            console.log('getHandlerObject loop', scan, key);
+//            if( loopy > 10010 ) throw('bailing out');
+//          }
           let descriptor = Object.getOwnPropertyDescriptor(scan, key);
           if (typeof(descriptor) !== 'undefined' &&
               typeof(descriptor.get) !== 'undefined') {
@@ -1143,6 +1150,15 @@ function createInstance(configuration) {
     }
     if (!options) options = {};
 
+    if( warnOnNestedRepeater && state.inActiveRecording ){
+      let parentDesc = state.context.description;
+      if( !parentDesc && state.context.parent ) parentDesc = state.context.parent.description;
+      if( !parentDesc ){
+        parentDesc = 'unnamed';
+      }
+      console.warn(Error(`repeater ${description||'unnamed'} inside active recording ${parentDesc}`));
+    }
+    
     // Activate!
     const repeater = createRepeater(description, repeaterAction, repeaterNonRecordingAction, options, finishRebuilding);
     if (options.dependentOnParent && state.context.type === "repeater") {

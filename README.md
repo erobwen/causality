@@ -210,6 +210,10 @@ Causality.repeat( repeaterActions, {dependentOnParent: true});
 
 `obj.observe(listener)` has been replaced with a single `obj.onChange` listener. Enable events with config `{emitEvents:true, sendEventsToObjects: true}`. It is also possible to globaly observe events by setting onEventGlobal in the configuration.
 
+Observed object causality metadata are now gathered in a configurable property, defaulting to `causality`. `obj.__id` is now `obj.causality.id`. `obj.__target` is now `obj.causality.target`.
+
+Check if an object is an observable by checking for `obj.causality`.
+
 
 # React Integration
 
