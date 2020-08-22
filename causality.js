@@ -15,6 +15,7 @@ import { defaultDependencyInterfaceCreator } from "./lib/defaultDependencyInterf
 const defaultConfiguration = {
   requireRepeaterName: false,
   requireInvalidatorName: false,
+  warnOnNestedRepeater: true,
 
   objectMetaProperty: "causality",
 
@@ -169,6 +170,7 @@ function createWorld(configuration) {
   const {
     requireRepeaterName,
     requireInvalidatorName,
+    warnOnNestedRepeater,
     objectMetaProperty,
     emitEvents,
     sendEventsToObjects,
@@ -1128,6 +1130,15 @@ function createWorld(configuration) {
     }
     if (!options) options = {};
 
+    if( warnOnNestedRepeater && state.inActiveRecording ){
+      let parentDesc = state.context.description;
+      if( !parentDesc && state.context.parent ) parentDesc = state.context.parent.description;
+      if( !parentDesc ){
+        parentDesc = 'unnamed';
+      }
+      console.warn(Error(`repeater ${description||'unnamed'} inside active recording ${parentDesc}`));
+    }
+    
     // Activate!
     const repeater = createRepeater(description, repeaterAction, repeaterNonRecordingAction, options, finishRebuilding);
     if (options.dependentOnParent && state.context.type === "repeater") {

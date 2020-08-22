@@ -217,6 +217,10 @@ Causality.repeat( repeaterActions, {dependentOnParent: true});
 
 You can also intercept reading and writing to any object in the world by setting onReadGlobal and onWriteGlobal in the configuration. That can be useful for security features. 
 
+Observed object causality metadata are now gathered in a configurable property, defaulting to `causality`. `obj.__id` is now `obj.causality.id`. `obj.__target` is now `obj.causality.target`.
+
+Check if an object is an observable by checking for `obj.causality`.
+
 
 # React Integration
 
