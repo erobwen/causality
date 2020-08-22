@@ -357,17 +357,19 @@ function createWorld(configuration) {
       return forwardToHandler.get.apply(forwardToHandler, [forwardToHandler.target, key]);
     } 
 
-    if (onReadGlobal && !onReadGlobal(this, target)) { 
-      return cannotReadPropertyValue;
-    }
-
-    if (staticArrayOverrides[key]) {
-      return staticArrayOverrides[key].bind(this);
-    } else if (key === objectMetaProperty) {
+    if (key === objectMetaProperty) {
       return this.meta;
-    } else {
-      if (state.inActiveRecording) recordDependencyOnArray(state.context, this);
-      return target[key];
+    } else {    
+      if (onReadGlobal && !onReadGlobal(this, target)) { 
+        return cannotReadPropertyValue;
+      }
+
+      if (staticArrayOverrides[key]) {
+        return staticArrayOverrides[key].bind(this);
+      } else {
+        if (state.inActiveRecording) recordDependencyOnArray(state.context, this);
+        return target[key];
+      }
     }
   }
 
@@ -381,6 +383,8 @@ function createWorld(configuration) {
         return forwardToHandler.set.apply(forwardToHandler, [forwardToHandler.target, key, value]);
       }
     }
+
+    if (key === objectMetaProperty) throw new Error("Cannot set the dedicated meta property '" + objectMetaProperty + "'");
 
     if (onWriteGlobal && !onWriteGlobal(this, target)) {
       return;
@@ -530,14 +534,13 @@ function createWorld(configuration) {
       let result = forwardToHandler.get.apply(forwardToHandler, [forwardToHandler.target, key]);
       return result;
     }
-
-    if (onReadGlobal && !onReadGlobal(this, target)) { //Used for ensureInitialized, registerActivity & canRead 
-      return cannotReadPropertyValue;
-    }
     
     if (key === objectMetaProperty) {
-      return this.meta;
-    } else {  
+      return this.meta; // Should this before on read global?
+    } else {      
+      if (onReadGlobal && !onReadGlobal(this, target)) { //Used for ensureInitialized, registerActivity & canRead 
+        return cannotReadPropertyValue; 
+      }
       if (typeof(key) !== 'undefined') {
         if (state.inActiveRecording) recordDependencyOnProperty(state.context, this, key);
 
@@ -564,6 +567,8 @@ function createWorld(configuration) {
       return forwardToHandler.set.apply(forwardToHandler, [forwardToHandler.target, key, value]);
     }
 
+    if (key === objectMetaProperty) throw new Error("Cannot set the dedicated meta property '" + objectMetaProperty + "'");
+    
     if (onWriteGlobal && !onWriteGlobal(this, target)) {
       return;
     } 
