@@ -172,9 +172,9 @@ onChange will send a message to the object, containing information about what ha
 
 The onBuildCreate and onBuildRemove events will be sent specifically when doing data structure rebuilding. They correspond to the React concepts of componentDidMount and componentWillUnmount but for a generalized data structure re building framework.
 
-## causalityForwardsTo
+## causality.forwardTo
 
-The re building mechanism internally uses a forwarding mechanism that can be used directly. To use it, simply type myObject.causalityForwardsTo = otherObject. This will cause myObject have the identity of myObject, but the state of otherObject. Quite useful for some very special scenarios. 
+The re building mechanism internally uses a forwarding mechanism that can be used directly. To use it, simply type myObject.causality.forwardTo = otherObject. This will cause myObject have the identity of myObject, but the state of otherObject. Quite useful for some very special scenarios. Note that the forwarding disregards the meta data of the object that is reached by myObject.causality. As a consequence of this, object.causality.id cannot be relied upon when forwarding is used, such as in a rebuilding scenario. Also, forwarding takes place before any onReadGlobal and onWriteGlobal event can be fired, those events will be fired, but for the object that the object was forwarding to.
 
 
 ## transaction

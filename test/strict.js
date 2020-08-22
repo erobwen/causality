@@ -7,9 +7,9 @@ describe("Proxy object traps", function () {
   const box = observable();
 
   it('forwardTo',  function () {
-    box.causalityForwardTo = observable({ name: "forwardTo"});
+    box.causality.forwardTo = observable({ name: "forwardTo"});
     box.other = null;
-    box.causalityForwardTo = null;
+    box.causality.forwardTo = null;
   });
 
   it('nochange',  function () {
@@ -38,9 +38,9 @@ describe("Array object traps", function () {
   const stack = observable([]);
 
   it('forwardTo',  function () {
-    stack.causalityForwardTo = observable(['aa','bb']);
+    stack.causality.forwardTo = observable(['aa','bb']);
     stack[2] = false;
-    stack.causalityForwardTo = null;
+    stack.causality.forwardTo = null;
   });
 
 

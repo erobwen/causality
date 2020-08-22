@@ -15,7 +15,7 @@ describe("Overlays", function(){
     // Create forwardTo
     // console.log(" Create forwardTo ===========================")
     let xOverlay = causality.observable({ name: "forwardTo"});
-    x.causalityForwardTo = xOverlay;
+    x.causality.forwardTo = xOverlay;
     // console.log(x.causality.handler);
     // console.log(x.causality.handler.causality);
     // console.log(x);
@@ -32,7 +32,7 @@ describe("Overlays", function(){
     assert.equal(x.fie, 32);
 
     // Remove forwardTo
-    x.causalityForwardTo = null;
+    x.causality.forwardTo = null;
     assert.equal(x.foo, 1);
     assert.equal(typeof(x.fie), 'undefined');
   });

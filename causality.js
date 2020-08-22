@@ -17,7 +17,6 @@ const defaultConfiguration = {
   requireInvalidatorName: false,
 
   objectMetaProperty: "causality",
-  objectMetaForwardToProperty: "causalityForwardTo",
 
   emitEvents: false, // either set onEventGlobal or define onChange on individual objects.
   sendEventsToObjects: true,
@@ -171,7 +170,6 @@ function createWorld(configuration) {
     requireRepeaterName,
     requireInvalidatorName,
     objectMetaProperty,
-    objectMetaForwardToProperty,
     emitEvents,
     sendEventsToObjects,
     onEventGlobal,
@@ -350,41 +348,32 @@ function createWorld(configuration) {
    ***************************************************************/
 
   function getHandlerArray(target, key) {
-    if (key === objectMetaForwardToProperty) {
-      return this.meta.forwardTo;
+    if (key === objectMetaProperty) {
+      return this.meta;
     } else if (this.meta.forwardTo !== null) {
       let forwardToHandler = this.meta.forwardTo[objectMetaProperty].handler;
       return forwardToHandler.get.apply(forwardToHandler, [forwardToHandler.target, key]);
     } 
 
-    if (key === objectMetaProperty) {
-      return this.meta;
-    } else {    
-      if (onReadGlobal && !onReadGlobal(this, target)) { 
-        return cannotReadPropertyValue;
-      }
+    if (onReadGlobal && !onReadGlobal(this, target)) { 
+      return cannotReadPropertyValue;
+    }
 
-      if (staticArrayOverrides[key]) {
-        return staticArrayOverrides[key].bind(this);
-      } else {
-        if (state.inActiveRecording) recordDependencyOnArray(state.context, this);
-        return target[key];
-      }
+    if (staticArrayOverrides[key]) {
+      return staticArrayOverrides[key].bind(this);
+    } else {
+      if (state.inActiveRecording) recordDependencyOnArray(state.context, this);
+      return target[key];
     }
   }
 
   function setHandlerArray(target, key, value) {
-    if (this.meta.forwardTo !== null) {
-      if (key === objectMetaForwardToProperty) {
-        this.meta.forwardTo = value;
-        return true;
-      } else {
-        let forwardToHandler = this.meta.forwardTo[objectMetaProperty].handler;
-        return forwardToHandler.set.apply(forwardToHandler, [forwardToHandler.target, key, value]);
-      }
-    }
-
     if (key === objectMetaProperty) throw new Error("Cannot set the dedicated meta property '" + objectMetaProperty + "'");
+
+    if (this.meta.forwardTo !== null) {
+      let forwardToHandler = this.meta.forwardTo[objectMetaProperty].handler;
+      return forwardToHandler.set.apply(forwardToHandler, [forwardToHandler.target, key, value]);
+    }
 
     if (onWriteGlobal && !onWriteGlobal(this, target)) {
       return;
@@ -527,48 +516,42 @@ function createWorld(configuration) {
   function getHandlerObject(target, key) {
     key = key.toString();
 
-    if (key === objectMetaForwardToProperty) {
-      return this.meta.forwardTo;
+    if (key === objectMetaProperty) {
+      return this.meta;
     } else if (this.meta.forwardTo !== null) {
       let forwardToHandler = this.meta.forwardTo[objectMetaProperty].handler;
       let result = forwardToHandler.get.apply(forwardToHandler, [forwardToHandler.target, key]);
       return result;
     }
-    
-    if (key === objectMetaProperty) {
-      return this.meta; // Should this before on read global?
-    } else {      
-      if (onReadGlobal && !onReadGlobal(this, target)) { //Used for ensureInitialized, registerActivity & canRead 
-        return cannotReadPropertyValue; 
-      }
-      if (typeof(key) !== 'undefined') {
-        if (state.inActiveRecording) recordDependencyOnProperty(state.context, this, key);
+       
+    if (onReadGlobal && !onReadGlobal(this, target)) { //Used for ensureInitialized, registerActivity & canRead 
+      return cannotReadPropertyValue; 
+    }
 
-        let scan = target;
-        while ( scan !== null && typeof(scan) !== 'undefined' ) {
-          let descriptor = Object.getOwnPropertyDescriptor(scan, key);
-          if (typeof(descriptor) !== 'undefined' &&
-              typeof(descriptor.get) !== 'undefined') {
-            return descriptor.get.bind(this.meta.proxy)();
-          }
-          scan = Object.getPrototypeOf( scan );
+    if (typeof(key) !== 'undefined') {
+      if (state.inActiveRecording) recordDependencyOnProperty(state.context, this, key);
+
+      let scan = target;
+      while ( scan !== null && typeof(scan) !== 'undefined' ) {
+        let descriptor = Object.getOwnPropertyDescriptor(scan, key);
+        if (typeof(descriptor) !== 'undefined' &&
+            typeof(descriptor.get) !== 'undefined') {
+          return descriptor.get.bind(this.meta.proxy)();
         }
-        return target[key];
+        scan = Object.getPrototypeOf( scan );
       }
+      return target[key];
     }
   }
 
   function setHandlerObject(target, key, value) {
-    if (key === objectMetaForwardToProperty) {
-      this.meta.forwardTo = value;
-      return true;
-    } else if (this.meta.forwardTo !== null) {
+    if (key === objectMetaProperty) throw new Error("Cannot set the dedicated meta property '" + objectMetaProperty + "'");
+
+    if (this.meta.forwardTo !== null) {
       let forwardToHandler = this.meta.forwardTo[objectMetaProperty].handler;
       return forwardToHandler.set.apply(forwardToHandler, [forwardToHandler.target, key, value]);
     }
 
-    if (key === objectMetaProperty) throw new Error("Cannot set the dedicated meta property '" + objectMetaProperty + "'");
-    
     if (onWriteGlobal && !onWriteGlobal(this, target)) {
       return;
     } 
@@ -765,7 +748,7 @@ function createWorld(configuration) {
         // Object identity previously created
         handler.meta.isRebuildOfOther = true;
         let establishedObject = state.inRepeater.buildIdObjectMap[buildId];
-        establishedObject.causalityForwardTo = proxy; // Hardcode here? seems like a bug if changed?
+        establishedObject[objectMetaProperty].forwardTo = proxy;
 
         state.inRepeater.newlyCreated.push(establishedObject);
         if (emitReCreationEvents) {
@@ -1075,10 +1058,10 @@ function createWorld(configuration) {
     const newIdMap = {}
     repeater.newlyCreated.forEach((created) => {
       newIdMap[created[objectMetaProperty].buildId] = created;
-      if (created[objectMetaForwardToProperty] !== null) {
+      const forwardTo = created[objectMetaProperty].forwardTo;
+      if (forwardTo !== null) {
         // Push changes to established object.
-        let forwardTo = created[objectMetaForwardToProperty];
-        created[objectMetaForwardToProperty] = null;
+        created[objectMetaProperty].forwardTo = null;
         mergeInto(created, forwardTo);
       } else {
         // Send create on build message
