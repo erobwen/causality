@@ -751,18 +751,13 @@ function createWorld(configuration) {
         establishedObject[objectMetaProperty].forwardTo = proxy;
 
         state.inRepeater.newlyCreated.push(establishedObject);
-        if (emitReCreationEvents) {
-          emitCreationEvent(handler);
-        }
         return establishedObject;
       } else {
         // Create a new one
         state.inRepeater.newlyCreated.push(proxy);
-        emitCreationEvent(handler);
       }
-    } else {
-      emitCreationEvent(handler);
     }
+    emitCreationEvent(handler);
     return proxy;
   }
 
@@ -1062,6 +1057,7 @@ function createWorld(configuration) {
       if (forwardTo !== null) {
         // Push changes to established object.
         created[objectMetaProperty].forwardTo = null;
+        created[objectMetaProperty].isRebuildOfOther = false;
         mergeInto(created, forwardTo);
       } else {
         // Send create on build message
