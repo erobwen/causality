@@ -25,7 +25,7 @@ const defaultConfiguration = {
     // onBuildCreate
     // onBuildRemove
   onEventGlobal: null,
-  emitReCreationEvents: false,
+  emitReBuildEvents: false,
 
   // allowNonObservableReferences: true, // Allow observables to refer to non referables. TODO?
   
@@ -173,7 +173,7 @@ function createWorld(configuration) {
     emitEvents,
     sendEventsToObjects,
     onEventGlobal,
-    emitReCreationEvents,
+    emitReBuildEvents,
     onWriteGlobal, 
     onReadGlobal, 
     cannotReadPropertyValue
@@ -738,7 +738,7 @@ function createWorld(configuration) {
       proxy : proxy,
 
       // Optimization. Here to avoid expensive decoration post object creation.
-      isRebuildOfOther: false,
+      isBeingRebuilt: false,
     };
 
     if (state.inRepeater !== null && buildId !== null) {
@@ -746,7 +746,7 @@ function createWorld(configuration) {
       
       if (state.inRepeater.buildIdObjectMap && typeof(state.inRepeater.buildIdObjectMap[buildId]) !== 'undefined') {
         // Object identity previously created
-        handler.meta.isRebuildOfOther = true;
+        handler.meta.isBeingRebuilt = true;
         let establishedObject = state.inRepeater.buildIdObjectMap[buildId];
         establishedObject[objectMetaProperty].forwardTo = proxy;
 
@@ -814,7 +814,7 @@ function createWorld(configuration) {
     event.object = handler.meta.proxy;
     event.objectId = handler.meta.id;
 
-    if (!emitReCreationEvents && handler.meta.isRebuildOfOther) {
+    if (!emitReBuildEvents && handler.meta.isBeingRebuilt) {
       return;
     }
 
@@ -1057,7 +1057,7 @@ function createWorld(configuration) {
       if (forwardTo !== null) {
         // Push changes to established object.
         created[objectMetaProperty].forwardTo = null;
-        created[objectMetaProperty].isRebuildOfOther = false;
+        created[objectMetaProperty].isBeingRebuilt = false;
         mergeInto(created, forwardTo);
       } else {
         // Send create on build message
