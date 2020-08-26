@@ -16,6 +16,7 @@ const defaultConfiguration = {
   requireRepeaterName: false,
   requireInvalidatorName: false,
   warnOnNestedRepeater: true,
+  alwaysDependOnParentRepeater: false,
 
   objectMetaProperty: "causality",
 
@@ -1141,7 +1142,7 @@ function createWorld(configuration) {
     
     // Activate!
     const repeater = createRepeater(description, repeaterAction, repeaterNonRecordingAction, options, finishRebuilding);
-    if (options.dependentOnParent && state.context.type === "repeater") {
+    if (state.context && state.context.type === "repeater" && (options.dependentOnParent || configuration.alwaysDependOnParentRepeater)) {
       state.context.addChild(repeater);
     }
     return repeater.refresh();
