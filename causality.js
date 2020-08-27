@@ -358,7 +358,7 @@ function createWorld(configuration) {
       return forwardToHandler.get.apply(forwardToHandler, [forwardToHandler.target, key]);
     } 
 
-    if (onReadGlobal && !onReadGlobal(this, target)) { 
+    if (onReadGlobal && !onReadGlobal(this, target, key)) { 
       return cannotReadPropertyValue;
     }
 
@@ -378,7 +378,7 @@ function createWorld(configuration) {
       return forwardToHandler.set.apply(forwardToHandler, [forwardToHandler.target, key, value]);
     }
 
-    if (onWriteGlobal && !onWriteGlobal(this, target)) {
+    if (onWriteGlobal && !onWriteGlobal(this, target, key)) {
       return;
     } 
 
@@ -429,7 +429,7 @@ function createWorld(configuration) {
         forwardToHandler, [forwardToHandler.target, key]);
     }
 
-    if (onWriteGlobal && !onWriteGlobal(this, target)) {
+    if (onWriteGlobal && !onWriteGlobal(this, target, key)) {
       return;
     } 
 
@@ -470,7 +470,7 @@ function createWorld(configuration) {
       return forwardToHandler.has.apply(forwardToHandler, [target, key]);
     }
 
-    if (onReadGlobal && !onReadGlobal(this, target)) { 
+    if (onReadGlobal && !onReadGlobal(this, target, key)) { 
       return cannotReadPropertyValue;
     }
 
@@ -485,7 +485,7 @@ function createWorld(configuration) {
         forwardToHandler, [forwardToHandler.target, key, oDesc]);
     }
 
-    if (onWriteGlobal && !onWriteGlobal(this, target)) {
+    if (onWriteGlobal && !onWriteGlobal(this, target, key)) {
       return;
     } 
 
@@ -500,7 +500,7 @@ function createWorld(configuration) {
         forwardToHandler, [forwardToHandler.target, key]);
     }
 
-    if (onReadGlobal && !onReadGlobal(this, target)) { 
+    if (onReadGlobal && !onReadGlobal(this, target, key)) { 
       return cannotReadPropertyValue;
     }
 
@@ -527,7 +527,7 @@ function createWorld(configuration) {
       return result;
     }
        
-    if (onReadGlobal && !onReadGlobal(this, target)) { //Used for ensureInitialized, registerActivity & canRead 
+    if (onReadGlobal && !onReadGlobal(this, target, key)) { //Used for ensureInitialized, registerActivity & canRead 
       return cannotReadPropertyValue; 
     }
 
@@ -555,7 +555,7 @@ function createWorld(configuration) {
       return forwardToHandler.set.apply(forwardToHandler, [forwardToHandler.target, key, value]);
     }
 
-    if (onWriteGlobal && !onWriteGlobal(this, target)) {
+    if (onWriteGlobal && !onWriteGlobal(this, target, key)) {
       return;
     } 
 
@@ -594,7 +594,7 @@ function createWorld(configuration) {
       return true;
     }
 
-    if (onWriteGlobal && !onWriteGlobal(this, target)) {
+    if (onWriteGlobal && !onWriteGlobal(this, target, key)) {
       return;
     } 
 
@@ -620,7 +620,7 @@ function createWorld(configuration) {
         forwardToHandler, [forwardToHandler.target, key]);
     }
 
-    if (onReadGlobal && !onReadGlobal(this, target)) { //Used for ensureInitialized, registerActivity & canRead 
+    if (onReadGlobal && !onReadGlobal(this, target, key)) { //Used for ensureInitialized, registerActivity & canRead 
       return cannotReadPropertyValue;
     }
  
@@ -638,7 +638,7 @@ function createWorld(configuration) {
         forwardToHandler, [forwardToHandler.target, key]);
     }
 
-    if (onReadGlobal && !onReadGlobal(this, target)) { //Used for ensureInitialized, registerActivity & canRead 
+    if (onReadGlobal && !onReadGlobal(this, target, key)) { //Used for ensureInitialized, registerActivity & canRead 
       return cannotReadPropertyValue;
     }
  
@@ -653,7 +653,7 @@ function createWorld(configuration) {
         forwardToHandler, [forwardToHandler.target, key]);
     }
 
-    if (onWriteGlobal && !onWriteGlobal(this, target)) {
+    if (onWriteGlobal && !onWriteGlobal(this, target, key)) {
       return;
     }
  
@@ -668,7 +668,7 @@ function createWorld(configuration) {
         .apply(forwardToHandler, [forwardToHandler.target, key]);
     }
 
-    if (onReadGlobal && !onReadGlobal(this, target)) { //Used for ensureInitialized, registerActivity & canRead 
+    if (onReadGlobal && !onReadGlobal(this, target, key)) { //Used for ensureInitialized, registerActivity & canRead 
       return cannotReadPropertyValue;
     }
  
