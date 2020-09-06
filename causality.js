@@ -83,6 +83,8 @@ function createWorld(configuration) {
    ************************************************************************/
 
   const world = {
+    name: configuration.name,
+
     // Main API
     observable,
     create: observable, // observable alias that is more neutral
