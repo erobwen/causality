@@ -1,8 +1,8 @@
 import { argumentsToArray, configSignature, mergeInto } from "./lib/utility.js";
 import { objectlog } from "./lib/objectlog.js";
-const defaultObjectlog = objectlog;
 import { createCachingFunction } from "./lib/caching.js";
 import { defaultDependencyInterfaceCreator } from "./lib/defaultDependencyInterface.js";
+const defaultObjectlog = objectlog;
 
 
 /***************************************************************
