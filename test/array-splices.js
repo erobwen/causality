@@ -1,6 +1,6 @@
 'use strict';
 require = require("esm")(module);
-const {observable, repeat,trace} = require("../causality.js").getWorld({name: "array-splices", emitEvents: true});
+const {observable, repeat,trace} = require("../causality.js").getWorld({name: "array-splices", sendEventsToObjects: true});
 const assert = require('assert');
 //const log = console.log.bind(console);
 // trace.nestedRepeater = false;

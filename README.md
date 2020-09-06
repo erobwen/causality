@@ -160,15 +160,15 @@ There are probably less use cases for being able to change data without triggeri
 
 ## Emiting Events   
 
-Somtimes you just need to observe objects, and record events. For this purpose you can activate emitEvents in the causality configuration. If this is set to true, then causality will try to send events both globally, to an onEventGlobal callback that you can setup in the causality configuration.
+Somtimes you just need to observe objects, and record events. For this purpose you can set an onEventGlobal callback in the causality configuration. This callback can then monitor any change that happens in the world from a birds eye perspective.
  
-Activating emitEvents in conjunction with sendEventsToObjects will also cause causality to try to send events to your observable objects as well. 
+Activating sendEventsToObjects will also cause causality to try to send events directly to your observable objects. If your objects implement the following callbacks, causality will then try to call them.  
 
  - onChange
  - onBuildCreate
  - onBuildRemove
 
-onChange will send a message to the object, containing information about what happened.
+onChange will receive a message, containing information about any change that happened to the object.
 
 The onBuildCreate and onBuildRemove events will be sent specifically when doing data structure rebuilding. They correspond to the React concepts of componentDidMount and componentWillUnmount but for a generalized data structure re building framework.
 
@@ -213,7 +213,7 @@ You can name a configuration with the "name" property. Doing so makes it possibl
 Causality.repeat( repeaterActions, {dependentOnParent: true});
 ```
 
-`obj.observe(listener)` has been replaced with a single `obj.onChange` listener. Enable events with config `{emitEvents:true, sendEventsToObjects: true}`. It is also possible to globaly observe events by setting onEventGlobal in the configuration. 
+`obj.observe(listener)` has been replaced with a single `obj.onChange` callback. Enable events with config `{sendEventsToObjects: true}`. It is also possible to globaly observe events by setting onEventGlobal in the configuration. 
 
 You can also intercept reading and writing to any object in the world by setting onReadGlobal and onWriteGlobal in the configuration. That can be useful for security features. 
 

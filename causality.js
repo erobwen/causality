@@ -20,7 +20,6 @@ const defaultConfiguration = {
 
   objectMetaProperty: "causality",
 
-  emitEvents: false, // either set onEventGlobal or define onChange on individual objects.
   sendEventsToObjects: true,
     // Reserved properties that you can override on observables IF sendEventsToObjects is set to true. 
     // onChange
@@ -83,7 +82,7 @@ function createWorld(configuration) {
    *
    ************************************************************************/
 
-  const instance = {
+  const world = {
     // Main API
     observable,
     create: observable, // observable alias that is more neutral
@@ -135,9 +134,9 @@ function createWorld(configuration) {
 
   // Dependency interface (plugin data structures connecting observer and observable)
   const dependencyInterface = configuration.customDependencyInterfaceCreator ? 
-    configuration.customDependencyInterfaceCreator(instance) 
+    configuration.customDependencyInterfaceCreator(world) 
     : 
-    defaultDependencyInterfaceCreator(instance);
+    defaultDependencyInterfaceCreator(world);
   const recordDependencyOnArray = dependencyInterface.recordDependencyOnArray;
   const recordDependencyOnEnumeration = dependencyInterface.recordDependencyOnEnumeration;
   const recordDependencyOnProperty = dependencyInterface.recordDependencyOnProperty;
@@ -149,7 +148,7 @@ function createWorld(configuration) {
   // Object log
   const usedObjectlog = configuration.customObjectlog ? configuration.customObjectlog : defaultObjectlog;
 
-  // Object.assign(instance, require("./lib/causalityObject.js").bindToInstance(instance));
+  // Object.assign(world, require("./lib/causalityObject.js").bindToInstance(world));
 
 
   /***************************************************************
@@ -173,7 +172,6 @@ function createWorld(configuration) {
     requireInvalidatorName,
     warnOnNestedRepeater,
     objectMetaProperty,
-    emitEvents,
     sendEventsToObjects,
     onEventGlobal,
     emitReBuildEvents,
@@ -182,6 +180,7 @@ function createWorld(configuration) {
     cannotReadPropertyValue
   } = configuration;  
 
+  const emitEvents = !!onEventGlobal || sendEventsToObjects; 
 
   /**********************************
    *
@@ -733,6 +732,7 @@ function createWorld(configuration) {
     handler.proxy = proxy;
 
     handler.meta = {
+      world: world,
       id: state.nextObjectId++,
       buildId : buildId,
       forwardTo : null,
@@ -1220,24 +1220,24 @@ function createWorld(configuration) {
 
   /************************************************************************
    *
-   *  Return instance
+   *  Return world
    *
    ************************************************************************/
 
-  return instance;
+  return world;
 }
   
-let instances = {};
+let worlds = {};
 
 export function getWorld(configuration) {
   if(!configuration) configuration = {};
   configuration = {...defaultConfiguration, ...configuration};
   const signature = configSignature(configuration);
   
-  if (typeof(instances[signature]) === 'undefined') {
-    instances[signature] = createWorld(configuration);
+  if (typeof(worlds[signature]) === 'undefined') {
+    worlds[signature] = createWorld(configuration);
   }
-  return instances[signature];
+  return worlds[signature];
 }
 
 export default getWorld;
