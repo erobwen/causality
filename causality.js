@@ -51,29 +51,50 @@ function createWorld(configuration) {
    ***************************************************************/
 
   // Public state, shareable with other modules. 
-  const state = {
+  /*---  Thread ---*/
+  const initialState = {
+    // Recording, thread specific
     recordingPaused : 0,
-    blockInvalidation : 0,
-    postponeInvalidation : 0,
-  
-    // Object creation
-    nextObjectId: 1,
-  
-    // Stack
     context: null,
-
-    // Observers
-    observerId: 0,
     inActiveRecording: false,
+    inRepeater: null,
+
+    // Transaction, thread specific
+    postponeInvalidation : 0,
     nextObserverToInvalidate: null,
     lastObserverToInvalidate: null,
 
-    // Repeaters
-    inRepeater: null,
+    // Repeaters, can still continue refresh in other thread?
+    refreshingAllDirtyRepeaters: false,
+
+    // Deprecated: Meta programming, thread specific
+    blockInvalidation : 0,
+  };
+  const state = {...initialState};
+
+  const globalState = {    
+    /*---  Global ---*/
+
+    // Repeaters, can continue refresh in other thread?
     firstDirtyRepeater: null,
     lastDirtyRepeater: null,
-    refreshingAllDirtyRepeaters: false,
+ 
+    // Object creation
+    nextObjectId: 1,
+  
+    // Observers
+    observerId: 0,
   };
+
+  function stashedThreadState() {
+    const stash = { ...state}; 
+    Object.assign(state, initialState);
+    return stash; 
+  }
+
+  function restoreStashedState(stash) {
+    Object.assign(state, stash); 
+  }
 
 
   /************************************************************************
@@ -114,10 +135,12 @@ function createWorld(configuration) {
     
     // Advanced (only if you know what you are doing, typically used by plugins to causality)
     state,
+    stashedThreadState, 
+    restoreStashedState,
     enterContext,
     leaveContext,
     invalidateObserver, 
-    nextObserverId: () => { return state.observerId++ },
+    nextObserverId: () => { return globalState.observerId++ },
 
     // Libraries
     caching: createCachingFunction(observable)
@@ -205,6 +228,7 @@ function createWorld(configuration) {
     proceedWithPostponedInvalidations();
   }
 
+  // Deprecated. Use object.causality.target instead!
   function withoutReactions(callback) {
     state.blockInvalidation++;
     callback();
@@ -736,7 +760,7 @@ function createWorld(configuration) {
 
     handler.meta = {
       world: world,
-      id: state.nextObjectId++,
+      id: globalState.nextObjectId++,
       buildId : buildId,
       forwardTo : null,
       target: createdTarget,
@@ -900,7 +924,7 @@ function createWorld(configuration) {
   function defaultCreateInvalidator(description, doAfterChange) {
     return {
       type: 'invalidator',
-      id: state.observerId++,
+      id: globalState.observerId++,
       description: description,
       sources : [],
       nextToNotify: null,
@@ -960,7 +984,7 @@ function createWorld(configuration) {
   function defaultCreateRepeater(description, repeaterAction, repeaterNonRecordingAction, options, finishRebuilding) {
     return {
       type: "repeater", 
-      id: state.observerId++,
+      id: globalState.observerId++,
       firstTime: true, 
       description: description,
       sources : [],
@@ -972,9 +996,9 @@ function createWorld(configuration) {
         this.invalidateAction();
       },
       invalidateAction() {
-        removeAllSources(this);
+        // removeAllSources(this); // Not needed?
         repeaterDirty(this);
-        this.disposeChildren();
+        // this.disposeChildren(); // Really needed?
       },
       dispose() {
         detatchRepeater(this);
@@ -1032,17 +1056,17 @@ function createWorld(configuration) {
   }
 
   function clearRepeaterLists() {
-    state.observerId = 0;
-    state.firstDirtyRepeater = null;
-    state.lastDirtyRepeater = null;
+    globalState.observerId = 0;
+    globalState.firstDirtyRepeater = null;
+    globalState.lastDirtyRepeater = null;
   }
 
   function detatchRepeater(repeater) {
-    if (state.lastDirtyRepeater === repeater) {
-      state.lastDirtyRepeater = repeater.previousDirty;
+    if (globalState.lastDirtyRepeater === repeater) {
+      globalState.lastDirtyRepeater = repeater.previousDirty;
     }
-    if (state.firstDirtyRepeater === repeater) {
-      state.firstDirtyRepeater = repeater.nextDirty;
+    if (globalState.firstDirtyRepeater === repeater) {
+      globalState.firstDirtyRepeater = repeater.nextDirty;
     }
     if (repeater.nextDirty) {
       repeater.nextDirty.previousDirty = repeater.previousDirty;
@@ -1152,18 +1176,18 @@ function createWorld(configuration) {
   }
 
 
-  function repeaterDirty(repeater) { // TODO: Add update block on this stage?
+  function repeaterDirty(repeater) {
     repeater.dispose();
     // disposeChildContexts(repeater);
     // disposeSingleChildContext(repeater);
 
-    if (state.lastDirtyRepeater === null) {
-      state.lastDirtyRepeater = repeater;
-      state.firstDirtyRepeater = repeater;
+    if (globalState.lastDirtyRepeater === null) {
+      globalState.lastDirtyRepeater = repeater;
+      globalState.firstDirtyRepeater = repeater;
     } else {
-      state.lastDirtyRepeater.nextDirty = repeater;
-      repeater.previousDirty = state.lastDirtyRepeater;
-      state.lastDirtyRepeater = repeater;
+      globalState.lastDirtyRepeater.nextDirty = repeater;
+      repeater.previousDirty = globalState.lastDirtyRepeater;
+      globalState.lastDirtyRepeater = repeater;
     }
 
     refreshAllDirtyRepeaters();
@@ -1171,10 +1195,10 @@ function createWorld(configuration) {
 
   function refreshAllDirtyRepeaters() {
     if (!state.refreshingAllDirtyRepeaters) {
-      if (state.firstDirtyRepeater !== null) {
+      if (globalState.firstDirtyRepeater !== null) {
         state.refreshingAllDirtyRepeaters = true;
-        while (state.firstDirtyRepeater !== null) {
-          let repeater = state.firstDirtyRepeater;
+        while (globalState.firstDirtyRepeater !== null) {
+          let repeater = globalState.firstDirtyRepeater;
           detatchRepeater(repeater);
           repeater.refresh();
         }
