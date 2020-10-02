@@ -13,6 +13,8 @@ const defaultObjectlog = objectlog;
 
 
 const defaultConfiguration = {
+  multiThreadedMode: false, //If set to true, all revalidations/invalidations will occur within their own timeout.
+
   requireRepeaterName: false,
   requireInvalidatorName: false,
   warnOnNestedRepeater: true,
@@ -114,7 +116,7 @@ function createWorld(configuration) {
 
     // Modifiers
     withoutRecording,
-    withoutReactions,
+    withoutReactions, // Deprecated, use "object.causality.target" to modify object without trigger reactions 
 
     // Transaction
     postponeReactions,
@@ -869,9 +871,14 @@ function createWorld(configuration) {
       while (state.nextObserverToInvalidate !== null) {
         let observer = state.nextObserverToInvalidate;
         state.nextObserverToInvalidate = state.nextObserverToInvalidate.nextToNotify;
-        // blockSideEffects(function() {
-        observer.invalidateAction();
-        // });
+
+        if (configuration.multiThreadedMode) {
+          setTimeout(() => {
+            observer.invalidateAction();
+          }, 0);
+        } else {
+          observer.invalidateAction();
+        }
       }
       state.lastObserverToInvalidate = null;
     }
@@ -1200,7 +1207,14 @@ function createWorld(configuration) {
         while (globalState.firstDirtyRepeater !== null) {
           let repeater = globalState.firstDirtyRepeater;
           detatchRepeater(repeater);
-          repeater.refresh();
+
+          if (configuration.multiThreadedMode) {
+            setTimeout(() => {
+              repeater.refresh();
+            }, 0);
+          } else {
+            repeater.refresh();
+          }
         }
 
         state.refreshingAllDirtyRepeaters = false;
