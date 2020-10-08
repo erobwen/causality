@@ -68,6 +68,8 @@ function createWorld(configuration) {
 
     // Repeaters, can still continue refresh in other thread?
     refreshingAllDirtyRepeaters: false,
+    firstDirtyRepeater: null,
+    lastDirtyRepeater: null,
 
     // Deprecated: Meta programming, thread specific
     blockInvalidation : 0,
@@ -76,11 +78,6 @@ function createWorld(configuration) {
 
   const globalState = {    
     /*---  Global ---*/
-
-    // Repeaters, can continue refresh in other thread?
-    firstDirtyRepeater: null,
-    lastDirtyRepeater: null,
- 
     // Object creation
     nextObjectId: 1,
   
@@ -897,8 +894,8 @@ function createWorld(configuration) {
       //   }
       // }
       
-      observer.dispose(); // Cannot be any more dirty than it already is!
       if (state.postponeInvalidation > 0) {
+        observer.dispose(); // Cannot be any more dirty than it already is!
         if (state.lastObserverToInvalidate !== null) {
           state.lastObserverToInvalidate.nextToNotify = observer;
         } else {
@@ -1064,16 +1061,16 @@ function createWorld(configuration) {
 
   function clearRepeaterLists() {
     globalState.observerId = 0;
-    globalState.firstDirtyRepeater = null;
-    globalState.lastDirtyRepeater = null;
+    state.firstDirtyRepeater = null;
+    state.lastDirtyRepeater = null;
   }
 
   function detatchRepeater(repeater) {
-    if (globalState.lastDirtyRepeater === repeater) {
-      globalState.lastDirtyRepeater = repeater.previousDirty;
+    if (state.lastDirtyRepeater === repeater) {
+      state.lastDirtyRepeater = repeater.previousDirty;
     }
-    if (globalState.firstDirtyRepeater === repeater) {
-      globalState.firstDirtyRepeater = repeater.nextDirty;
+    if (state.firstDirtyRepeater === repeater) {
+      state.firstDirtyRepeater = repeater.nextDirty;
     }
     if (repeater.nextDirty) {
       repeater.nextDirty.previousDirty = repeater.previousDirty;
@@ -1188,13 +1185,13 @@ function createWorld(configuration) {
     // disposeChildContexts(repeater);
     // disposeSingleChildContext(repeater);
 
-    if (globalState.lastDirtyRepeater === null) {
-      globalState.lastDirtyRepeater = repeater;
-      globalState.firstDirtyRepeater = repeater;
+    if (state.lastDirtyRepeater === null) {
+      state.lastDirtyRepeater = repeater;
+      state.firstDirtyRepeater = repeater;
     } else {
-      globalState.lastDirtyRepeater.nextDirty = repeater;
-      repeater.previousDirty = globalState.lastDirtyRepeater;
-      globalState.lastDirtyRepeater = repeater;
+      state.lastDirtyRepeater.nextDirty = repeater;
+      repeater.previousDirty = state.lastDirtyRepeater;
+      state.lastDirtyRepeater = repeater;
     }
 
     refreshAllDirtyRepeaters();
@@ -1202,10 +1199,10 @@ function createWorld(configuration) {
 
   function refreshAllDirtyRepeaters() {
     if (!state.refreshingAllDirtyRepeaters) {
-      if (globalState.firstDirtyRepeater !== null) {
+      if (state.firstDirtyRepeater !== null) {
         state.refreshingAllDirtyRepeaters = true;
-        while (globalState.firstDirtyRepeater !== null) {
-          let repeater = globalState.firstDirtyRepeater;
+        while (state.firstDirtyRepeater !== null) {
+          let repeater = state.firstDirtyRepeater;
           detatchRepeater(repeater);
 
           if (configuration.multiThreadedMode) {
