@@ -1102,6 +1102,7 @@ function genericObserveFunction(observerFunction) { //, independent
   }
   handler.observers[observer.id] = observerFunction;
   leaveContext( activeContext );
+  return observer;
 }
 
 
