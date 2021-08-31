@@ -102,6 +102,7 @@ let staticArrayOverrides = {
     let result = this.target.pop();
     state.observerNotificationNullified--;
     if (this._arrayObservers !== null) {
+      if(recordChanges) changes.push([this.overrides.__id,'pop']);
       notifyChangeObservers("_arrayObservers", this._arrayObservers);
     }
     emitSpliceEvent(this, index, [result], null);
@@ -121,6 +122,7 @@ let staticArrayOverrides = {
     this.target.push.apply(this.target, argumentsArray);
     state.observerNotificationNullified--;
     if (this._arrayObservers !== null) {
+      if(recordChanges) changes.push([this.overrides.__id,'push',...argumentsArray]);
       notifyChangeObservers("_arrayObservers", this._arrayObservers);
     }
     emitSpliceEvent(this, index, null, argumentsArray);
@@ -138,6 +140,7 @@ let staticArrayOverrides = {
     let result = this.target.shift();
     state.observerNotificationNullified--;
     if (this._arrayObservers !== null) {
+      if(recordChanges) changes.push([this.overrides.__id,'shift']);
       notifyChangeObservers("_arrayObservers", this._arrayObservers);
     }
     emitSpliceEvent(this, 0, [result], null);
@@ -157,6 +160,7 @@ let staticArrayOverrides = {
     this.target.unshift.apply(this.target, argumentsArray);
     state.observerNotificationNullified--;
     if (this._arrayObservers !== null) {
+      if(recordChanges) changes.push([this.overrides.__id,'unshift', ...argumentsArray]);
       notifyChangeObservers("_arrayObservers", this._arrayObservers);
     }
     emitSpliceEvent(this, 0, null, argumentsArray);
@@ -181,6 +185,7 @@ let staticArrayOverrides = {
     let result = this.target.splice.apply(this.target, argumentsArray);
     state.observerNotificationNullified--;
     if (this._arrayObservers !== null) {
+      if(recordChanges) changes.push([this.overrides.__id,'splice', ...argumentsArray]);
       notifyChangeObservers("_arrayObservers", this._arrayObservers);
     }
     emitSpliceEvent(this, index, removed, added);
@@ -213,6 +218,7 @@ let staticArrayOverrides = {
     let result = this.target.copyWithin(target, start, end);
     state.observerNotificationNullified--;
     if (this._arrayObservers !== null) {
+      if(recordChanges) changes.push([this.overrides.__id,'copyWithin', start, end]);
       notifyChangeObservers("_arrayObservers", this._arrayObservers);
     }
 
@@ -237,6 +243,7 @@ let staticArrayOverrides = {
         .apply(this.target, argumentsArray);
     state.observerNotificationNullified--;
     if (this._arrayObservers !== null) {
+      if(recordChanges) changes.push([this.overrides.__id,functionName,...argumentsArray]);
       notifyChangeObservers("_arrayObservers", this._arrayObservers);
     }
     emitSpliceEvent(this, 0, removed, this.target.slice(0));
@@ -320,6 +327,7 @@ function setHandlerArray(target, key, value) {
       // Write protected?
       emitSpliceReplaceEvent(this, key, value, previousValue);
       if (this._arrayObservers !== null) {
+        if(recordChanges) changes.push([this.overrides.__id,'set', key,value]);
         notifyChangeObservers("_arrayObservers",
                               this._arrayObservers);
       }
@@ -332,6 +340,7 @@ function setHandlerArray(target, key, value) {
       // Write protected?
       emitSetEvent(this, key, value, previousValue);
       if (this._arrayObservers !== null) {
+        if(recordChanges) changes.push([this.overrides.__id,'set',key,value]);
         notifyChangeObservers("_arrayObservers",
                               this._arrayObservers);
       }
@@ -365,6 +374,7 @@ function deletePropertyHandlerArray(target, key) {
   if(!( key in target )) { // Write protected?
     emitDeleteEvent(this, key, previousValue);
     if (this._arrayObservers !== null) {
+      if(recordChanges) changes.push([this.overrides.__id,'delete', key]);
       notifyChangeObservers("_arrayObservers", this._arrayObservers);
     }
   }
@@ -521,11 +531,13 @@ function setHandlerObject(target, key, value) {
     // Write protected?
     if (typeof(this._propertyObservers) !== 'undefined' &&
         typeof(this._propertyObservers[key]) !== 'undefined') {
+      if(recordChanges) changes.push([this.overrides.__id,'set', key,value]);
       notifyChangeObservers("_propertyObservers." + key,
                             this._propertyObservers[key]);
     }
     if (undefinedKey) {
       if (typeof(this._enumerateObservers) !== 'undefined') {
+        if(recordChanges) changes.push([this.overrides.__id,'set', key,value]);
         notifyChangeObservers("_enumerateObservers",
                               this._enumerateObservers);
       }
@@ -560,6 +572,7 @@ function deletePropertyHandlerObject(target, key) {
     if(!( key in target )) { // Write protected?
       emitDeleteEvent(this, key, previousValue);
       if (typeof(this._enumerateObservers) !== 'undefined') {
+        if(recordChanges) changes.push([this.overrides.__id,'delete', key]);
         notifyChangeObservers("_enumerateObservers",
                               this._enumerateObservers);
       }
@@ -712,6 +725,7 @@ function create(createdTarget, cacheId) {
     __target: createdTarget,
     __handler : handler,
     __proxy : proxy,
+    constructor : createdTarget.constructor,
 
     // This inside these functions will be the Proxy. Change to handler?
     repeat : genericRepeatFunction,
@@ -993,6 +1007,7 @@ function postPulseCleanup() {
   });
   trace.context && logUngroup();
   if (recordEvents) events = [];
+  if (recordChanges) changes.length = 0;
 }
 
 let postPulseHooks = [];
@@ -1014,7 +1029,13 @@ function removeAllPostPulseActions() {
 let recordEvents = false;
 function setRecordEvents(value) {
   recordEvents = value; 
-} 
+}
+
+let recordChanges = false;
+let changes = [];
+function setRecordChanges(value) {
+  recordChanges = value; 
+}
 
 function emitSpliceEvent(handler, index, removed, added) {
   if (recordEvents || typeof(handler.observers) !== 'undefined') {
@@ -2265,6 +2286,8 @@ export {
   cachedCallCount,
   clearRepeaterLists,
   resetObjectIds,
+  setRecordChanges,
+  changes,
   
   // Logging
   log,
