@@ -87,9 +87,10 @@ function createWorld(configuration) {
 
     // Main API
     observable,
-    create: observable, // observable alias that is more neutral
+    create: observable, // observable alias
     invalidateOnChange,
     repeat,
+    finalize: finishRebuildInAdvance,
 
     // Modifiers
     withoutRecording,
@@ -748,7 +749,7 @@ function createWorld(configuration) {
     };
 
     if (state.inRepeater !== null && buildId !== null) {
-      if (!state.inRepeater.newlyCreated) state.inRepeater.newlyCreated = [];
+      if (!state.inRepeater.newlyCreated) state.inRepeater.newlyCreated = {};
       
       if (state.inRepeater.buildIdObjectMap && typeof(state.inRepeater.buildIdObjectMap[buildId]) !== 'undefined') {
         // Object identity previously created
@@ -756,11 +757,11 @@ function createWorld(configuration) {
         let establishedObject = state.inRepeater.buildIdObjectMap[buildId];
         establishedObject[objectMetaProperty].forwardTo = proxy;
 
-        state.inRepeater.newlyCreated.push(establishedObject);
+        state.inRepeater.newlyCreated[establishedObject[objectMetaProperty].id] = establishedObject;
         return establishedObject;
       } else {
         // Create a new one
-        state.inRepeater.newlyCreated.push(proxy);
+        state.inRepeater.newlyCreated[proxy[objectMetaProperty].id] = proxy;
       }
     }
     emitCreationEvent(handler);
@@ -1022,7 +1023,7 @@ function createWorld(configuration) {
         }
 
         // Finish rebuilding
-        if (repeater.newlyCreated) finishRebuilding(this);
+        if (repeater.newlyCreated && Object.keys(repeater.newlyCreated).length > 0) finishRebuilding(this);
 
         leaveContext( activeContext );
         this.firstTime = false; 
@@ -1057,20 +1058,22 @@ function createWorld(configuration) {
     if (options.onStartBuildUpdate) options.onStartBuildUpdate();
 
     const newIdMap = {}
-    repeater.newlyCreated.forEach((created) => {
+    for (let id in repeater.newlyCreated) {
+      let created = repeater.newlyCreated[id]; 
       newIdMap[created[objectMetaProperty].buildId] = created;
-      const forwardTo = created[objectMetaProperty].forwardTo;
-      if (forwardTo !== null) {
+      const temporaryObject = created[objectMetaProperty].forwardTo;
+      if (temporaryObject !== null) {
         // Push changes to established object.
         created[objectMetaProperty].forwardTo = null;
-        created[objectMetaProperty].isBeingRebuilt = false;
-        mergeInto(created, forwardTo);
+        // created[objectMetaProperty].isBeingRebuilt = false; // Consider? Should this be done on 
+        temporaryObject[objectMetaProperty].isBeingRebuilt = false; 
+        mergeInto(created, temporaryObject);
       } else {
         // Send create on build message
         if (typeof(created.onReBuildCreate) === "function") created.onReBuildCreate();
       }
-    });
-    repeater.newlyCreated = [];
+    }
+    repeater.newlyCreated = {};
 
     // Send on build remove messages
     for (let id in repeater.buildIdObjectMap) {
@@ -1084,6 +1087,21 @@ function createWorld(configuration) {
     repeater.buildIdObjectMap = newIdMap;
     
     if (options.onEndBuildUpdate) options.onEndBuildUpdate();
+  }
+
+  function finishRebuildInAdvance(object) {
+    if (!state.inRepeater) throw Error ("Trying to finish rebuild in advance while not being in a repeater!");
+    const temporaryObject = object[objectMetaProperty].forwardTo;
+    if (temporaryObject !== null) {
+      // Push changes to established object.
+      object[objectMetaProperty].forwardTo = null;
+      temporaryObject[objectMetaProperty].isBeingRebuilt = false; 
+      mergeInto(object, temporaryObject);
+      delete state.inRepeater.newlyCreated[object[objectMetaProperty].id]; // TODO
+    } else {
+      // Send create on build message
+      if (typeof(object.onReBuildCreate) === "function") object.onReBuildCreate();
+    }
   }
 
   function modifyRepeaterAction(repeaterAction, {throttle=0}) {
