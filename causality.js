@@ -749,19 +749,21 @@ function createWorld(configuration) {
     };
 
     if (state.inRepeater !== null && buildId !== null) {
-      if (!state.inRepeater.newlyCreated) state.inRepeater.newlyCreated = {};
+      const repeater = state.inRepeater;
+      if (!repeater.newBuildIdObjectMap) repeater.newBuildIdObjectMap = {};
+      if (!repeater.newIdObjectMap) repeater.newIdObjectMap = {};
       
-      if (state.inRepeater.buildIdObjectMap && typeof(state.inRepeater.buildIdObjectMap[buildId]) !== 'undefined') {
+      if (repeater.buildIdObjectMap && typeof(repeater.buildIdObjectMap[buildId]) !== 'undefined') {
         // Object identity previously created
         handler.meta.isBeingRebuilt = true;
-        let establishedObject = state.inRepeater.buildIdObjectMap[buildId];
+        let establishedObject = repeater.buildIdObjectMap[buildId];
         establishedObject[objectMetaProperty].forwardTo = proxy;
 
-        state.inRepeater.newlyCreated[establishedObject[objectMetaProperty].id] = establishedObject;
+        repeater.newBuildIdObjectMap[buildId] = establishedObject;
         return establishedObject;
       } else {
         // Create a new one
-        state.inRepeater.newlyCreated[proxy[objectMetaProperty].id] = proxy;
+        repeater.newBuildIdObjectMap[buildId] = proxy;
       }
     }
     emitCreationEvent(handler);
@@ -1023,7 +1025,7 @@ function createWorld(configuration) {
         }
 
         // Finish rebuilding
-        if (repeater.newlyCreated && Object.keys(repeater.newlyCreated).length > 0) finishRebuilding(this);
+        if (repeater.newBuildIdObjectMap && Object.keys(repeater.newBuildIdObjectMap).length > 0) finishRebuilding(this);
 
         leaveContext( activeContext );
         this.firstTime = false; 
@@ -1057,10 +1059,8 @@ function createWorld(configuration) {
     const options = repeater.options;
     if (options.onStartBuildUpdate) options.onStartBuildUpdate();
 
-    const newIdMap = {}
-    for (let id in repeater.newlyCreated) {
-      let created = repeater.newlyCreated[id]; 
-      newIdMap[created[objectMetaProperty].buildId] = created;
+    for (let buildId in repeater.newBuildIdObjectMap) {
+      let created = repeater.newBuildIdObjectMap[buildId]; 
       const temporaryObject = created[objectMetaProperty].forwardTo;
       if (temporaryObject !== null) {
         // Push changes to established object.
@@ -1073,34 +1073,33 @@ function createWorld(configuration) {
         if (typeof(created.onReBuildCreate) === "function") created.onReBuildCreate();
       }
     }
-    repeater.newlyCreated = {};
 
     // Send on build remove messages
-    for (let id in repeater.buildIdObjectMap) {
-      if (typeof(newIdMap[id]) === "undefined") {
-        const object = repeater.buildIdObjectMap[id];
+    for (let buildId in repeater.buildIdObjectMap) {
+      if (typeof(repeater.newBuildIdObjectMap[buildId]) === "undefined") {
+        const object = repeater.buildIdObjectMap[buildId];
         if (typeof(object.onReBuildRemove) === "function") object.onReBuildRemove();
       }
     }
-
+    
     // Set new map
-    repeater.buildIdObjectMap = newIdMap;
+    repeater.buildIdObjectMap = repeater.newBuildIdObjectMap;
+    repeater.newBuildIdObjectMap = {};
     
     if (options.onEndBuildUpdate) options.onEndBuildUpdate();
   }
 
   function finishRebuildInAdvance(object) {
     if (!state.inRepeater) throw Error ("Trying to finish rebuild in advance while not being in a repeater!");
+    if (!object[objectMetaProperty].buildId) throw Error("Trying to finish rebuild in advance for an object without a buildId. Perhaps it should have a build id? Add one as second argument in the call to observable");
     const temporaryObject = object[objectMetaProperty].forwardTo;
     if (temporaryObject !== null) {
       // Push changes to established object.
       object[objectMetaProperty].forwardTo = null;
       temporaryObject[objectMetaProperty].isBeingRebuilt = false; 
       mergeInto(object, temporaryObject);
-      delete state.inRepeater.newlyCreated[object[objectMetaProperty].id]; // TODO
     } else {
-      // Send create on build message
-      if (typeof(object.onReBuildCreate) === "function") object.onReBuildCreate();
+      // New object, nothing to merge.
     }
   }
 

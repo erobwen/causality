@@ -11,7 +11,7 @@ const instance = causality.getWorld({
     events.push(event);
   }
 });
-const {observable, withoutSideEffects, repeat } = instance;
+const {observable, withoutSideEffects, withoutRecording, repeat, finalize } = instance;
 const c = observable; 
 
 const log = console.log;
@@ -122,5 +122,35 @@ describe("Re Build", function(){
     source.shift();
     assert.equal(value35Node, tree.root.find(3.5));
     assert.equal(removed3Node, true);
+  });
+
+  
+  it("Test finalize", function(){
+    const trigger = observable({count:1});
+    let constructed;
+    let decorationFromFinalized;
+
+    repeat(
+      () => {
+        const justRead = trigger.count;  
+        constructed = observable({propertyA: "bar"}, "key1"); // Note: decoration cannot be set to null here as it will overwrite the established objects value. It has to be undefined. 
+
+        finalize(constructed);
+
+        withoutRecording(() => {
+          // We need to not record here, otherwise we will trigger this repeater diretly if we set decoration.
+          decorationFromFinalized = constructed.decorationA;
+        })
+      },
+    );
+    assert.equal(decorationFromFinalized, null);
+
+    constructed.decorationA = "decoration";
+    trigger.count++;
+    assert.equal(decorationFromFinalized, "decoration");
+
+    constructed.decorationA = "decoration2";
+    trigger.count++;
+    assert.equal(decorationFromFinalized, "decoration2");
   });
 });
