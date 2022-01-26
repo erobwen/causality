@@ -99,6 +99,8 @@ For example:
     })
     
 Note that the only difference is that we added a unique build id for each created object in the data structure. This way causality will know what previously created object correspond to the objects created at each repetition.
+
+When a repeater finishes, all newly created objects with build keys will merge into the established counterpart of that object. In fact, the newly created object will borrow the object identity of the established object, while starting over from a fresh construction. After the repeat when the object is finally merged, decorations that has been made outside the repeater will be seen again on the object. However, if you would like this merge to happen prematurely inside the repeater, there is a function finalize() that can be called.  
    
 ## Non recorded action with repeat
 A repeater can mix cause and effect, and there are some preventive measures in place to prevent a repeater from activating itself. So, in many cases it is safe to use a repeater with a single action (comparable to autorun in MobX). However, there could be situations where you would like to distinguish more between cause and effect. To do that, a second argument for the repeater is an action that is not recorded. 
