@@ -20,6 +20,9 @@ const defaultConfiguration = {
 
   objectMetaProperty: "causality",
 
+  useNonObservablesAsValues: false, 
+  valueComparisonDepthLimit: 5, 
+
   sendEventsToObjects: true,
     // Reserved properties that you can override on observables IF sendEventsToObjects is set to true. 
     // onChange
@@ -348,6 +351,33 @@ function createWorld(configuration) {
 
   /***************************************************************
    *
+   *  Non observables as value types
+   *
+   ***************************************************************/
+
+  function sameAsPrevious(previousValue, newValue) {
+    if (configuration.useNonObservablesAsValues) return sameAsPreviousDeep(previousValue, newValue, configuration.valueComparisonDepthLimit);
+    return (previousValue === newValue || Number.isNaN(previousValue) && Number.isNaN(newValue));
+  }
+
+  function sameAsPreviousDeep(previousValue, newValue, valueComparisonDepthLimit) {
+    if ((previousValue === newValue || Number.isNaN(previousValue) && Number.isNaN(newValue))) return true;
+    if (valueComparisonDepthLimit === 0) return false; // Cannot go further, cannot guarantee that they are the same.  
+    if (typeof(previousValue) !== typeof(newValue)) return false; 
+    if (typeof(previousValue) !== "object") return false;
+    if (isObservable(previousValue) || isObservable(newValue)) return false;
+    if (Object.keys(previousValue).length !== Object.keys(newValue).length) return false; 
+    for(let property in previousValue) {
+      if (!sameAsPreviousDeep(previousValue[property], newValue[property], valueComparisonDepthLimit - 1)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+
+  /***************************************************************
+   *
    *  Array Handlers
    *
    ***************************************************************/
@@ -388,8 +418,7 @@ function createWorld(configuration) {
 
     // If same value as already set, do nothing.
     if (key in target) {
-      if (previousValue === value || (Number.isNaN(previousValue) &&
-                                      Number.isNaN(value)) ) {
+      if (sameAsPrevious(previousValue, value)) {
         return true;
       }
     }
@@ -565,11 +594,10 @@ function createWorld(configuration) {
 
     // If same value as already set, do nothing.
     if (key in target) {
-      if (previousValue === value || (Number.isNaN(previousValue) &&
-                                      Number.isNaN(value)) ) {
+      if (sameAsPrevious(previousValue, value)) {
         return true;
       }
-    }
+    } // TODO: It would be even safer if we write protected non observable data structures that are assigned, if we are using mode: useNonObservablesAsValues
 
     let undefinedKey = !(key in target);
     target[key]      = value;
@@ -686,6 +714,11 @@ function createWorld(configuration) {
    *
    ***************************************************************/
 
+  function isObservable(entity) {
+    return typeof(entity) === "object" && typeof(entity[objectMetaProperty]) === "object" && entity[objectMetaProperty].world === world; 
+  }
+
+
   function observable(createdTarget, buildId) {
     if (typeof(createdTarget) === 'undefined') {
       createdTarget = {};
@@ -744,8 +777,8 @@ function createWorld(configuration) {
       handler : handler,
       proxy : proxy,
 
-      // Optimization. Here to avoid expensive decoration post object creation.
-      isBeingRebuilt: false,
+      // Here to avoid prevent events being sent to objects being rebuilt. 
+      isBeingRebuilt: false, 
     };
 
     if (state.inRepeater !== null && buildId !== null) {
