@@ -1434,6 +1434,8 @@ function detatchRepeater(repeater) {
   if (repeater.previousDirty) {
     repeater.previousDirty.nextDirty = repeater.nextDirty;
   }
+  repeater.previousDirty = null;
+  repeater.nextDirty = null;
 }
 
 let repeaterId = 0;
