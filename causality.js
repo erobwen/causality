@@ -26,8 +26,8 @@ const defaultConfiguration = {
   sendEventsToObjects: true,
     // Reserved properties that you can override on observables IF sendEventsToObjects is set to true. 
     // onChange
-    // onBuildCreate
-    // onBuildRemove
+    // onEstablish
+    // onDispose
   onEventGlobal: null,
   emitReBuildEvents: false,
 
@@ -1196,7 +1196,7 @@ function createWorld(configuration) {
         mergeInto(created, temporaryObject);
       } else {
         // Send create on build message
-        if (typeof(created.onReBuildCreate) === "function") created.onReBuildCreate();
+        if (typeof(created.onEstablish) === "function") created.onEstablish();
       }
       created[objectMetaProperty].isFinalized = true;
     }
@@ -1206,7 +1206,7 @@ function createWorld(configuration) {
       if (typeof(repeater.newBuildIdObjectMap[buildId]) === "undefined") {
         repeater.removedCount++;
         const object = repeater.buildIdObjectMap[buildId];
-        if (typeof(object.onReBuildRemove) === "function") object.onReBuildRemove();
+        if (typeof(object.onDispose) === "function") object.onDispose();
       }
     }
     
@@ -1229,7 +1229,7 @@ function createWorld(configuration) {
       mergeInto(object, temporaryObject);
     } else {
       // Send create on build message
-      if (typeof(object.onReBuildCreate) === "function") object.onReBuildCreate();
+      if (typeof(object.onEstablish) === "function") object.onEstablish();
     }
     object[objectMetaProperty].isFinalized = true;
   }

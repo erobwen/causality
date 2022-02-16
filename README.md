@@ -164,13 +164,13 @@ Somtimes you just need to observe objects, and record events. For this purpose y
  
 Activating sendEventsToObjects will also cause causality to try to send events directly to your observable objects. If your objects implement the following callbacks, causality will then try to call them.  
 
- - onChange
- - onBuildCreate
- - onBuildRemove
+ - onChange (or you should just reactivley listen to changes, using repeat etc.)
+ - onEstablish
+ - onDispose
 
 onChange will receive a message, containing information about any change that happened to the object.
 
-The onBuildCreate and onBuildRemove events will be sent specifically when doing data structure rebuilding. They correspond to the React concepts of componentDidMount and componentWillUnmount but for a generalized data structure re building framework.
+The onEstablish and onDispose events will be sent specifically when doing data structure rebuilding. They correspond to the React concepts of componentDidMount and componentWillUnmount but for a generalized data structure re building framework.
 
 ## causality.forwardTo
 

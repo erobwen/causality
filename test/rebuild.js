@@ -65,14 +65,14 @@ describe("Re Build", function(){
       }
     }
 
-    onReBuildCreate() {
+    onEstablish() {
       if (this.value === 3) created3Node = true; 
-      // log("onReBuildCreate" + this.value);
+      // log("onEstablish" + this.value);
     }
 
-    onReBuildRemove() {
+    onDispose() {
       if (this.value === 3) removed3Node = true; 
-      // log("onReBuildRemove" + this.value)
+      // log("onDispose" + this.value)
     }
     
     onChange(event) {
