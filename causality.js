@@ -20,6 +20,9 @@ const defaultConfiguration = {
 
   objectMetaProperty: "causality",
 
+  useNonObservablesAsValues: false, 
+  valueComparisonDepthLimit: 5, 
+
   sendEventsToObjects: true,
     // Reserved properties that you can override on observables IF sendEventsToObjects is set to true. 
     // onChange
@@ -58,6 +61,7 @@ function createWorld(configuration) {
   
     // Object creation
     nextObjectId: 1,
+    nextTempObjectId: 1,
   
     // Stack
     context: null,
@@ -84,12 +88,14 @@ function createWorld(configuration) {
 
   const world = {
     name: configuration.name,
-
+    sameAsPreviousDeep,
+    
     // Main API
     observable,
-    create: observable, // observable alias that is more neutral
+    create: observable, // observable alias
     invalidateOnChange,
     repeat,
+    finalize: finishRebuildInAdvance,
 
     // Modifiers
     withoutRecording,
@@ -219,18 +225,30 @@ function createWorld(configuration) {
    **********************************/
 
   function updateContextState() {
-    state.inActiveRecording = state.context !== null && state.recordingPaused === 0;
+    state.inActiveRecording = state.context !== null && state.context.isRecording && state.recordingPaused === 0;
     state.inRepeater = (state.context && state.context.type === "repeater") ? state.context: null;
   }
 
+  // function stackDescription() {
+  //   const descriptions = [];
+  //   let context = state.context;
+  //   while (context) {
+  //     descriptions.unshift(context.description);
+  //     context = context.parent;
+  //   }
+  //   return descriptions.join(" | ");
+  // }
+
   function enterContext(enteredContext) {
+    // console.log("stack: [" + stackDescription() + "]");
     enteredContext.parent = state.context;
     state.context = enteredContext;
     updateContextState();
     return enteredContext;
   }
 
-  function leaveContext( activeContext ) {    
+  function leaveContext( activeContext ) {
+    // console.log("stack: [" + stackDescription() + "]");
     if( state.context && activeContext === state.context ) {
       state.context = state.context.parent;
     } else {
@@ -252,7 +270,7 @@ function createWorld(configuration) {
         let index = this.target.length - 1;
         let result = this.target.pop();
 
-        invalidateArrayObservers(this);
+        invalidateArrayObservers(this, "pop");
         if (emitEvents) emitSpliceEvent(this, index, [result], null);
 
         return result;
@@ -263,7 +281,7 @@ function createWorld(configuration) {
         let argumentsArray = argumentsToArray(arguments);
         this.target.push.apply(this.target, argumentsArray);
 
-        invalidateArrayObservers(this);
+        invalidateArrayObservers(this, "push");
         if (emitEvents) emitSpliceEvent(this, index, null, argumentsArray);
 
         return this.target.length;
@@ -272,7 +290,7 @@ function createWorld(configuration) {
       shift : function() {
         let result = this.target.shift();
         
-        invalidateArrayObservers(this);
+        invalidateArrayObservers(this, "shift");
         if (emitEvents) emitSpliceEvent(this, 0, [result], null);
 
         return result;
@@ -283,7 +301,7 @@ function createWorld(configuration) {
         let argumentsArray = argumentsToArray(arguments);
         this.target.unshift.apply(this.target, argumentsArray);
 
-        invalidateArrayObservers(this);
+        invalidateArrayObservers(this, "unshift");
         if (emitEvents) emitSpliceEvent(this, 0, null, argumentsArray);
 
         return this.target.length;
@@ -299,7 +317,7 @@ function createWorld(configuration) {
         let removed = this.target.slice(index, index + removedCount);
         let result = this.target.splice.apply(this.target, argumentsArray);
 
-        invalidateArrayObservers(this);
+        invalidateArrayObservers(this, "splice");
         if (emitEvents) emitSpliceEvent(this, index, removed, added);
 
         return result; // equivalent to removed
@@ -320,7 +338,7 @@ function createWorld(configuration) {
         let added = this.target.slice(start, end);
         let result = this.target.copyWithin(target, start, end);
 
-        invalidateArrayObservers(this);
+        invalidateArrayObservers(this, "copyWithin");
         if (emitEvents) emitSpliceEvent(this, target, added, removed);
 
         return result;
@@ -334,7 +352,7 @@ function createWorld(configuration) {
         let result = this.target[functionName]
             .apply(this.target, argumentsArray);
 
-        invalidateArrayObservers(this);
+        invalidateArrayObservers(this, functionName);
         if (emitEvents) emitSpliceEvent(this, 0, removed, this.target.slice(0));
 
         return result;
@@ -342,6 +360,36 @@ function createWorld(configuration) {
     });
 
     return result;
+  }
+
+
+  /***************************************************************
+   *
+   *  Non observables as value types
+   *
+   ***************************************************************/
+
+  function sameAsPrevious(previousValue, newValue) {
+    if (configuration.useNonObservablesAsValues) return sameAsPreviousDeep(previousValue, newValue, configuration.valueComparisonDepthLimit);
+    return (previousValue === newValue || Number.isNaN(previousValue) && Number.isNaN(newValue));
+  }
+
+  function sameAsPreviousDeep(previousValue, newValue, valueComparisonDepthLimit) {
+    if (typeof(valueComparisonDepthLimit) === "undefined") valueComparisonDepthLimit = 8;
+    if (previousValue === null && newValue === null) return true;
+    if ((previousValue === newValue || Number.isNaN(previousValue) && Number.isNaN(newValue))) return true;
+    if (valueComparisonDepthLimit === 0) return false; // Cannot go further, cannot guarantee that they are the same.  
+    if (typeof(previousValue) !== typeof(newValue)) return false; 
+    if (typeof(previousValue) !== "object") return false;
+    if ((previousValue === null) || (newValue === null)) return false; 
+    if (isObservable(previousValue) || isObservable(newValue)) return false;
+    if (Object.keys(previousValue).length !== Object.keys(newValue).length) return false; 
+    for(let property in previousValue) {
+      if (!sameAsPreviousDeep(previousValue[property], newValue[property], valueComparisonDepthLimit - 1)) {
+        return false;
+      }
+    }
+    return true;
   }
 
 
@@ -387,8 +435,7 @@ function createWorld(configuration) {
 
     // If same value as already set, do nothing.
     if (key in target) {
-      if (previousValue === value || (Number.isNaN(previousValue) &&
-                                      Number.isNaN(value)) ) {
+      if (sameAsPrevious(previousValue, value)) {
         return true;
       }
     }
@@ -402,7 +449,7 @@ function createWorld(configuration) {
 
       if( target[key] === value || (
         Number.isNaN(target[key]) && Number.isNaN(value)) ) {
-        invalidateArrayObservers(this);
+        invalidateArrayObservers(this, key);
         emitSpliceReplaceEvent(this, key, value, previousValue);
       }
     } else {
@@ -410,7 +457,7 @@ function createWorld(configuration) {
       target[key] = value;
       if( target[key] === value || (Number.isNaN(target[key]) &&
                                     Number.isNaN(value)) ) {
-        invalidateArrayObservers(this);
+        invalidateArrayObservers(this, key);
         emitSetEvent(this, key, value, previousValue);
       }
     }
@@ -441,7 +488,7 @@ function createWorld(configuration) {
     let previousValue = target[key];
     delete target[key];
     if(!( key in target )) { // Write protected?
-      invalidateArrayObservers(this);
+      invalidateArrayObservers(this, "delete");
       emitDeleteEvent(this, key, previousValue);
     }
     if( key in target ) return false; // Write protected?
@@ -490,7 +537,7 @@ function createWorld(configuration) {
       return;
     } 
 
-    invalidateArrayObservers(this);
+    invalidateArrayObservers(this, key);
     return target;
   }
 
@@ -534,6 +581,7 @@ function createWorld(configuration) {
 
     if (typeof(key) !== 'undefined') {
       if (state.inActiveRecording) recordDependencyOnProperty(state.context, this, key);
+      // use? && (typeof(target[key]) === "undefined" || Object.prototype.hasOwnProperty.call(target, key))
 
       let scan = target;
       while ( scan !== null && typeof(scan) !== 'undefined' ) {
@@ -564,11 +612,10 @@ function createWorld(configuration) {
 
     // If same value as already set, do nothing.
     if (key in target) {
-      if (previousValue === value || (Number.isNaN(previousValue) &&
-                                      Number.isNaN(value)) ) {
+      if (sameAsPrevious(previousValue, value)) {
         return true;
       }
-    }
+    } // TODO: It would be even safer if we write protected non observable data structures that are assigned, if we are using mode: useNonObservablesAsValues
 
     let undefinedKey = !(key in target);
     target[key]      = value;
@@ -577,7 +624,7 @@ function createWorld(configuration) {
                                   Number.isNaN(value)) ) {
       // Write protected?
       invalidatePropertyObservers(this, key);
-      if (undefinedKey) invalidateEnumerateObservers(this);
+      if (undefinedKey) invalidateEnumerateObservers(this, key);
     }
 
     emitSetEvent(this, key, value, previousValue);
@@ -607,7 +654,7 @@ function createWorld(configuration) {
       delete target[key];
       if(!( key in target )) { // Write protected?
         invalidatePropertyObservers(this, key);
-        invalidateEnumerateObservers(this);
+        invalidateEnumerateObservers(this, key);
         emitDeleteEvent(this, key, previousValue);
       }
       if( key in target ) return false; // Write protected?
@@ -659,7 +706,7 @@ function createWorld(configuration) {
       return;
     }
  
-    invalidateEnumerateObservers(this);
+    invalidateEnumerateObservers(this, "define property");
     return Reflect.defineProperty(target, key, descriptor);
   }
 
@@ -684,6 +731,11 @@ function createWorld(configuration) {
    *  Create
    *
    ***************************************************************/
+
+  function isObservable(entity) {
+    return typeof(entity) === "object" && typeof(entity[objectMetaProperty]) === "object" && entity[objectMetaProperty].world === world; 
+  }
+
 
   function observable(createdTarget, buildId) {
     if (typeof(createdTarget) === 'undefined') {
@@ -736,33 +788,45 @@ function createWorld(configuration) {
 
     handler.meta = {
       world: world,
-      id: state.nextObjectId++,
+      id: "not yet", // Wait for rebuild analysis
       buildId : buildId,
       forwardTo : null,
       target: createdTarget,
       handler : handler,
       proxy : proxy,
 
-      // Optimization. Here to avoid expensive decoration post object creation.
-      isBeingRebuilt: false,
+      // Here to avoid prevent events being sent to objects being rebuilt. 
+      isBeingRebuilt: false, 
     };
 
     if (state.inRepeater !== null && buildId !== null) {
-      if (!state.inRepeater.newlyCreated) state.inRepeater.newlyCreated = [];
+      const repeater = state.inRepeater;
+      if (!repeater.newBuildIdObjectMap) repeater.newBuildIdObjectMap = {};
+      if (!repeater.newIdObjectMap) repeater.newIdObjectMap = {};
       
-      if (state.inRepeater.buildIdObjectMap && typeof(state.inRepeater.buildIdObjectMap[buildId]) !== 'undefined') {
+      if (repeater.buildIdObjectMap && typeof(repeater.buildIdObjectMap[buildId]) !== 'undefined') {
         // Object identity previously created
         handler.meta.isBeingRebuilt = true;
-        let establishedObject = state.inRepeater.buildIdObjectMap[buildId];
+        let establishedObject = repeater.buildIdObjectMap[buildId];
         establishedObject[objectMetaProperty].forwardTo = proxy;
-
-        state.inRepeater.newlyCreated.push(establishedObject);
+        
+        handler.meta.id = "temp-" + state.nextTempObjectId++;
+        repeater.newBuildIdObjectMap[buildId] = establishedObject;
+        establishedObject[objectMetaProperty].isFinalized = false; 
+        // console.log("Created:" + createdTarget.constructor.name + ":" +  handler.meta.id);
+        if (state.context) state.context.createdTemporaryCount++;
         return establishedObject;
       } else {
         // Create a new one
-        state.inRepeater.newlyCreated.push(proxy);
+        handler.meta.id = state.nextObjectId++;
+        handler.meta.isFinalized = false; 
+        repeater.newBuildIdObjectMap[buildId] = proxy;
       }
+    } else {
+      handler.meta.id = state.nextObjectId++;
     }
+    // console.log("Created:" + createdTarget.constructor.name + ":" +  handler.meta.id);
+    if (state.context) state.context.createdCount++;
     emitCreationEvent(handler);
     return proxy;
   }
@@ -853,8 +917,18 @@ function createWorld(configuration) {
     }
   }
 
-  function invalidateObserver(observer) {
-    if (observer != state.context) {
+  function invalidateObserver(observer, proxy, key) {
+    let observerActive = false
+    let scannedContext = state.context;
+    while(scannedContext) {
+      if (scannedContext === observer) {
+        observerActive = true;
+        break;
+      }
+      scannedContext = scannedContext.parent;
+    } 
+
+    if (!observerActive) {
       // if( trace.contextMismatch && state.context && state.context.id ){
       //   console.log("invalidateObserver mismatch " + observer.type, observer.id||'');
       //   if( !state.context ) console.log('current state.context null');
@@ -866,7 +940,11 @@ function createWorld(configuration) {
       //   }
       // }
       
+      observer.invalidatedInContext = state.context;
+      observer.invalidatedByKey = key;
+      observer.invalidatedByObject = proxy;
       observer.dispose(); // Cannot be any more dirty than it already is!
+
       if (state.postponeInvalidation > 0) {
         if (state.lastObserverToInvalidate !== null) {
           state.lastObserverToInvalidate.nextToNotify = observer;
@@ -876,7 +954,7 @@ function createWorld(configuration) {
         state.lastObserverToInvalidate = observer;
       } else {
         // blockSideEffects(function() {
-        observer.invalidateAction();
+        observer.invalidateAction(key);
         // });
       }
     }
@@ -899,6 +977,10 @@ function createWorld(configuration) {
 
   function defaultCreateInvalidator(description, doAfterChange) {
     return {
+      createdCount:0,
+      createdTemporaryCount:0,
+      removedCount:0,
+      isRecording: true,  
       type: 'invalidator',
       id: state.observerId++,
       description: description,
@@ -959,6 +1041,10 @@ function createWorld(configuration) {
 
   function defaultCreateRepeater(description, repeaterAction, repeaterNonRecordingAction, options, finishRebuilding) {
     return {
+      createdCount:0,
+      createdTemporaryCount:0,
+      removedCount:0,
+      isRecording: true,  
       type: "repeater", 
       id: state.observerId++,
       firstTime: true, 
@@ -968,6 +1054,38 @@ function createWorld(configuration) {
       repeaterAction : modifyRepeaterAction(repeaterAction, options),
       nonRecordedAction: repeaterNonRecordingAction,
       options: options ? options : {},
+      causalityString() {
+        const context = this.invalidatedInContext;
+        const object = this.invalidatedByObject;
+        if (!object) return "Repeater started: " + this.description 
+        const key = this.invalidatedByKey; 
+        // let objectClassName;
+        // withoutRecording(() => {
+        //   objectClassName = object.constructor.name;
+        // });
+
+        const contextString = (context ? context.description : "outside repeater/invalidator") 
+        // const causeString = objectClassName + ":" + (object.causality.buildId ? object.causality.buildId : object.causality.id) + "." + key + " (modified)";
+        const causeString = "  " + object.toString() + "." + key + "";
+        const effectString = "" + this.description + "";
+
+        return "(" + contextString + ")" + causeString + " --> " +  effectString;
+      },
+      creationString() {
+        let result = "{";
+        result += "created: " + this.createdCount + ", ";
+        result += "createdTemporary:" + this.createdTemporaryCount + ", ";
+        result += "removed:" + this.removedCount + "}";
+        return result;
+      },
+      sourcesString() {
+        let result = "";
+        for (let source of this.sources) {
+          while (source.parent) source = source.parent;
+          result += source.handler.proxy.toString() + "." + source.key + "\n";
+        }
+        return result;
+      },
       restart() {
         this.invalidateAction();
       },
@@ -996,14 +1114,21 @@ function createWorld(configuration) {
       lastRepeatTime: 0,
       waitOnNonRecordedAction: 0,
       children: null,
-      refresh() {
+      refresh() {       
         const repeater = this; 
         const options = repeater.options;
         if (options.onRefresh) options.onRefresh(repeater);
             
+        repeater.createdCount = 0;
+        repeater.createdTemporaryCount = 0;
+        repeater.removedCount = 0; 
+
         // Recorded action (cause and/or effect)
+        repeater.isRecording = true; 
         const activeContext = enterContext(repeater);
-        repeater.returnValue = repeater.repeaterAction(repeater)
+        repeater.returnValue = repeater.repeaterAction(repeater);
+        repeater.isRecording = false; 
+        updateContextState()
 
         // Non recorded action (only effect)
         const { debounce=0, fireImmediately=true } = options; 
@@ -1022,10 +1147,10 @@ function createWorld(configuration) {
         }
 
         // Finish rebuilding
-        if (repeater.newlyCreated) finishRebuilding(this);
+        if (repeater.newBuildIdObjectMap && Object.keys(repeater.newBuildIdObjectMap).length > 0) finishRebuilding(this);
 
-        leaveContext( activeContext );
         this.firstTime = false; 
+        leaveContext( activeContext );
         return repeater;
       }
     }
@@ -1050,40 +1175,63 @@ function createWorld(configuration) {
     if (repeater.previousDirty) {
       repeater.previousDirty.nextDirty = repeater.nextDirty;
     }
+    repeater.nextDirty = null;
+    repeater.previousDirty = null;
   }
 
   function finishRebuilding(repeater) {
     const options = repeater.options;
     if (options.onStartBuildUpdate) options.onStartBuildUpdate();
 
-    const newIdMap = {}
-    repeater.newlyCreated.forEach((created) => {
-      newIdMap[created[objectMetaProperty].buildId] = created;
-      const forwardTo = created[objectMetaProperty].forwardTo;
-      if (forwardTo !== null) {
+    for (let buildId in repeater.newBuildIdObjectMap) {
+      let created = repeater.newBuildIdObjectMap[buildId];
+      if (created[objectMetaProperty].isFinalized) continue; 
+
+      const temporaryObject = created[objectMetaProperty].forwardTo;
+      if (temporaryObject !== null) {
         // Push changes to established object.
         created[objectMetaProperty].forwardTo = null;
-        created[objectMetaProperty].isBeingRebuilt = false;
-        mergeInto(created, forwardTo);
+        // created[objectMetaProperty].isBeingRebuilt = false; // Consider? Should this be done on 
+        temporaryObject[objectMetaProperty].isBeingRebuilt = false; 
+        mergeInto(created, temporaryObject);
       } else {
         // Send create on build message
         if (typeof(created.onReBuildCreate) === "function") created.onReBuildCreate();
       }
-    });
-    repeater.newlyCreated = [];
+      created[objectMetaProperty].isFinalized = true;
+    }
 
     // Send on build remove messages
-    for (let id in repeater.buildIdObjectMap) {
-      if (typeof(newIdMap[id]) === "undefined") {
-        const object = repeater.buildIdObjectMap[id];
+    for (let buildId in repeater.buildIdObjectMap) {
+      if (typeof(repeater.newBuildIdObjectMap[buildId]) === "undefined") {
+        repeater.removedCount++;
+        const object = repeater.buildIdObjectMap[buildId];
         if (typeof(object.onReBuildRemove) === "function") object.onReBuildRemove();
       }
     }
-
+    
     // Set new map
-    repeater.buildIdObjectMap = newIdMap;
+    repeater.buildIdObjectMap = repeater.newBuildIdObjectMap;
+    repeater.newBuildIdObjectMap = {};
     
     if (options.onEndBuildUpdate) options.onEndBuildUpdate();
+  }
+
+  function finishRebuildInAdvance(object) {
+    if (!state.inRepeater) return; // throw Error ("Trying to finish rebuild in advance while not being in a repeater!");
+    if (!object[objectMetaProperty].buildId) return; //throw Error("Trying to finish rebuild in advance for an object without a buildId. Perhaps it should have a build id? Add one as second argument in the call to observable");
+    if (object[objectMetaProperty].isFinalized) return; // Already finished!
+    const temporaryObject = object[objectMetaProperty].forwardTo;
+    if (temporaryObject !== null) {
+      // Push changes to established object.
+      object[objectMetaProperty].forwardTo = null;
+      temporaryObject[objectMetaProperty].isBeingRebuilt = false; 
+      mergeInto(object, temporaryObject);
+    } else {
+      // Send create on build message
+      if (typeof(object.onReBuildCreate) === "function") object.onReBuildCreate();
+    }
+    object[objectMetaProperty].isFinalized = true;
   }
 
   function modifyRepeaterAction(repeaterAction, {throttle=0}) {
