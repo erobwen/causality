@@ -892,7 +892,9 @@ function createWorld(configuration) {
       onEventGlobal(event);
     }
 
-    if (sendEventsToObjects && typeof(handler.target.onChange) === 'function') { // Consider. Put on queue and fire on end of reaction? onReactionEnd onTransactionEnd 
+    if (sendEventsToObjects
+      && handler.meta.forwardTo === null // Do not send event to temporary objects!  
+      && typeof(handler.target.onChange) === 'function') { // Consider. Put on queue and fire on end of reaction? onReactionEnd onTransactionEnd 
       handler.target.onChange(event);
     }
   }
