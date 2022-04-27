@@ -472,10 +472,10 @@ function getHandlerObject(target, key) {
     if (typeof(key) !== 'undefined') {
       if (inActiveRecording) {
         if (typeof(this._propertyObservers) ===  'undefined') {
-          this._propertyObservers = { hanler: this };
+          this._propertyObservers = { handler: this };
         }
         if (typeof(this._propertyObservers[key]) ===  'undefined') {
-          this._propertyObservers[key] = { hanler: this };
+          this._propertyObservers[key] = { handler: this };
         }
         registerAnyChangeObserver(key,
                                   this._propertyObservers[key]);
