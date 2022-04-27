@@ -279,7 +279,7 @@ function getHandlerArray(target, key) {
   } else {
     if (inActiveRecording) {
       if (this._arrayObservers === null) {
-        this._arrayObservers = {};
+        this._arrayObservers = { handler: this };
       }
       registerAnyChangeObserver("_arrayObservers",
                                 this._arrayObservers);//object
@@ -392,7 +392,7 @@ function ownKeysHandlerArray(target) {
 
   if (inActiveRecording) {
     if (this._arrayObservers === null) {
-      this._arrayObservers = {};
+      this._arrayObservers = { handler: this };
     }
     registerAnyChangeObserver("_arrayObservers", this._arrayObservers);
   }
@@ -408,7 +408,7 @@ function hasHandlerArray(target, key) {
   }
   if (inActiveRecording) {
     if (this._arrayObservers === null) {
-      this._arrayObservers = {};
+      this._arrayObservers = { handler: this };
     }
     registerAnyChangeObserver("_arrayObservers", this._arrayObservers);
   }
@@ -442,7 +442,7 @@ function getOwnPropertyDescriptorHandlerArray(target, key) {
 
   if (inActiveRecording) {
     if (this._arrayObservers === null) {
-      this._arrayObservers = {};
+      this._arrayObservers = { handler: this };
     }
     registerAnyChangeObserver("_arrayObservers", this._arrayObservers);
   }
@@ -472,10 +472,10 @@ function getHandlerObject(target, key) {
     if (typeof(key) !== 'undefined') {
       if (inActiveRecording) {
         if (typeof(this._propertyObservers) ===  'undefined') {
-          this._propertyObservers = {};
+          this._propertyObservers = { hanler: this };
         }
         if (typeof(this._propertyObservers[key]) ===  'undefined') {
-          this._propertyObservers[key] = {};
+          this._propertyObservers[key] = { hanler: this };
         }
         registerAnyChangeObserver("_propertyObservers." + key,
                                   this._propertyObservers[key]);
@@ -592,7 +592,7 @@ function ownKeysHandlerObject(target, key) { // Not inherited?
 
   if (inActiveRecording) {
     if (typeof(this._enumerateObservers) === 'undefined') {
-      this._enumerateObservers = {};
+      this._enumerateObservers = { handler: this };
     }
     registerAnyChangeObserver("_enumerateObservers",
                               this._enumerateObservers);
@@ -611,7 +611,7 @@ function hasHandlerObject(target, key) {
 
   if (inActiveRecording) {
     if (typeof(this._enumerateObservers) === 'undefined') {
-      this._enumerateObservers = {};
+      this._enumerateObservers = { handler: this };
     }
     registerAnyChangeObserver("_enumerateObservers",
                               this._enumerateObservers);
@@ -648,7 +648,7 @@ function getOwnPropertyDescriptorHandlerObject(target, key) {
 
   if (inActiveRecording) {
     if (typeof(this._enumerateObservers) === 'undefined') {
-      this._enumerateObservers = {};
+      this._enumerateObservers = { handler: this };
     }
     registerAnyChangeObserver("_enumerateObservers",
                               this._enumerateObservers);
@@ -691,7 +691,7 @@ function create(createdTarget, cacheId) {
       getOwnPropertyDescriptor: getOwnPropertyDescriptorHandlerArray
     };
   } else {
-    // let _propertyObservers = {};
+    // let _propertyObservers = { handler: this };
     // for (property in createdTarget) {
     //     _propertyObservers[property] = {};
     // }
@@ -1488,6 +1488,38 @@ function repeatOnChange() { // description(optional), action
       // removeSingleChildContext(this); // Remove recorder!
       // removeChildContexts(this);
     },
+    causalityString() {
+      const context = this.invalidatedInContext;
+      const object = this.invalidatedByObject;
+      if (!object) return "Repeater started: " + this.description 
+      const key = this.invalidatedByKey; 
+      // let objectClassName;
+      // withoutRecording(() => {
+      //   objectClassName = object.constructor.name;
+      // });
+
+      const contextString = (context ? context.description : "outside repeater/invalidator") 
+      // const causeString = objectClassName + ":" + (object.causality.buildId ? object.causality.buildId : object.causality.id) + "." + key + " (modified)";
+      const causeString = "  " + object.toString() + "." + key + "";
+      const effectString = "" + this.description + "";
+
+      return "(" + contextString + ")" + causeString + " --> " +  effectString;
+    },
+    creationString() {
+      let result = "{";
+      result += "created: " + this.createdCount + ", ";
+      result += "createdTemporary:" + this.createdTemporaryCount + ", ";
+      result += "removed:" + this.removedCount + "}";
+      return result;
+    },
+    sourcesString() {
+      let result = "";
+      for (let source of this.sources) {
+        while (source.parent) source = source.parent;
+        result += source.handler.proxy.toString() + "." + source.key + "\n";
+      }
+      return result;
+    },
     nextDirty : null,
     previousDirty : null,
     lastRepeatTime: 0,
@@ -1511,7 +1543,7 @@ function refreshRepeater(repeater) {
   
   const activeContext = enterContext('repeater_refreshing', repeater);
   repeater.returnValue = uponChangeDo(
-    repeater.repeaterAction,
+    () => { repeater.repeaterAction(repeater) },
     function () {
       // unlockSideEffects(function() {
       if( context && !context.independent ){
@@ -1812,6 +1844,7 @@ function genericRepeatFunction() {
       // removeSingleChildContext(cacheRecord);
     }.bind(this);
     cacheRecord.contextObservers = {
+      handler: this,
       noMoreObserversCallback : function() {
         contextsScheduledForPossibleDestruction.push(cacheRecord);
       }
@@ -1917,6 +1950,7 @@ function genericCallAndCacheFunction() {
     leaveContext( activeContext );
     cacheRecord.returnValue = returnValue;
     cacheRecord.contextObservers = {
+      handler: this,
       noMoreObserversCallback : function() {
         contextsScheduledForPossibleDestruction.push(cacheRecord);
       }
@@ -2162,6 +2196,7 @@ function genericReCacheFunction() {
     // Never encountered these arguments before, make a new cache
     const activeContext = enterContext('reCache', cacheRecord);
     cacheRecord.contextObservers = {
+      handler: this,
       noMoreObserversCallback : function() {
         contextsScheduledForPossibleDestruction.push(cacheRecord);
       }
