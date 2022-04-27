@@ -281,7 +281,7 @@ function getHandlerArray(target, key) {
       if (this._arrayObservers === null) {
         this._arrayObservers = { handler: this };
       }
-      registerAnyChangeObserver("_arrayObservers",
+      registerAnyChangeObserver(key,
                                 this._arrayObservers);//object
     }
     return target[key];
@@ -394,7 +394,7 @@ function ownKeysHandlerArray(target) {
     if (this._arrayObservers === null) {
       this._arrayObservers = { handler: this };
     }
-    registerAnyChangeObserver("_arrayObservers", this._arrayObservers);
+    registerAnyChangeObserver("[]", this._arrayObservers);
   }
   let result   = Object.keys(target);
   result.push('length');
@@ -410,7 +410,7 @@ function hasHandlerArray(target, key) {
     if (this._arrayObservers === null) {
       this._arrayObservers = { handler: this };
     }
-    registerAnyChangeObserver("_arrayObservers", this._arrayObservers);
+    registerAnyChangeObserver("[]", this._arrayObservers);
   }
   return key in target;
 }
@@ -444,7 +444,7 @@ function getOwnPropertyDescriptorHandlerArray(target, key) {
     if (this._arrayObservers === null) {
       this._arrayObservers = { handler: this };
     }
-    registerAnyChangeObserver("_arrayObservers", this._arrayObservers);
+    registerAnyChangeObserver("[]", this._arrayObservers);
   }
   return Object.getOwnPropertyDescriptor(target, key);
 }
@@ -477,7 +477,7 @@ function getHandlerObject(target, key) {
         if (typeof(this._propertyObservers[key]) ===  'undefined') {
           this._propertyObservers[key] = { hanler: this };
         }
-        registerAnyChangeObserver("_propertyObservers." + key,
+        registerAnyChangeObserver(key,
                                   this._propertyObservers[key]);
       }
 
@@ -594,7 +594,7 @@ function ownKeysHandlerObject(target, key) { // Not inherited?
     if (typeof(this._enumerateObservers) === 'undefined') {
       this._enumerateObservers = { handler: this };
     }
-    registerAnyChangeObserver("_enumerateObservers",
+    registerAnyChangeObserver("[]",
                               this._enumerateObservers);
   }
   let keys = Object.keys(target);
@@ -613,7 +613,7 @@ function hasHandlerObject(target, key) {
     if (typeof(this._enumerateObservers) === 'undefined') {
       this._enumerateObservers = { handler: this };
     }
-    registerAnyChangeObserver("_enumerateObservers",
+    registerAnyChangeObserver("[]",
                               this._enumerateObservers);
   }
   return key in target;
@@ -650,7 +650,7 @@ function getOwnPropertyDescriptorHandlerObject(target, key) {
     if (typeof(this._enumerateObservers) === 'undefined') {
       this._enumerateObservers = { handler: this };
     }
-    registerAnyChangeObserver("_enumerateObservers",
+    registerAnyChangeObserver("[]",
                               this._enumerateObservers);
   }
   return Object.getOwnPropertyDescriptor(target, key);
@@ -1258,13 +1258,13 @@ function emptyObserverSet(observerSet) {
 }
 
 let sourcesObserverSetChunkSize = 500;
-function registerAnyChangeObserver(description, observerSet) {
+function registerAnyChangeObserver(key, observerSet) {
   // instance can be a cached method if observing its return value,
   // object & definition only needed for debugging.
 
   if (activeRecorder !== null) {
     if (typeof(observerSet.initialized) === 'undefined') {
-      observerSet.description = description;
+      observerSet.key = key;
       observerSet.isRoot = true;
       observerSet.contents = {};
       observerSet.contentsCounter = 0;
@@ -1860,7 +1860,7 @@ function genericRepeatFunction() {
     leaveContext( activeContext );
 
     registerAnyChangeObserver(
-      "functionCache.contextObservers",
+      "[context]",
       cacheRecord.contextObservers);
     trace.context && logUngroup();
     return cacheRecord.repeaterHandle; // return something else...
@@ -1868,7 +1868,7 @@ function genericRepeatFunction() {
     trace.context && log(">>> reusing old repeater... ");
     let cacheRecord = functionCacher.getExistingRecord();
     registerAnyChangeObserver(
-      "functionCache.contextObservers",
+      "[context]",
       cacheRecord.contextObservers);
     trace.context && logUngroup();
     return functionCacher.getExistingRecord().repeaterHandle;
@@ -1955,13 +1955,13 @@ function genericCallAndCacheFunction() {
         contextsScheduledForPossibleDestruction.push(cacheRecord);
       }
     };
-    registerAnyChangeObserver("functionCache.contextObservers",
+    registerAnyChangeObserver("[context]",
                               cacheRecord.contextObservers);
     return returnValue;
   } else {
     // Encountered these arguments before, reuse previous repeater
     let cacheRecord = functionCacher.getExistingRecord();
-    registerAnyChangeObserver("functionCache.contextObservers",
+    registerAnyChangeObserver("[context]",
                               cacheRecord.contextObservers);
     return cacheRecord.returnValue;
   }
@@ -2242,14 +2242,14 @@ function genericReCacheFunction() {
     );
     leaveContext( activeContext );
     registerAnyChangeObserver(
-      "functionCache.contextObservers",
+      "[context]",
       cacheRecord.contextObservers);
     return cacheRecord.returnValue;
   } else {
     // Encountered these arguments before, reuse previous repeater
     let cacheRecord = functionCacher.getExistingRecord();
     registerAnyChangeObserver(
-      "functionCache.contextObservers",
+      "[context]",
       cacheRecord.contextObservers);
     return cacheRecord.returnValue;
   }
