@@ -965,12 +965,14 @@ function pulse(callback) {
 const transaction = postponeObserverNotification;
 
 function postponeObserverNotification(callback) {
+  //console.log("postponeObserverNotification START", state.observerNotificationPostponed);
   state.inPulse++;
   state.observerNotificationPostponed++;
   callback();
   state.observerNotificationPostponed--;
   proceedWithPostponedNotifications();
   if (--state.inPulse === 0) postPulseCleanup();
+  //console.log("postponeObserverNotification STOP", state.observerNotificationPostponed);
 }
 
 let contextsScheduledForPossibleDestruction = [];
@@ -1161,6 +1163,30 @@ function uponChangeDo() {
     description: description,
     sources : [],
     uponChangeAction: doAfterChange,
+    sourcesString() {
+      let result = "";
+      for (let source of this.sources) {
+        while (source.parent) source = source.parent;
+        //console.log("source",source);
+        //result += source.handler.proxy.toString() + "." + source.key + "\n";
+        const handler = source.handler;
+        if( !handler ){
+          console.log("source without handler", source);
+          continue;
+        }
+        const isDefToStr = [
+          Object.prototype.toString,
+          Array.prototype.toString
+        ].includes(handler.target.toString);
+        const sourceStr = isDefToStr ?
+              handler.overrides.__id :
+              handler.target.toString.call(handler.overrides.__proxy);
+        const keyStr = source.key?.toString() || source.key;
+        //console.log("source", sourceStr, source.key );
+        result += sourceStr + "." + keyStr + "\n";
+      }
+      return result;
+    },
     remove : function() {
       trace.context && logGroup(`remove recording ${this.id}`);
       // Clear out previous observations
@@ -1331,12 +1357,14 @@ let nextObserverToNotifyChange = null;
 let lastObserverToNotifyChange = null;
 
 function proceedWithPostponedNotifications() {
+  console.log("proceedWithPostponedNotifications", state.observerNotificationPostponed, "next is", nextObserverToNotifyChange?.id || "none", "last is", lastObserverToNotifyChange?.id || "none");
   if (state.observerNotificationPostponed == 0) {
     while (nextObserverToNotifyChange !== null) {
       let recorder = nextObserverToNotifyChange;
       nextObserverToNotifyChange =
         nextObserverToNotifyChange.nextToNotify;
       // blockSideEffects(function() {
+      console.log("recorder", recorder.id, "parent", recorder.parent.id + "/" + recorder.parent.description, "uponChangeAction");
       recorder.uponChangeAction();
       // });
     }
@@ -1353,6 +1381,7 @@ function nullifyObserverNotification(callback) {
 
 // Recorders is a map from id => recorder
 function notifyChangeObservers(description, observers) {
+  console.log("notifyChangeObservers", description, observers.handler.overrides.__id, "in", context?.id||"top", ":", Object.values(observers.contents).map( context => context.parent.id + "/" + context.parent.description + "\n" + context.sourcesString() ).join("\n") );
   if (typeof(observers.initialized) !== 'undefined') {
     if (state.observerNotificationNullified > 0) {
       return;
@@ -1389,8 +1418,10 @@ function notifyChangeObserver(observer) {
       }
     }
     
+    console.log("recorder", observer.id, "parent", observer.parent.id + "/" + observer.parent.description, "remove");
     observer.remove(); // Cannot be any more dirty than it already is!
     if (state.observerNotificationPostponed > 0) {
+      console.log("recorder", observer.id, "NotificationPostponed", state.observerNotificationPostponed, "next is", nextObserverToNotifyChange?.id || "none", "last is", lastObserverToNotifyChange?.id || "none");
       if (lastObserverToNotifyChange !== null) {
         lastObserverToNotifyChange.nextToNotify = observer;
       } else {
@@ -1398,6 +1429,7 @@ function notifyChangeObserver(observer) {
       }
       lastObserverToNotifyChange = observer;
     } else {
+      console.log("recorder", observer.id, "uponChangeAction");
       // blockSideEffects(function() {
       observer.uponChangeAction();
       // });
@@ -1543,7 +1575,7 @@ function refreshRepeater(repeater) {
   
   const activeContext = enterContext('repeater_refreshing', repeater);
   repeater.returnValue = uponChangeDo(
-    () => { repeater.repeaterAction(repeater) },
+    enteredContext => repeater.repeaterAction(enteredContext,repeater),
     function () {
       // unlockSideEffects(function() {
       if( context && !context.independent ){
@@ -1621,6 +1653,7 @@ function refreshRepeater(repeater) {
 }
 
 function repeaterDirty(repeater) { // TODO: Add update block on this stage?
+  //console.log("repeaterDirty");
   removeChildContexts(repeater);
   // removeSingleChildContext(repeater);
 
@@ -1628,6 +1661,7 @@ function repeaterDirty(repeater) { // TODO: Add update block on this stage?
     lastDirtyRepeater = repeater;
     firstDirtyRepeater = repeater;
   } else {
+    console.log("modified dirty", lastDirtyRepeater.id, repeater.id);
     lastDirtyRepeater.nextDirty = repeater;
     repeater.previousDirty = lastDirtyRepeater;
     lastDirtyRepeater = repeater;
