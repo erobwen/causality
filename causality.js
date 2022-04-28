@@ -457,7 +457,7 @@ function getOwnPropertyDescriptorHandlerArray(target, key) {
  ***************************************************************/
 
 function getHandlerObject(target, key) {
-  key = key.toString();
+  //key = key.toString();
   if (this.overrides.__overlay !== null && key !== "__overlay" &&
       (typeof(overlayBypass[key]) === 'undefined')) {
     let overlayHandler = this.overrides.__overlay.__handler;
@@ -471,14 +471,15 @@ function getHandlerObject(target, key) {
   } else {
     if (typeof(key) !== 'undefined') {
       if (inActiveRecording) {
+        const keyStr = key.toString(); // convert symbols to strings
         if (typeof(this._propertyObservers) ===  'undefined') {
           this._propertyObservers = { handler: this };
         }
-        if (typeof(this._propertyObservers[key]) ===  'undefined') {
-          this._propertyObservers[key] = { handler: this };
+        if (typeof(this._propertyObservers[keyStr]) ===  'undefined') {
+          this._propertyObservers[keyStr] = { handler: this };
         }
-        registerAnyChangeObserver(key,
-                                  this._propertyObservers[key]);
+        registerAnyChangeObserver(keyStr,
+                                  this._propertyObservers[keyStr]);
       }
 
       let scan = target;
@@ -526,6 +527,8 @@ function setHandlerObject(target, key, value) {
   let undefinedKey = !(key in target);
   target[key]      = value;
   let resultValue  = target[key];
+  //console.log("result", undefinedKey, resultValue, (resultValue === value));
+  
   if( resultValue === value || (Number.isNaN(resultValue) &&
                                 Number.isNaN(value)) ) {
     // Write protected?
@@ -965,14 +968,12 @@ function pulse(callback) {
 const transaction = postponeObserverNotification;
 
 function postponeObserverNotification(callback) {
-  //console.log("postponeObserverNotification START", state.observerNotificationPostponed);
   state.inPulse++;
   state.observerNotificationPostponed++;
   callback();
   state.observerNotificationPostponed--;
   proceedWithPostponedNotifications();
   if (--state.inPulse === 0) postPulseCleanup();
-  //console.log("postponeObserverNotification STOP", state.observerNotificationPostponed);
 }
 
 let contextsScheduledForPossibleDestruction = [];
@@ -1167,8 +1168,6 @@ function uponChangeDo() {
       let result = "";
       for (let source of this.sources) {
         while (source.parent) source = source.parent;
-        //console.log("source",source);
-        //result += source.handler.proxy.toString() + "." + source.key + "\n";
         const handler = source.handler;
         if( !handler ){
           console.log("source without handler", source);
@@ -1181,8 +1180,9 @@ function uponChangeDo() {
         const sourceStr = isDefToStr ?
               handler.overrides.__id :
               handler.target.toString.call(handler.overrides.__proxy);
-        const keyStr = source.key?.toString() || source.key;
-        //console.log("source", sourceStr, source.key );
+        const keyStr = source.key.toString ?
+              source.key.toString() :
+              source.key;
         result += sourceStr + "." + keyStr + "\n";
       }
       return result;
@@ -1357,16 +1357,15 @@ let nextObserverToNotifyChange = null;
 let lastObserverToNotifyChange = null;
 
 function proceedWithPostponedNotifications() {
-  console.log("proceedWithPostponedNotifications", state.observerNotificationPostponed, "next is", nextObserverToNotifyChange?.id || "none", "last is", lastObserverToNotifyChange?.id || "none");
+  //console.log("proceedWithPostponedNotifications", state.observerNotificationPostponed, "next is", nextObserverToNotifyChange?.id || "none", "last is", lastObserverToNotifyChange?.id || "none");
   if (state.observerNotificationPostponed == 0) {
     while (nextObserverToNotifyChange !== null) {
       let recorder = nextObserverToNotifyChange;
-      nextObserverToNotifyChange =
-        nextObserverToNotifyChange.nextToNotify;
       // blockSideEffects(function() {
-      console.log("recorder", recorder.id, "parent", recorder.parent.id + "/" + recorder.parent.description, "uponChangeAction");
+      //console.log("recorder", recorder.id, "parent", recorder.parent.id + "/" + recorder.parent.description, "uponChangeAction");
       recorder.uponChangeAction();
       // });
+      nextObserverToNotifyChange = recorder.nextToNotify;
     }
     lastObserverToNotifyChange = null;
   }
@@ -1381,7 +1380,7 @@ function nullifyObserverNotification(callback) {
 
 // Recorders is a map from id => recorder
 function notifyChangeObservers(description, observers) {
-  console.log("notifyChangeObservers", description, observers.handler.overrides.__id, "in", context?.id||"top", ":", Object.values(observers.contents).map( context => context.parent.id + "/" + context.parent.description + "\n" + context.sourcesString() ).join("\n") );
+  //console.log("notifyChangeObservers", description, observers.handler.overrides.__id, "in", context?.id||"top", ":", Object.values(observers.contents).map( context => context.parent.id + "/" + context.parent.description + "\n" + context.sourcesString() ).join("\n") );
   if (typeof(observers.initialized) !== 'undefined') {
     if (state.observerNotificationNullified > 0) {
       return;
@@ -1418,10 +1417,10 @@ function notifyChangeObserver(observer) {
       }
     }
     
-    console.log("recorder", observer.id, "parent", observer.parent.id + "/" + observer.parent.description, "remove");
+    //console.log("recorder", observer.id, "parent", observer.parent.id + "/" + observer.parent.description, "remove");
     observer.remove(); // Cannot be any more dirty than it already is!
     if (state.observerNotificationPostponed > 0) {
-      console.log("recorder", observer.id, "NotificationPostponed", state.observerNotificationPostponed, "next is", nextObserverToNotifyChange?.id || "none", "last is", lastObserverToNotifyChange?.id || "none");
+      //console.log("recorder", observer.id, "NotificationPostponed", state.observerNotificationPostponed, "next is", nextObserverToNotifyChange?.id || "none", "last is", lastObserverToNotifyChange?.id || "none");
       if (lastObserverToNotifyChange !== null) {
         lastObserverToNotifyChange.nextToNotify = observer;
       } else {
@@ -1429,7 +1428,7 @@ function notifyChangeObserver(observer) {
       }
       lastObserverToNotifyChange = observer;
     } else {
-      console.log("recorder", observer.id, "uponChangeAction");
+      //console.log("recorder", observer.id, "uponChangeAction");
       // blockSideEffects(function() {
       observer.uponChangeAction();
       // });
@@ -1661,7 +1660,7 @@ function repeaterDirty(repeater) { // TODO: Add update block on this stage?
     lastDirtyRepeater = repeater;
     firstDirtyRepeater = repeater;
   } else {
-    console.log("modified dirty", lastDirtyRepeater.id, repeater.id);
+    //console.log("modified dirty", lastDirtyRepeater.id, repeater.id);
     lastDirtyRepeater.nextDirty = repeater;
     repeater.previousDirty = lastDirtyRepeater;
     lastDirtyRepeater = repeater;
