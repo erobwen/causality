@@ -103,7 +103,7 @@ let staticArrayOverrides = {
     state.observerNotificationNullified--;
     if (this._arrayObservers !== null) {
       if(recordChanges) changes.push([this.overrides.__id,'pop']);
-      notifyChangeObservers("_arrayObservers", this._arrayObservers);
+      notifyChangeObservers("_arrayObservers", this._arrayObservers, this, "pop");
     }
     emitSpliceEvent(this, index, [result], null);
     if (--state.inPulse === 0) postPulseCleanup();
@@ -123,7 +123,7 @@ let staticArrayOverrides = {
     state.observerNotificationNullified--;
     if (this._arrayObservers !== null) {
       if(recordChanges) changes.push([this.overrides.__id,'push',...argumentsArray]);
-      notifyChangeObservers("_arrayObservers", this._arrayObservers);
+      notifyChangeObservers("_arrayObservers", this._arrayObservers, this, "push");
     }
     emitSpliceEvent(this, index, null, argumentsArray);
     if (--state.inPulse === 0) postPulseCleanup();
@@ -141,7 +141,7 @@ let staticArrayOverrides = {
     state.observerNotificationNullified--;
     if (this._arrayObservers !== null) {
       if(recordChanges) changes.push([this.overrides.__id,'shift']);
-      notifyChangeObservers("_arrayObservers", this._arrayObservers);
+      notifyChangeObservers("_arrayObservers", this._arrayObservers, this, "shift");
     }
     emitSpliceEvent(this, 0, [result], null);
     if (--state.inPulse === 0) postPulseCleanup();
@@ -161,7 +161,7 @@ let staticArrayOverrides = {
     state.observerNotificationNullified--;
     if (this._arrayObservers !== null) {
       if(recordChanges) changes.push([this.overrides.__id,'unshift', ...argumentsArray]);
-      notifyChangeObservers("_arrayObservers", this._arrayObservers);
+      notifyChangeObservers("_arrayObservers", this._arrayObservers, this, "unshift");
     }
     emitSpliceEvent(this, 0, null, argumentsArray);
     if (--state.inPulse === 0) postPulseCleanup();
@@ -186,7 +186,7 @@ let staticArrayOverrides = {
     state.observerNotificationNullified--;
     if (this._arrayObservers !== null) {
       if(recordChanges) changes.push([this.overrides.__id,'splice', ...argumentsArray]);
-      notifyChangeObservers("_arrayObservers", this._arrayObservers);
+      notifyChangeObservers("_arrayObservers", this._arrayObservers, this, "splice");
     }
     emitSpliceEvent(this, index, removed, added);
     if (--state.inPulse === 0) postPulseCleanup();
@@ -219,7 +219,7 @@ let staticArrayOverrides = {
     state.observerNotificationNullified--;
     if (this._arrayObservers !== null) {
       if(recordChanges) changes.push([this.overrides.__id,'copyWithin', start, end]);
-      notifyChangeObservers("_arrayObservers", this._arrayObservers);
+      notifyChangeObservers("_arrayObservers", this._arrayObservers, this, "copyWithin");
     }
 
     emitSpliceEvent(this, target, added, removed);
@@ -244,7 +244,7 @@ let staticArrayOverrides = {
     state.observerNotificationNullified--;
     if (this._arrayObservers !== null) {
       if(recordChanges) changes.push([this.overrides.__id,functionName,...argumentsArray]);
-      notifyChangeObservers("_arrayObservers", this._arrayObservers);
+      notifyChangeObservers("_arrayObservers", this._arrayObservers, this, functionName);
     }
     emitSpliceEvent(this, 0, removed, this.target.slice(0));
     if (--state.inPulse === 0) postPulseCleanup();
@@ -341,8 +341,7 @@ function setHandlerArray(target, key, value) {
       emitSetEvent(this, key, value, previousValue);
       if (this._arrayObservers !== null) {
         if(recordChanges) changes.push([this.overrides.__id,'set',key,value]);
-        notifyChangeObservers("_arrayObservers",
-                              this._arrayObservers);
+        notifyChangeObservers("_arrayObservers", this._arrayObservers, this, key);
       }
     }
   }
@@ -375,7 +374,7 @@ function deletePropertyHandlerArray(target, key) {
     emitDeleteEvent(this, key, previousValue);
     if (this._arrayObservers !== null) {
       if(recordChanges) changes.push([this.overrides.__id,'delete', key]);
-      notifyChangeObservers("_arrayObservers", this._arrayObservers);
+      notifyChangeObservers("_arrayObservers", this._arrayObservers, this, key);
     }
   }
   if (--state.inPulse === 0) postPulseCleanup();
@@ -427,7 +426,7 @@ function definePropertyHandlerArray(target, key, oDesc) {
   state.inPulse++;
 
   if (this._arrayObservers !== null) {
-    notifyChangeObservers("_arrayObservers", this._arrayObservers);
+    notifyChangeObservers("_arrayObservers", this._arrayObservers, this, key);
   }
   if (--state.inPulse === 0) postPulseCleanup();
   return target;
@@ -536,13 +535,13 @@ function setHandlerObject(target, key, value) {
         typeof(this._propertyObservers[key]) !== 'undefined') {
       if(recordChanges) changes.push([this.overrides.__id,'set', key,value]);
       notifyChangeObservers("_propertyObservers." + key,
-                            this._propertyObservers[key]);
+                            this._propertyObservers[key], this, key);
     }
     if (undefinedKey) {
       if (typeof(this._enumerateObservers) !== 'undefined') {
         if(recordChanges) changes.push([this.overrides.__id,'set', key,value]);
         notifyChangeObservers("_enumerateObservers",
-                              this._enumerateObservers);
+                              this._enumerateObservers, this, key);
       }
     }
     emitSetEvent(this, key, value, previousValue);
@@ -577,7 +576,7 @@ function deletePropertyHandlerObject(target, key) {
       if (typeof(this._enumerateObservers) !== 'undefined') {
         if(recordChanges) changes.push([this.overrides.__id,'delete', key]);
         notifyChangeObservers("_enumerateObservers",
-                              this._enumerateObservers);
+                              this._enumerateObservers, this, key);
       }
     }
     if (--state.inPulse === 0) postPulseCleanup();
@@ -636,7 +635,7 @@ function definePropertyHandlerObject(target, key, descriptor) {
 
   if (typeof(this._enumerateObservers) !== 'undefined') {
     notifyChangeObservers("_enumerateObservers",
-                          this._enumerateObservers);
+                          this._enumerateObservers, this, key);
   }
   if (--state.inPulse === 0) postPulseCleanup();
   return Reflect.defineProperty(target, key, descriptor);
@@ -847,6 +846,7 @@ function addChild(context, child) {
 // cached_call, reCache, block_side_effects
 function enterContext(type, enteredContext) {
   logGroup(`enterContext: ${type} ${enteredContext.id} ${enteredContext.description}`);
+  //if( type !== "independently" ) console.log(`enterContext: ${type} ${enteredContext.id} ${enteredContext.description}`);
   if (typeof(enteredContext.initialized) === 'undefined') {
     // Initialize context
     enteredContext.removeContextsRecursivley
@@ -881,6 +881,9 @@ function enterContext(type, enteredContext) {
     }
   }
   
+  if( !enteredContext.chainDescription )
+    enteredContext.chainDescription = genericChainDescription
+
   // if (!enteredContext.independent)
   // if (!enteredContext.independent)
   if (independentContext === null && !enteredContext.independent) {
@@ -1129,6 +1132,14 @@ function genericObserveFunction(observerFunction) { //, independent
   return observer;
 }
 
+function genericChainDescription(){
+  if( !this.id ) return "unconnected";
+  let str = this.id;
+  if( this.description) str += " " + this.description;
+  if( this.parent ) str = this.parent.chainDescription() + " -> " + str;
+  return str;
+}
+
 
 /**********************************
  *  Dependency recording
@@ -1161,9 +1172,34 @@ function uponChangeDo() {
     independent : false,
     nextToNotify: null,
     id: recorderId++,
-    description: description,
+    description,
     sources : [],
     uponChangeAction: doAfterChange,
+    causalityString() {
+      console.log("uponChangeDo causalityString", this);
+      let context = this;
+      while( context && !context.invalidatedByObject ){
+        if( !context.parent ) break;
+        context = context.parent;
+      }
+      
+      const object = context.invalidatedByObject;
+      const key = context.invalidatedByKey; 
+      if( context.invalidatedInContext ) context = context.invalidatedInContext;
+      
+      if (!object) return "Repeater " + this.id + " started: " + this.chainDescription(); 
+      // let objectClassName;
+      // withoutRecording(() => {
+      //   objectClassName = object.constructor.name;
+      // });
+
+      const contextString = (context ? context.chainDescription() : "outside repeater/invalidator") 
+      // const causeString = objectClassName + ":" + (object.causality.buildId ? object.causality.buildId : object.causality.id) + "." + key + " (modified)";
+      const causeString = "  " + object.toString() + "." + key + "";
+      const effectString = "" + this.chainDescription() + "";
+
+      return "(" + contextString + ")" + causeString + " --> " +  effectString;
+    },
     sourcesString() {
       let result = "";
       for (let source of this.sources) {
@@ -1379,7 +1415,8 @@ function nullifyObserverNotification(callback) {
 
 
 // Recorders is a map from id => recorder
-function notifyChangeObservers(description, observers) {
+// aka invalidateObservers
+function notifyChangeObservers(description, observers, proxy, key) {
   //console.log("notifyChangeObservers", description, observers.handler.overrides.__id, "in", context?.id||"top", ":", Object.values(observers.contents).map( context => context.parent.id + "/" + context.parent.description + "\n" + context.sourcesString() ).join("\n") );
   if (typeof(observers.initialized) !== 'undefined') {
     if (state.observerNotificationNullified > 0) {
@@ -1388,7 +1425,7 @@ function notifyChangeObservers(description, observers) {
 
     let contents = observers.contents;
     for (let id in contents) {
-      notifyChangeObserver(contents[id]);
+      notifyChangeObserver(contents[id], proxy, key);
     }
 
     if (typeof(observers.first) !== 'undefined') {
@@ -1396,7 +1433,7 @@ function notifyChangeObservers(description, observers) {
       while(chainedObserverChunk !== null) {
         let contents = chainedObserverChunk.contents;
         for (let id in contents) {
-          notifyChangeObserver(contents[id]);
+          notifyChangeObserver(contents[id], proxy, key);
         }
         chainedObserverChunk = chainedObserverChunk.next;
       }
@@ -1404,7 +1441,22 @@ function notifyChangeObservers(description, observers) {
   }
 }
 
-function notifyChangeObserver(observer) {
+// aka invalidateObserver
+function notifyChangeObserver(observer, proxy, key) {
+  //console.log("notifyChangeObserver", context, independentContext);
+
+  let observerActive = false;
+  let scannedContext = state.context;
+    while(scannedContext) {
+      if (scannedContext === observer) {
+        observerActive = true;
+        break;
+      }
+      scannedContext = scannedContext.parent;
+    } 
+  
+  if( observerActive ) throw Error("fixme");
+
   if (observer != context) {
     if( trace.contextMismatch && context && context.id ){
       console.log("notifyChangeObserver mismatch " + observer.type, observer.id||'');
@@ -1417,7 +1469,19 @@ function notifyChangeObserver(observer) {
       }
     }
     
-    //console.log("recorder", observer.id, "parent", observer.parent.id + "/" + observer.parent.description, "remove");
+    observer.invalidatedInContext = scannedContext;
+    observer.invalidatedByKey = key;
+    observer.invalidatedByObject = proxy ? proxy.target : null;
+
+
+/*
+    const targetStr = proxy.target?.toString();
+    const contextStr = context?.chainDescription() || "START";
+    console.log("recorder", observer.id, "parent", observer.parent.id + "/" + observer.parent.description, "invalidated by", contextStr, targetStr, key);
+    if( context !== null && !contextStr ) console.log("context", context);
+    if( !targetStr?.length || targetStr.startsWith("[object") ) console.log("*** proxy", proxy.target);
+*/
+    
     observer.remove(); // Cannot be any more dirty than it already is!
     if (state.observerNotificationPostponed > 0) {
       //console.log("recorder", observer.id, "NotificationPostponed", state.observerNotificationPostponed, "next is", nextObserverToNotifyChange?.id || "none", "last is", lastObserverToNotifyChange?.id || "none");
@@ -1519,36 +1583,11 @@ function repeatOnChange() { // description(optional), action
       // removeSingleChildContext(this); // Remove recorder!
       // removeChildContexts(this);
     },
-    causalityString() {
-      const context = this.invalidatedInContext;
-      const object = this.invalidatedByObject;
-      if (!object) return "Repeater started: " + this.description 
-      const key = this.invalidatedByKey; 
-      // let objectClassName;
-      // withoutRecording(() => {
-      //   objectClassName = object.constructor.name;
-      // });
-
-      const contextString = (context ? context.description : "outside repeater/invalidator") 
-      // const causeString = objectClassName + ":" + (object.causality.buildId ? object.causality.buildId : object.causality.id) + "." + key + " (modified)";
-      const causeString = "  " + object.toString() + "." + key + "";
-      const effectString = "" + this.description + "";
-
-      return "(" + contextString + ")" + causeString + " --> " +  effectString;
-    },
     creationString() {
       let result = "{";
       result += "created: " + this.createdCount + ", ";
       result += "createdTemporary:" + this.createdTemporaryCount + ", ";
       result += "removed:" + this.removedCount + "}";
-      return result;
-    },
-    sourcesString() {
-      let result = "";
-      for (let source of this.sources) {
-        while (source.parent) source = source.parent;
-        result += source.handler.proxy.toString() + "." + source.key + "\n";
-      }
       return result;
     },
     nextDirty : null,
