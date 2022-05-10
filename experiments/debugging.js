@@ -1,6 +1,5 @@
-let causality = require('../causality');
-// import causality from "..causality.js";
-causality.install();
+// let causality = require('../causality');
+import { create, repeat, withoutRecording } from "../causality.js";
 const log = console.log;
 
 class DataStore {
@@ -15,8 +14,8 @@ class DataStore {
     toString() {
         const me = this; 
         let result;
-        causality.withoutRecording(() => {
-            result = "DataStore:" + me.name + ":" +  me.causality.id;
+        withoutRecording(() => {
+            result = "DataStore:" + me.name + ":" +  me.__id;
         })
         return result; 
     }
@@ -30,24 +29,28 @@ const dataA = new DataStore("A");
 const dataB = new DataStore("B");
 let result;
 
-causality.repeat("sumRepeater", (repeater) => {
+repeat("sumRepeater", (repeater) => {
     log(repeater.causalityString());
     const aSum = dataA.sum();
     const bSum = dataB.sum();
     result = aSum + bSum;
+    log("with sources:")
     log(repeater.sourcesString());
 });
 
 const seed = create({value : 10});
 
-causality.repeat("seedRepeater", (repeater) => {
+repeat("seedRepeater", (repeater) => {
+    log(repeater.causalityString());
     dataA.foo = seed*2;
+    log("with sources:")
+    log(repeater.sourcesString());
 });
 
 
-log("-------------------------------------------");
-dataB.fie = 3;
-log("-------------------------------------------");
-dataA.fum = 3;
+// log("-------------------------------------------");
+// dataB.fie = 3;
+// log("-------------------------------------------");
+// dataA.fum = 3;
 log("-------------------------------------------");
 seed.value = 5;

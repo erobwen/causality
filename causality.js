@@ -845,7 +845,7 @@ function addChild(context, child) {
 // occuring types: recording, repeater_refreshing,
 // cached_call, reCache, block_side_effects
 function enterContext(type, enteredContext) {
-  logGroup(`enterContext: ${type} ${enteredContext.id} ${enteredContext.description}`);
+  // console.log(`enterContext: ${type} ${enteredContext.id} ${enteredContext.description}`);
   //if( type !== "independently" ) console.log(`enterContext: ${type} ${enteredContext.id} ${enteredContext.description}`);
   if (typeof(enteredContext.initialized) === 'undefined') {
     // Initialize context
@@ -1166,7 +1166,7 @@ function uponChangeDo() {
     doFirst       = arguments[0];
     doAfterChange = arguments[1];
   }
-
+  
   // Recorder context
   const enteredContext = enterContext('recording', {
     independent : false,
@@ -1175,54 +1175,6 @@ function uponChangeDo() {
     description,
     sources : [],
     uponChangeAction: doAfterChange,
-    causalityString() {
-      console.log("uponChangeDo causalityString", this);
-      let context = this;
-      while( context && !context.invalidatedByObject ){
-        if( !context.parent ) break;
-        context = context.parent;
-      }
-      
-      const object = context.invalidatedByObject;
-      const key = context.invalidatedByKey; 
-      if( context.invalidatedInContext ) context = context.invalidatedInContext;
-      
-      if (!object) return "Repeater " + this.id + " started: " + this.chainDescription(); 
-      // let objectClassName;
-      // withoutRecording(() => {
-      //   objectClassName = object.constructor.name;
-      // });
-
-      const contextString = (context ? context.chainDescription() : "outside repeater/invalidator") 
-      // const causeString = objectClassName + ":" + (object.causality.buildId ? object.causality.buildId : object.causality.id) + "." + key + " (modified)";
-      const causeString = "  " + object.toString() + "." + key + "";
-      const effectString = "" + this.chainDescription() + "";
-
-      return "(" + contextString + ")" + causeString + " --> " +  effectString;
-    },
-    sourcesString() {
-      let result = "";
-      for (let source of this.sources) {
-        while (source.parent) source = source.parent;
-        const handler = source.handler;
-        if( !handler ){
-          console.log("source without handler", source);
-          continue;
-        }
-        const isDefToStr = [
-          Object.prototype.toString,
-          Array.prototype.toString
-        ].includes(handler.target.toString);
-        const sourceStr = isDefToStr ?
-              handler.overrides.__id :
-              handler.target.toString.call(handler.overrides.__proxy);
-        const keyStr = source.key.toString ?
-              source.key.toString() :
-              source.key;
-        result += sourceStr + "." + keyStr + "\n";
-      }
-      return result;
-    },
     remove : function() {
       trace.context && logGroup(`remove recording ${this.id}`);
       // Clear out previous observations
@@ -1417,7 +1369,8 @@ function nullifyObserverNotification(callback) {
 // Recorders is a map from id => recorder
 // aka invalidateObservers
 function notifyChangeObservers(description, observers, proxy, key) {
-  //console.log("notifyChangeObservers", description, observers.handler.overrides.__id, "in", context?.id||"top", ":", Object.values(observers.contents).map( context => context.parent.id + "/" + context.parent.description + "\n" + context.sourcesString() ).join("\n") );
+  // console.log("notifyChangeObservers");
+  // console.log(proxy);
   if (typeof(observers.initialized) !== 'undefined') {
     if (state.observerNotificationNullified > 0) {
       return;
@@ -1443,35 +1396,39 @@ function notifyChangeObservers(description, observers, proxy, key) {
 
 // aka invalidateObserver
 function notifyChangeObserver(observer, proxy, key) {
-  //console.log("notifyChangeObserver", context, independentContext);
+  // console.log("notifyChangeObserver", context, independentContext);
 
   let observerActive = false;
-  let scannedContext = state.context;
-    while(scannedContext) {
-      if (scannedContext === observer) {
-        observerActive = true;
-        break;
-      }
-      scannedContext = scannedContext.parent;
-    } 
-  
-  if( observerActive ) throw Error("fixme");
-
-  if (observer != context) {
-    if( trace.contextMismatch && context && context.id ){
-      console.log("notifyChangeObserver mismatch " + observer.type, observer.id||'');
-      if( !context ) console.log('current context null');
-      else {
-        console.log("current context " + context.type, context.id||'');
-        if( context.parent ){
-          console.log("parent context " + context.parent.type, context.parent.id||'');
-        }
-      }
+  let scannedContext = state;
+  while(scannedContext) {
+    if (scannedContext === observer) {
+      observerActive = true;
+      break;
     }
+    scannedContext = scannedContext.parent;
+  } 
+  
+  if (!observerActive) {
+    // if( trace.contextMismatch && context && context.id ){
+    //   console.log("notifyChangeObserver mismatch " + observer.type, observer.id||'');
+    //   if( !context ) console.log('current context null');
+    //   else {
+    //     console.log("current context " + context.type, context.id||'');
+    //     if( context.parent ){
+    //       console.log("parent context " + context.parent.type, context.parent.id||'');
+    //     }
+    //   }
+    // }
     
-    observer.invalidatedInContext = scannedContext;
+    // console.log("track invalidation");
+    // console.log(key);
+    // console.log(proxy);
+    // console.log(proxy.overrides.__proxy);
+    // console.log(context);
+    console.log("track invalidation...");
+    observer.invalidatedInContext = context;
     observer.invalidatedByKey = key;
-    observer.invalidatedByObject = proxy ? proxy.target : null;
+    observer.invalidatedByObject = proxy.overrides.__proxy;
 
 
 /*
@@ -1576,12 +1533,88 @@ function repeatOnChange() { // description(optional), action
     repeaterAction : repeaterAction,
     nonRecordedAction: repeaterNonRecordingAction,
     options: options,
+    toString: function() {
+      return this.description;
+    },
     remove: function() {
       log("remove repeater_refreshing");
       //" + this.id + "." + this.description);
       detatchRepeater(this);
       // removeSingleChildContext(this); // Remove recorder!
       // removeChildContexts(this);
+    },
+    causalityString() {
+      console.log("causality string... ")
+      const context = this.invalidatedInContext;
+      if (context) while (!context.independent) context = context.parent; 
+      const object = this.invalidatedByObject;
+      console.log(object)
+      if (!object) return "Repeater started: " + this.description 
+      const key = this.invalidatedByKey; 
+      // let objectClassName;
+      // withoutRecording(() => {
+      //   objectClassName = object.constructor.name;
+      // });
+
+      const contextString = (context ? context.description : "outside repeater/invalidator") 
+      // const causeString = objectClassName + ":" + (object.causality.buildId ? object.causality.buildId : object.causality.id) + "." + key + " (modified)";
+      const causeString = "  " + object.toString() + "." + key + "";
+      const effectString = "" + this.description + "";
+
+      return "(" + contextString + ")" + causeString + " --> " +  effectString;
+
+
+
+
+      // // console.log("uponChangeDo causalityString", this);
+      // let context = this;
+      // while( context && !context.invalidatedByObject ){
+      //   if( !context.parent ) break;
+      //   context = context.parent;
+      // }
+      
+      // const object = context.invalidatedByObject;
+      // const key = context.invalidatedByKey; 
+      // if( context.invalidatedInContext ) context = context.invalidatedInContext;
+      
+      // if (!object) return "Repeater " + this.id + " started: " + this.chainDescription(); 
+      // // let objectClassName;
+      // // withoutRecording(() => {
+      // //   objectClassName = object.constructor.name;
+      // // });
+
+      // const contextString = (context ? context.chainDescription() : "outside repeater/invalidator") 
+      // // const causeString = objectClassName + ":" + (object.causality.buildId ? object.causality.buildId : object.causality.id) + "." + key + " (modified)";
+      // const causeString = "  " + object.toString() + "." + key + "";
+      // const effectString = "" + this.chainDescription() + "";
+
+      // return "(" + contextString + ")" + causeString + " --> " +  effectString;
+    },
+    sourcesString() {
+      // console.log("sources string!");
+      let result = "";
+      // console.log(this)
+      const child = this.child ? this.child : this.children[0]; 
+      for (let source of child.sources) {
+        while (source.parent) source = source.parent;
+        const handler = source.handler;
+        if( !handler ){
+          console.log("source without handler", source);
+          continue;
+        }
+        const isDefToStr = [
+          Object.prototype.toString,
+          Array.prototype.toString
+        ].includes(handler.target.toString);
+        const sourceStr = isDefToStr ?
+              handler.overrides.__id :
+              handler.target.toString.call(handler.overrides.__proxy);
+        const keyStr = source.key.toString ?
+              source.key.toString() :
+              source.key;
+        result += sourceStr + "." + keyStr + "\n";
+      }
+      return result;
     },
     creationString() {
       let result = "{";
@@ -1613,7 +1646,7 @@ function refreshRepeater(repeater) {
   
   const activeContext = enterContext('repeater_refreshing', repeater);
   repeater.returnValue = uponChangeDo(
-    enteredContext => repeater.repeaterAction(enteredContext,repeater),
+    () => { repeater.repeaterAction(repeater) },
     function () {
       // unlockSideEffects(function() {
       if( context && !context.independent ){
