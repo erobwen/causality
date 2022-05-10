@@ -1399,7 +1399,7 @@ function notifyChangeObserver(observer, proxy, key) {
   // console.log("notifyChangeObserver", context, independentContext);
 
   let observerActive = false;
-  let scannedContext = state;
+  let scannedContext = context;
   while(scannedContext) {
     if (scannedContext === observer) {
       observerActive = true;
@@ -1425,11 +1425,14 @@ function notifyChangeObserver(observer, proxy, key) {
     // console.log(proxy);
     // console.log(proxy.overrides.__proxy);
     // console.log(context);
-    console.log("track invalidation...");
-    observer.invalidatedInContext = context;
-    observer.invalidatedByKey = key;
-    observer.invalidatedByObject = proxy.overrides.__proxy;
+    // console.log("track invalidation...");
 
+    if (observer.type === "recording" && observer.parent && observer.parent.type ==="repeater_refreshing") {
+      observer.parent.invalidatedInContext = context;
+      observer.parent.invalidatedByKey = key;
+      observer.parent.invalidatedByObject = proxy.overrides.__proxy;
+    }
+    // console.log(observer.invalidatedByObject);
 
 /*
     const targetStr = proxy.target?.toString();
@@ -1544,11 +1547,10 @@ function repeatOnChange() { // description(optional), action
       // removeChildContexts(this);
     },
     causalityString() {
-      console.log("causality string... ")
-      const context = this.invalidatedInContext;
-      if (context) while (!context.independent) context = context.parent; 
+      let context = this.invalidatedInContext;
+      if (context) while (!context.independent) context = context.parent;
+
       const object = this.invalidatedByObject;
-      console.log(object)
       if (!object) return "Repeater started: " + this.description 
       const key = this.invalidatedByKey; 
       // let objectClassName;
@@ -1558,10 +1560,11 @@ function repeatOnChange() { // description(optional), action
 
       const contextString = (context ? context.description : "outside repeater/invalidator") 
       // const causeString = objectClassName + ":" + (object.causality.buildId ? object.causality.buildId : object.causality.id) + "." + key + " (modified)";
-      const causeString = "  " + object.toString() + "." + key + "";
+      const causeString = "  " + object.__id + "." + key + "";
+      // const causeString = "  " + object.toString() + "." + key + "";
       const effectString = "" + this.description + "";
 
-      return "(" + contextString + ")" + causeString + " --> " +  effectString;
+      return "Repeat: (" + contextString + ")" + causeString + " --> " +  effectString;
 
 
 
@@ -1590,12 +1593,14 @@ function repeatOnChange() { // description(optional), action
 
       // return "(" + contextString + ")" + causeString + " --> " +  effectString;
     },
+    getRecorder() {
+      return this.child ? this.child : this.children[0];
+    },
     sourcesString() {
       // console.log("sources string!");
       let result = "";
       // console.log(this)
-      const child = this.child ? this.child : this.children[0]; 
-      for (let source of child.sources) {
+      for (let source of this.getRecorder().sources) {
         while (source.parent) source = source.parent;
         const handler = source.handler;
         if( !handler ){
