@@ -1084,7 +1084,27 @@ function createWorld(configuration) {
         let result = "";
         for (let source of this.sources) {
           while (source.parent) source = source.parent;
-          result += source.handler.proxy.toString() + "." + source.key + "\n";
+
+          const handler = source.handler;
+          if( !handler ){
+            console.log("source without handler", source);
+            continue;
+          }
+          //console.log("calling toString for", handler);
+          const isDefToStr = [
+            Object.prototype.toString,
+            Array.prototype.toString
+          ].includes(handler.target.toString);
+          const sourceStr = isDefToStr ?
+                handler.meta.id :
+                handler.target.toString.call( handler.target );
+          const keyStr = source.key.toString ?
+                source.key.toString() :
+                source.key;
+          result += sourceStr + "." + keyStr + "\n";
+
+          //console.log("calling toString for", source);
+          //result += source.handler.target.toString() + "." + source.key + "\n";
         }
         return result;
       },
