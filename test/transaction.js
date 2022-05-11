@@ -10,9 +10,8 @@ describe( "transactions", ()=>{
   //console.log(`x(${x.causality.id}) y(${y.causality.id})`);
   
   repeat( "Rx", (repeater) =>{
-
     //console.log("repeat", repeater.id, repeater.description);
-    if( x.A < 13 ) y.A = x.A;
+    if( x.A < 31 ) y.A = x.A;
     //console.log( repeater.sourcesString() );
   });
   
