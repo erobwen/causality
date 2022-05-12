@@ -7,7 +7,7 @@ let state = {
   inPulse : 0,
   recordingPaused : 0,
   observerNotificationNullified : 0,
-  observerNotificationPostponed : 0
+  observerNotificationPostponed : 0,
 };
 
 /***************************************************************
@@ -1359,15 +1359,19 @@ let lastObserverToNotifyChange = null;
 function proceedWithPostponedNotifications() {
   //console.log("proceedWithPostponedNotifications", state.observerNotificationPostponed, "next is", nextObserverToNotifyChange?.id || "none", "last is", lastObserverToNotifyChange?.id || "none");
   if (state.observerNotificationPostponed == 0) {
+    //console.log("proceedWithPostponedNotifications START");
     while (nextObserverToNotifyChange !== null) {
       let recorder = nextObserverToNotifyChange;
-      // blockSideEffects(function() {
-      //console.log("recorder", recorder.id, "parent", recorder.parent.id + "/" + recorder.parent.description, "uponChangeAction");
-      recorder.uponChangeAction();
-      // });
       nextObserverToNotifyChange = recorder.nextToNotify;
+      
+      //const repeater = recorder.parent;
+      //console.log(recorder.type, recorder.id, repeater.type, repeater.id + "/" + repeater.description, "uponChangeAction");
+      recorder.uponChangeAction();
+
     }
+    
     lastObserverToNotifyChange = null;
+    //console.log("proceedWithPostponedNotifications END\n");
   }
 }
 
@@ -1422,7 +1426,9 @@ function notifyChangeObserver(observer) {
     if (state.observerNotificationPostponed > 0) {
       //console.log("recorder", observer.id, "NotificationPostponed", state.observerNotificationPostponed, "next is", nextObserverToNotifyChange?.id || "none", "last is", lastObserverToNotifyChange?.id || "none");
       if (lastObserverToNotifyChange !== null) {
+        //console.log("Adding next", observer.id ,"to last", lastObserverToNotifyChange.id );
         lastObserverToNotifyChange.nextToNotify = observer;
+        if (nextObserverToNotifyChange === null) nextObserverToNotifyChange = observer;
       } else {
         nextObserverToNotifyChange = observer;
       }
@@ -1465,6 +1471,8 @@ function detatchRepeater(repeater) {
   if (repeater.previousDirty) {
     repeater.previousDirty.nextDirty = repeater.nextDirty;
   }
+
+  //# TODO: validate with test
   repeater.previousDirty = null;
   repeater.nextDirty = null;
 }
@@ -1578,9 +1586,11 @@ function refreshRepeater(repeater) {
     function () {
       // unlockSideEffects(function() {
       if( context && !context.independent ){
+
         //console.log("deferring repeaterDirty", context.id);
-        // defere repeater if we are in a nested context
-        setTimeout(()=>{
+        // defer repeater if we are in a nested context
+        //setTimeout(()=>{
+        independently(()=>{
           //console.log("deferred repeaterDirty", context.id);
           repeaterDirty(repeater);
         });
