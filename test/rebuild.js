@@ -25,105 +25,105 @@ const logg = (string) => {
 
 let collecting = false; 
 
-describe("Re Build", function(){
+// describe("Re Build", function(){
 
-  let created3Node = false; 
-  let removed3Node = false; 
-  let setHigherFor3Node = false; 
+//   let created3Node = false; 
+//   let removed3Node = false; 
+//   let setHigherFor3Node = false; 
 
-  class Node {
-    constructor(value) {
-      this.value = value; 
-      this.higher = null;
-      this.lower = null;
-    }
+//   class Node {
+//     constructor(value) {
+//       this.value = value; 
+//       this.higher = null;
+//       this.lower = null;
+//     }
 
-    insert(node) {
-      if (node.value >= this.value) {
-        if (this.higher) {
-          this.higher.insert(node);
-        } else {
-          this.higher = node; 
-        }
-      }
-      if (node.value < this.value) {
-        if (this.lower) {
-          this.lower.insert(node);
-        } else {
-          this.lower = node; 
-        }          
-      }
-    }
+//     insert(node) {
+//       if (node.value >= this.value) {
+//         if (this.higher) {
+//           this.higher.insert(node);
+//         } else {
+//           this.higher = node; 
+//         }
+//       }
+//       if (node.value < this.value) {
+//         if (this.lower) {
+//           this.lower.insert(node);
+//         } else {
+//           this.lower = node; 
+//         }          
+//       }
+//     }
 
-    find(value) {
-      if (this.value === value) {
-        return this;
-      } else if (this.value > value) {
-        return this.lower; 
-      } else if (this.value < value) {
-        return this.higher; 
-      }
-    }
+//     find(value) {
+//       if (this.value === value) {
+//         return this;
+//       } else if (this.value > value) {
+//         return this.lower; 
+//       } else if (this.value < value) {
+//         return this.higher; 
+//       }
+//     }
 
-    onEstablish() {
-      if (this.value === 3) created3Node = true; 
-      // log("onEstablish" + this.value);
-    }
+//     onEstablish() {
+//       if (this.value === 3) created3Node = true; 
+//       // log("onEstablish" + this.value);
+//     }
 
-    onDispose() {
-      if (this.value === 3) removed3Node = true; 
-      // log("onDispose" + this.value)
-    }
+//     onDispose() {
+//       if (this.value === 3) removed3Node = true; 
+//       // log("onDispose" + this.value)
+//     }
     
-    onChange(event) {
-      if (this.value === 3 && event.type === "set" && event.property === "higher") setHigherFor3Node = true; 
-      // log("onChange" + this.value)
-    }
-  }
+//     onChange(event) {
+//       if (this.value === 3 && event.type === "set" && event.property === "higher") setHigherFor3Node = true; 
+//       // log("onChange" + this.value)
+//     }
+//   }
 
-  function buildTree(source) {
-    let result;
-    source.forEach((value, index) => {
-      const node = observable(new Node(value), "node_" + value);
-      if (index === 0) {
-        result = node; 
-      } else {
-        result.insert(node);
-      }
-    }); 
-    return result; 
-  }
+//   function buildTree(source) {
+//     let result;
+//     source.forEach((value, index) => {
+//       const node = observable(new Node(value), "node_" + value);
+//       if (index === 0) {
+//         result = node; 
+//       } else {
+//         result.insert(node);
+//       }
+//     }); 
+//     return result; 
+//   }
 
 
-  it("Test rebuild", function(){
-    const source = observable([3]);
-    let updateBuildEvents = [];
-    let tree = observable({root: null}); 
+//   it("Test rebuild", function(){
+//     const source = observable([3]);
+//     let updateBuildEvents = [];
+//     let tree = observable({root: null}); 
 
-    repeat(
-      () => {
-        tree.root = buildTree(source);
-      },
-      null, 
-      { 
-        onRefresh: () => { collecting = true; events.length = 0 },
-        onEndBuildUpdate: () => { collecting = false; updateBuildEvents = events.slice(); events.length = 0; }
-      }
-    );
+//     repeat(
+//       () => {
+//         tree.root = buildTree(source);
+//       },
+//       null, 
+//       { 
+//         onRefresh: () => { collecting = true; events.length = 0 },
+//         onEndBuildUpdate: () => { collecting = false; updateBuildEvents = events.slice(); events.length = 0; }
+//       }
+//     );
 
-    const value3Node = tree.root.find(3);
+//     const value3Node = tree.root.find(3);
     
-    source.push(3.5);
-    const value35Node = tree.root.find(3.5);
-    assert.equal(created3Node, true);
-    assert.equal(setHigherFor3Node, true);
-    assert.equal(value3Node, tree.root.find(3));
+//     source.push(3.5);
+//     const value35Node = tree.root.find(3.5);
+//     assert.equal(created3Node, true);
+//     assert.equal(setHigherFor3Node, true);
+//     assert.equal(value3Node, tree.root.find(3));
 
-    source.shift();
-    assert.equal(value35Node, tree.root.find(3.5));
-    assert.equal(removed3Node, true);
-  });
-});
+//     source.shift();
+//     assert.equal(value35Node, tree.root.find(3.5));
+//     assert.equal(removed3Node, true);
+//   });
+// });
 
 
 
@@ -134,7 +134,15 @@ describe("Re build shape analysis", function(){
   let lastResult; 
   let result; 
 
-  class Node {}
+  class Node {
+    onDispose() {
+      disposed.unshift(this);
+    }
+
+    onEstablish() {
+      established.unshift(this);
+    }
+  }
   const disposed = [];
   const established = [];
 
@@ -154,14 +162,6 @@ describe("Re build shape analysis", function(){
       this.value = value;
       return observable(this);
     } 
-
-    onDispose() {
-      disposed.unshift(this);
-    }
-
-    onEstablish() {
-      established.unshift(this);
-    }
   }
 
   it("Test rebuild with shape analysis", function(){ 
@@ -202,7 +202,7 @@ describe("Re build shape analysis", function(){
         rebuildShapeAnalysis: {
           canMatch: (newFlow, establishedFlow) => {
             return isObservable(newFlow) && isObservable(establishedFlow) &&
-              newFlow.className() === establishedFlow.className() 
+              newFlow.constructor.name === establishedFlow.constructor.name 
           },
           initialSlots: () => {
             return {
@@ -223,6 +223,7 @@ describe("Re build shape analysis", function(){
     );
 
     assert.equal(established.length, 4); // 4 nodes to begin with!
+    console.log("---------------------------------------------")
 
     result.a.decorate = "someValue";
     result.b.a.decorate = "someOtherValue";
@@ -233,13 +234,18 @@ describe("Re build shape analysis", function(){
     assert.equal(established.length, 5); 
     assert.equal(established[0].value, 30); 
     assert.equal(disposed.length, 0); 
+    console.log("disposed: ") 
+    console.log(disposed);
+    console.log("---------------------------------------------")
     
     state.value = 3; // Trigger rebulid
-
+    
     assert.equal(result.a.decorate, "someValue"); // Still decorated! No build ids were used!
     assert.equal(result.b.a.decorate, "someOtherValue"); // Still decorated! No build ids were used!
     assert.equal(established.length, 5); 
-    assert.equal(disposed.length, 1); 
+    console.log("disposed: ") 
+    console.log(disposed);
+    assert.equal(disposed.length, 1);
     assert.equal(disposed[0].value, 30); 
   });
 });
