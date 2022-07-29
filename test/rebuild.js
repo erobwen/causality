@@ -11,7 +11,7 @@ const instance = causality.getWorld({
     events.push(event);
   }
 });
-const {observable, withoutSideEffects, repeat } = instance;
+const {observable, withoutSideEffects, repeat, isObservable } = instance;
 const c = observable; 
 
 const log = console.log;
@@ -122,5 +122,124 @@ describe("Re Build", function(){
     source.shift();
     assert.equal(value35Node, tree.root.find(3.5));
     assert.equal(removed3Node, true);
+  });
+});
+
+
+
+
+describe("Re build shape analysis", function(){
+
+  const state = observable({value: 1});
+  let lastResult; 
+  let result; 
+
+  class Node {}
+  const disposed = [];
+  const established = [];
+
+  class Aggregate extends Node {
+    constructor({a=null, b=null, c=null}) {
+      super();
+      this.a = a; 
+      this.b = b; 
+      this.c = c;
+      return observable(this);
+    } 
+  }
+
+  class Primitive extends Node {
+    constructor(value) {
+      super();
+      this.value = value;
+      return observable(this);
+    } 
+
+    onDispose() {
+      disposed.unshift(this);
+    }
+
+    onEstablish() {
+      established.unshift(this);
+    }
+  }
+
+  it("Test rebuild with shape analysis", function(){ 
+
+    repeat(
+      () => {
+        if (state.value === 1) {
+          lastResult = result; 
+          result = new Aggregate({
+            a: new Primitive(42),
+            b: new Aggregate({
+              a: new Primitive(43)
+            })
+          })
+        }
+        if (state.value === 2) {
+          lastResult = result; 
+          result = new Aggregate({
+            a: new Primitive(42),
+            b: new Aggregate({
+              a: new Primitive(43)
+            }),
+            c: new Primitive(30) // Added node
+          })
+        }
+        if (state.value === 3) {
+          lastResult = result; 
+          result = new Aggregate({
+            a: new Primitive(42),
+            b: new Aggregate({
+              a: new Primitive(43)
+            })
+            // Removed node again
+          })
+        }
+      },
+      { 
+        rebuildShapeAnalysis: {
+          canMatch: (newFlow, establishedFlow) => {
+            return isObservable(newFlow) && isObservable(establishedFlow) &&
+              newFlow.className() === establishedFlow.className() 
+          },
+          initialSlots: () => {
+            return {
+              newSlot: result,
+              establishedSlot: lastResult
+            }
+          },
+          slotsIterator: function*(newFlow, optionalEstablishedFlow) {
+            for (let property in newFlow) {
+              yield {
+                newSlot: newFlow[property],
+                establishedSlot: optionalEstablishedFlow ? optionalEstablishedFlow[property] : null
+              }
+            }
+          }
+        }
+      }
+    );
+
+    assert.equal(established.length, 4); // 4 nodes to begin with!
+
+    result.a.decorate = "someValue";
+    result.b.a.decorate = "someOtherValue";
+    state.value = 2; // Trigger rebulid
+    
+    assert.equal(result.a.decorate, "someValue"); // Still decorated! No build ids were used!
+    assert.equal(result.b.a.decorate, "someOtherValue"); // Still decorated! No build ids were used!
+    assert.equal(established.length, 5); 
+    assert.equal(established[0].value, 30); 
+    assert.equal(disposed.length, 0); 
+    
+    state.value = 3; // Trigger rebulid
+
+    assert.equal(result.a.decorate, "someValue"); // Still decorated! No build ids were used!
+    assert.equal(result.b.a.decorate, "someOtherValue"); // Still decorated! No build ids were used!
+    assert.equal(established.length, 5); 
+    assert.equal(disposed.length, 1); 
+    assert.equal(disposed[0].value, 30); 
   });
 });
