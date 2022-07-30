@@ -821,6 +821,7 @@ function createWorld(configuration) {
           handler.meta.id = state.nextObjectId++;
           handler.meta.pendingOnEstablishCall = true; 
           repeater.newBuildIdObjectMap[buildId] = proxy;
+
           emitCreationEvent(handler);
         }
         if (repeater.options.rebuildShapeAnalysis) {
@@ -1221,23 +1222,26 @@ function createWorld(configuration) {
     let visited = {};
     
     function setAsMatch(newObject, establishedObject) {
+      console.log("setAsMatch");
+
+      console.log(newObject[objectMetaProperty].buildId);
+      console.log(newObject);
+      console.log(establishedObject[objectMetaProperty].buildId);
+      console.log(establishedObject);
+      console.log("---");
       establishedObject[objectMetaProperty].forwardTo = newObject;
       if (newObject[objectMetaProperty].pendingCreationEvent) {
         delete newObject[objectMetaProperty].pendingCreationEvent;
         establishedObject[objectMetaProperty].pendingCreationEvent = true;
       } 
       newObject[objectMetaProperty].copyTo = establishedObject;
-      const buildId = establishedObject[objectMetaProperty].buildId; 
-      if (buildId) {
-        newObject[objectMetaProperty].buildId = buildId;
-        repeater.newBuildIdObjectMap[buildId] = newObject;
-      }
       repeater.newIdObjectShapeMap[establishedObject[objectMetaProperty].id] = establishedObject;
       delete repeater.newIdObjectShapeMap[newObject[objectMetaProperty].id];
     }
     
     function matchInEquivalentSlot(newObject, establishedObject) {
       if (!isObservable(newObject)) return; 
+      // if (newObject.buildId)
       const newObjectId = newObject[objectMetaProperty].id;
       
       if (!repeater.newIdObjectShapeMap[newObjectId]) return; // Limit search! otherwise we could go off road!
@@ -1251,6 +1255,16 @@ function createWorld(configuration) {
         }
       } else if (newObject !== establishedObject) {
         // Different in same slot
+        if (!isObservable(newObject)) {
+          return;
+        } else if (newObject[objectMetaProperty].buildId) {
+          return; 
+        } else if (!isObservable(establishedObject)) {
+          return;
+        } else if (establishedObject[objectMetaProperty].buildId) {
+          return; 
+        }
+
         if (!shapeAnalysis.canMatch(newObject, establishedObject)) return;
         setAsMatch(newObject, establishedObject);
 
@@ -1331,9 +1345,9 @@ function createWorld(configuration) {
           // Send create event
           if (newObject[objectMetaProperty].pendingCreationEvent) {
             delete newObject[objectMetaProperty].pendingCreationEvent;
-            if (typeof(newObject[objectMetaProperty].target.onEstablish) === "function") newObject.onEstablish();
             emitCreationEvent(newObject[objectMetaProperty].handler);
           }
+          if (typeof(newObject[objectMetaProperty].target.onEstablish) === "function") newObject.onEstablish();
         }
       }
 
