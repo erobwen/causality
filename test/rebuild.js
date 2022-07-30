@@ -130,9 +130,6 @@ describe("Re Build", function(){
 
 describe("Re build shape analysis", function(){
 
-  const state = observable({value: 1});
-  let result; 
-
   class Node {
     onDispose() {
       disposed.unshift(this);
@@ -146,49 +143,54 @@ describe("Re build shape analysis", function(){
   const established = [];
 
   class Aggregate extends Node {
-    constructor({a=null, b=null, c=null}) {
-      super();
+    constructor({a=null, b=null, c=null, key=null}) {
+      super(parameters);
       this.a = a; 
       this.b = b; 
       this.c = c;
-      return observable(this);
+      return observable(this, key);
     } 
   }
 
   class Primitive extends Node {
-    constructor(value) {
+    constructor({value, key=null}) {
       super();
       this.value = value;
-      return observable(this);
+      return observable(this, key);
     } 
   }
 
   it("Test rebuild with shape analysis", function(){ 
 
+    const state = observable({value: 1});
+    disposed.length = 0;
+    established.length = 0;
+  
+    let result; 
     repeat(
       () => {
         if (state.value === 1) {
           result = new Aggregate({
-            a: new Primitive(42),
+            a: new Primitive({value: 42}),
             b: new Aggregate({
-              a: new Primitive(43)
+              a: new Primitive({value: 43})
             })
           })
         }
         if (state.value === 2) {
           result = new Aggregate({
-            a: new Primitive(42),
+            a: new Primitive({value: 42}),
             b: new Aggregate({
-              a: new Primitive(43)
+              a: new Primitive({value: 43})
             }),
-            c: new Primitive(30) // Added node
+            c: new Primitive({value: 30}) // Added node
           })
         }
         if (state.value === 3) {
           result = new Aggregate({
-            a: new Primitive(42),
+            a: new Primitive({value: 42}),
             b: new Aggregate({
-              a: new Primitive(43)
+              a: new Primitive({value: 43})
             })
             // Removed node again
           })
@@ -233,4 +235,81 @@ describe("Re build shape analysis", function(){
     assert.equal(disposed.length, 1);
     assert.equal(disposed[0].value, 30); 
   });
+
+
+  // it("Test rebuild with hybrid analysis", function(){ 
+
+  //   const state = observable({value: 1});
+  //   disposed.length = 0;
+  //   established.length = 0;
+  
+  //   let result; 
+  //   repeat(
+  //     () => {
+  //       if (state.value === 1) {
+  //         result = new Aggregate({
+  //           a: new Primitive({value: 42}),
+  //           b: new Aggregate({
+  //             a: new Primitive({value: 43})
+  //           })
+  //         })
+  //       }
+  //       if (state.value === 2) {
+  //         result = new Aggregate({
+  //           a: new Primitive({value: 42}),
+  //           b: new Aggregate({
+  //             a: new Primitive({value: 43})
+  //           }),
+  //           c: new Primitive({value: 30}) // Added node
+  //         })
+  //       }
+  //       if (state.value === 3) {
+  //         result = new Aggregate({
+  //           a: new Primitive({value: 42}),
+  //           b: new Aggregate({
+  //             a: new Primitive({value: 43})
+  //           })
+  //           // Removed node again
+  //         })
+  //       }
+  //     },
+  //     { 
+  //       rebuildShapeAnalysis: {
+  //         shapeRoot: () => result,
+  //         canMatch: (newFlow, establishedFlow) => {
+  //           return isObservable(newFlow) && isObservable(establishedFlow) &&
+  //             newFlow.constructor.name === establishedFlow.constructor.name 
+  //         },
+  //         slotsIterator: function*(newFlow, optionalEstablishedFlow) {
+  //           for (let property in newFlow) {
+  //             yield {
+  //               newSlot: newFlow[property],
+  //               establishedSlot: optionalEstablishedFlow ? optionalEstablishedFlow[property] : null
+  //             }
+  //           }
+  //         }
+  //       }
+  //     }
+  //   );
+
+  //   assert.equal(established.length, 4); // 4 nodes to begin with!
+
+  //   result.a.decorate = "someValue";
+  //   result.b.a.decorate = "someOtherValue";
+  //   state.value = 2; // Trigger rebulid
+    
+  //   assert.equal(result.a.decorate, "someValue"); // Still decorated! No build ids were used!
+  //   assert.equal(result.b.a.decorate, "someOtherValue"); // Still decorated! No build ids were used!
+  //   assert.equal(established.length, 5); 
+  //   assert.equal(established[0].value, 30); 
+  //   assert.equal(disposed.length, 0);
+    
+  //   state.value = 3; // Trigger rebulid
+    
+  //   assert.equal(result.a.decorate, "someValue"); // Still decorated! No build ids were used!
+  //   assert.equal(result.b.a.decorate, "someOtherValue"); // Still decorated! No build ids were used!
+  //   assert.equal(established.length, 5);
+  //   assert.equal(disposed.length, 1);
+  //   assert.equal(disposed[0].value, 30); 
+  // });
 });
