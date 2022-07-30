@@ -1222,23 +1222,16 @@ function createWorld(configuration) {
     let visited = {};
     
     function setAsMatch(newObject, establishedObject) {
-      console.log("setAsMatch");
-
-      console.log(newObject[objectMetaProperty].buildId);
-      console.log(newObject);
-      console.log(establishedObject[objectMetaProperty].buildId);
-      console.log(establishedObject);
-      console.log("---");
       establishedObject[objectMetaProperty].forwardTo = newObject;
+      newObject[objectMetaProperty].copyTo = establishedObject;
       if (newObject[objectMetaProperty].pendingCreationEvent) {
         delete newObject[objectMetaProperty].pendingCreationEvent;
         establishedObject[objectMetaProperty].pendingCreationEvent = true;
       } 
-      newObject[objectMetaProperty].copyTo = establishedObject;
-      repeater.newIdObjectShapeMap[establishedObject[objectMetaProperty].id] = establishedObject;
       delete repeater.newIdObjectShapeMap[newObject[objectMetaProperty].id];
+      repeater.newIdObjectShapeMap[establishedObject[objectMetaProperty].id] = establishedObject;
     }
-    
+
     function matchInEquivalentSlot(newObject, establishedObject) {
       if (!isObservable(newObject)) return; 
       // if (newObject.buildId)
@@ -1255,13 +1248,10 @@ function createWorld(configuration) {
         }
       } else if (newObject !== establishedObject) {
         // Different in same slot
-        if (!isObservable(newObject)) {
-          return;
-        } else if (newObject[objectMetaProperty].buildId) {
-          return; 
-        } else if (!isObservable(establishedObject)) {
-          return;
-        } else if (establishedObject[objectMetaProperty].buildId) {
+        if (!isObservable(newObject)
+          || newObject[objectMetaProperty].buildId
+          || !isObservable(establishedObject)
+          || establishedObject[objectMetaProperty].buildId) {
           return; 
         }
 
@@ -1273,9 +1263,10 @@ function createWorld(configuration) {
         }
       } else {
         // Same in same slot, or no established, a buildId must have been used.
-        if (newObject[objectMetaProperty].forwardTo) {
+        const temporaryObject = newObject[objectMetaProperty].forwardTo; 
+        if (temporaryObject) {
           // Not finalized, there is still an established state to compare to
-          for (let slots of shapeAnalysis.slotsIterator(newObject[objectMetaProperty].forwardTo[objectMetaProperty].target, newObject[objectMetaProperty].target)) {
+          for (let slots of shapeAnalysis.slotsIterator(temporaryObject[objectMetaProperty].target, newObject[objectMetaProperty].target)) {
             matchInEquivalentSlot(slots.newSlot, slots.establishedSlot);
           }
         } else {
@@ -1300,8 +1291,7 @@ function createWorld(configuration) {
     function translateReference(reference) {
       if (isObservable(reference)) {
         if (reference.causality.copyTo) {
-          const result = reference.causality.copyTo;
-          return result; 
+          return reference.causality.copyTo;
         }
       }
       return reference;
@@ -1313,15 +1303,16 @@ function createWorld(configuration) {
 
       // Translate references
       for(let id in repeater.newIdObjectShapeMap) {
-        let newObject = repeater.newIdObjectShapeMap[id];
-        let newTarget;
-        if (newObject[objectMetaProperty].forwardTo) {
-          newTarget = newObject[objectMetaProperty].forwardTo[objectMetaProperty].target;
+        let object = repeater.newIdObjectShapeMap[id];
+        let target;
+        const temporaryObject = object[objectMetaProperty].forwardTo; 
+        if (temporaryObject) {
+          target = temporaryObject[objectMetaProperty].target;
         } else {
-          newTarget = newObject[objectMetaProperty].target;
+          target = object[objectMetaProperty].target;
         }
-        for (let property in newTarget) {
-          newTarget[property] = translateReference(newTarget[property])
+        for (let property in target) {
+          target[property] = translateReference(target[property])
         }
       }
 
@@ -1330,24 +1321,25 @@ function createWorld(configuration) {
 
       // Merge those set for mergeing
       for(let id in repeater.newIdObjectShapeMap) {
-        let newObject = repeater.newIdObjectShapeMap[id];
-        if (newObject[objectMetaProperty].forwardTo) {
-          mergeInto(newObject, newObject[objectMetaProperty].forwardTo[objectMetaProperty].target);
-          newObject[objectMetaProperty].forwardTo[objectMetaProperty].copyTo = null;
-          newObject[objectMetaProperty].forwardTo = null;
+        let object = repeater.newIdObjectShapeMap[id];
+        const temporaryObject = object[objectMetaProperty].forwardTo;
+        if (temporaryObject) {
+          temporaryObject[objectMetaProperty].copyTo = null;
+          object[objectMetaProperty].forwardTo = null;
+          mergeInto(object, temporaryObject[objectMetaProperty].target);
 
           // Send recreate event
-          if (newObject[objectMetaProperty].pendingCreationEvent) {
-            delete newObject[objectMetaProperty].pendingCreationEvent;
-            emitReCreationEvent(newObject[objectMetaProperty].handler);
+          if (object[objectMetaProperty].pendingCreationEvent) {
+            delete object[objectMetaProperty].pendingCreationEvent;
+            emitReCreationEvent(object[objectMetaProperty].handler);
           }
         } else {
           // Send create event
-          if (newObject[objectMetaProperty].pendingCreationEvent) {
-            delete newObject[objectMetaProperty].pendingCreationEvent;
-            emitCreationEvent(newObject[objectMetaProperty].handler);
+          if (object[objectMetaProperty].pendingCreationEvent) {
+            delete object[objectMetaProperty].pendingCreationEvent;
+            emitCreationEvent(object[objectMetaProperty].handler);
           }
-          if (typeof(newObject[objectMetaProperty].target.onEstablish) === "function") newObject.onEstablish();
+          if (typeof(object[objectMetaProperty].target.onEstablish) === "function") object.onEstablish();
         }
       }
 
