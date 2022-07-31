@@ -1232,6 +1232,10 @@ function createWorld(configuration) {
       repeater.newIdObjectShapeMap[establishedObject[objectMetaProperty].id] = establishedObject;
     }
 
+    function canMatchAny(entity) {
+      return isObservable(entity) && !entity[objectMetaProperty].buildId;
+    }
+
     function matchInEquivalentSlot(newObject, establishedObject) {
       if (!isObservable(newObject)) return; 
       // if (newObject.buildId)
@@ -1243,7 +1247,7 @@ function createWorld(configuration) {
 
       if (!establishedObject) {
         // Continue to search new data for a non finalized buildId matched object where we can once again find an established data structure.
-        for (let slots of shapeAnalysis.slotsIterator(newObject[objectMetaProperty].target, null)) {
+        for (let slots of shapeAnalysis.slotsIterator(newObject[objectMetaProperty].target, null, canMatchAny)) {
           matchInEquivalentSlot(slots.newSlot, null);
         }
       } else if (newObject !== establishedObject) {
@@ -1254,11 +1258,11 @@ function createWorld(configuration) {
           || establishedObject[objectMetaProperty].buildId) {
           return; 
         }
-
+        
         if (!shapeAnalysis.canMatch(newObject, establishedObject)) return;
         setAsMatch(newObject, establishedObject);
 
-        for (let slots of shapeAnalysis.slotsIterator(newObject[objectMetaProperty].target, establishedObject[objectMetaProperty].target)) {
+        for (let slots of shapeAnalysis.slotsIterator(newObject[objectMetaProperty].target, establishedObject[objectMetaProperty].target, canMatchAny)) {
           matchInEquivalentSlot(slots.newSlot, slots.establishedSlot);
         }
       } else {
@@ -1266,12 +1270,12 @@ function createWorld(configuration) {
         const temporaryObject = newObject[objectMetaProperty].forwardTo; 
         if (temporaryObject) {
           // Not finalized, there is still an established state to compare to
-          for (let slots of shapeAnalysis.slotsIterator(temporaryObject[objectMetaProperty].target, newObject[objectMetaProperty].target)) {
+          for (let slots of shapeAnalysis.slotsIterator(temporaryObject[objectMetaProperty].target, newObject[objectMetaProperty].target, canMatchAny)) {
             matchInEquivalentSlot(slots.newSlot, slots.establishedSlot);
           }
         } else {
           // Is finalized already, no established state available.
-          for (let slots of shapeAnalysis.slotsIterator(newObject[objectMetaProperty].target, null)) {
+          for (let slots of shapeAnalysis.slotsIterator(newObject[objectMetaProperty].target, null, canMatchAny)) {
             matchInEquivalentSlot(slots.newSlot, null);
           }
         }
@@ -1311,8 +1315,12 @@ function createWorld(configuration) {
         } else {
           target = object[objectMetaProperty].target;
         }
-        for (let property in target) {
-          target[property] = translateReference(target[property])
+        if (repeater.options.rebuildShapeAnalysis.translateReferences) {
+          repeater.options.rebuildShapeAnalysis.translateReferences(target, translateReference);
+        } else {
+          for (let property in target) {
+            target[property] = translateReference(target[property])
+          }
         }
       }
 
@@ -1399,9 +1407,10 @@ function createWorld(configuration) {
   }
 
   function finishRebuildInAdvance(object) {
+    const temporaryObject = object[objectMetaProperty].forwardTo;
+    if (!temporaryObject) return object; 
     if (!state.inRepeater) throw Error ("Trying to finish rebuild in advance while not being in a repeater!");
     if (!object[objectMetaProperty].buildId) throw Error("Trying to finish rebuild in advance for an object without a buildId. A build id is required for this to work.");
-    const temporaryObject = object[objectMetaProperty].forwardTo;
     if (temporaryObject !== null) {
       // Push changes to established object.
       object[objectMetaProperty].forwardTo = null;
