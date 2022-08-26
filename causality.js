@@ -74,8 +74,17 @@ function createWorld(configuration) {
 
     // Repeaters
     inRepeater: null,
-    firstDirtyRepeater: null,
-    lastDirtyRepeater: null,
+    dirtyRepeaters: [
+      // 8 priority levels
+      {first: null, last: null}, 
+      {first: null, last: null}, 
+      {first: null, last: null}, 
+      {first: null, last: null}, 
+      {first: null, last: null}, 
+      {first: null, last: null},
+      {first: null, last: null},
+      {first: null, last: null}
+    ],
     refreshingAllDirtyRepeaters: false,
   };
 
@@ -1085,6 +1094,9 @@ function createWorld(configuration) {
       finishRebuilding() {
           finishRebuilding(this);
       },
+      priority() {
+        return typeof(this.options.priority) !== "undefined" ? this.options.priority : 0; 
+      },
       causalityString() {
         const context = this.invalidatedInContext;
         const object = this.invalidatedByObject;
@@ -1197,16 +1209,17 @@ function createWorld(configuration) {
 
   function clearRepeaterLists() {
     state.observerId = 0;
-    state.firstDirtyRepeater = null;
-    state.lastDirtyRepeater = null;
+    state.dirtyRepeaters.map(list => {list.first = null; list.last = null;});
   }
 
   function detatchRepeater(repeater) {
-    if (state.lastDirtyRepeater === repeater) {
-      state.lastDirtyRepeater = repeater.previousDirty;
+    const priority = repeater.priority(); // repeater
+    const list = state.dirtyRepeaters[priority];
+    if (list.last === repeater) {
+      list.last = repeater.previousDirty;
     }
-    if (state.firstDirtyRepeater === repeater) {
-      state.firstDirtyRepeater = repeater.nextDirty;
+    if (list.first === repeater) {
+      list.first = repeater.nextDirty;
     }
     if (repeater.nextDirty) {
       repeater.nextDirty.previousDirty = repeater.previousDirty;
@@ -1499,24 +1512,50 @@ function createWorld(configuration) {
     // disposeChildContexts(repeater);
     // disposeSingleChildContext(repeater);
 
-    if (state.lastDirtyRepeater === null) {
-      state.lastDirtyRepeater = repeater;
-      state.firstDirtyRepeater = repeater;
+    const priorityList = state.dirtyRepeaters; 
+    const index = repeater.priority(); 
+    const list = priorityList[index];
+    if (list.last === null) {
+      list.last = repeater;
+      list.first = repeater;
     } else {
-      state.lastDirtyRepeater.nextDirty = repeater;
-      repeater.previousDirty = state.lastDirtyRepeater;
-      state.lastDirtyRepeater = repeater;
+      list.last.nextDirty = repeater;
+      repeater.previousDirty = list.last;
+      list.last = repeater;
     }
 
     refreshAllDirtyRepeaters();
   }
 
+  function anyDirtyRepeater() {
+    const priorityList = state.dirtyRepeaters; 
+    return priorityList[0].first !== null
+      || priorityList[1].first !== null
+      || priorityList[2].first !== null
+      || priorityList[3].first !== null
+      || priorityList[4].first !== null
+      || priorityList[5].first !== null
+      || priorityList[6].first !== null
+      || priorityList[7].first !== null;
+  }
+
+  function firstDirtyRepeater() {
+    const priorityList = state.dirtyRepeaters; 
+    let index = 0; 
+    while (index < priorityList.length) {
+      if (priorityList[index].first) {
+        return priorityList[index].first;
+      }
+    }
+    return null; 
+  }
+
   function refreshAllDirtyRepeaters() {
     if (!state.refreshingAllDirtyRepeaters) {
-      if (state.firstDirtyRepeater !== null) {
+      if (anyDirtyRepeater()) {
         state.refreshingAllDirtyRepeaters = true;
-        while (state.firstDirtyRepeater !== null) {
-          let repeater = state.firstDirtyRepeater;
+        while (anyDirtyRepeater()) {
+          let repeater = firstDirtyRepeater();
           detatchRepeater(repeater);
           repeater.refresh();
         }
