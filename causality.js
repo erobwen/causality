@@ -1207,30 +1207,6 @@ function createWorld(configuration) {
     }
   }
 
-  function clearRepeaterLists() {
-    state.observerId = 0;
-    state.dirtyRepeaters.map(list => {list.first = null; list.last = null;});
-  }
-
-  function detatchRepeater(repeater) {
-    const priority = repeater.priority(); // repeater
-    const list = state.dirtyRepeaters[priority];
-    if (list.last === repeater) {
-      list.last = repeater.previousDirty;
-    }
-    if (list.first === repeater) {
-      list.first = repeater.nextDirty;
-    }
-    if (repeater.nextDirty) {
-      repeater.nextDirty.previousDirty = repeater.previousDirty;
-    }
-    if (repeater.previousDirty) {
-      repeater.previousDirty.nextDirty = repeater.nextDirty;
-    }
-    repeater.nextDirty = null;
-    repeater.previousDirty = null;
-  }
-
   function reBuildShapeAnalysis(repeater, shapeAnalysis) {
     let visited = {};
     
@@ -1526,26 +1502,52 @@ function createWorld(configuration) {
 
     refreshAllDirtyRepeaters();
   }
+  
+  function clearRepeaterLists() {
+    state.observerId = 0;
+    state.dirtyRepeaters.map(list => {list.first = null; list.last = null;});
+  }
 
-  function anyDirtyRepeater() {
+  function detatchRepeater(repeater) {
+    const priority = repeater.priority(); // repeater
+    const list = state.dirtyRepeaters[priority];
+    if (list.last === repeater) {
+      list.last = repeater.previousDirty;
+    }
+    if (list.first === repeater) {
+      state.justLeftPriority = priority;
+      list.first = repeater.nextDirty;
+    }
+    if (repeater.nextDirty) {
+      repeater.nextDirty.previousDirty = repeater.previousDirty;
+    }
+    if (repeater.previousDirty) {
+      repeater.previousDirty.nextDirty = repeater.nextDirty;
+    }
+    repeater.nextDirty = null;
+    repeater.previousDirty = null;
+  }
+
+  function anyDirtyRepeater(start=0) {
     const priorityList = state.dirtyRepeaters; 
-    return priorityList[0].first !== null
-      || priorityList[1].first !== null
-      || priorityList[2].first !== null
-      || priorityList[3].first !== null
-      || priorityList[4].first !== null
-      || priorityList[5].first !== null
-      || priorityList[6].first !== null
-      || priorityList[7].first !== null;
+    let priority = start; 
+    while(priority < priorityList.length) {
+      if (priorityList[priority].first !== null) {
+        return true; 
+      }
+      priority++;
+    }
+    return false; 
   }
 
   function firstDirtyRepeater() {
     const priorityList = state.dirtyRepeaters; 
-    let index = 0; 
-    while (index < priorityList.length) {
-      if (priorityList[index].first) {
-        return priorityList[index].first;
+    let priority = 0; 
+    while (priority < priorityList.length) {
+      if (priorityList[priority].first) {
+        return priorityList[priority].first;
       }
+      priority++;
     }
     return null; 
   }
@@ -1558,6 +1560,10 @@ function createWorld(configuration) {
           let repeater = firstDirtyRepeater();
           detatchRepeater(repeater);
           repeater.refresh();
+          if (typeof(state.justLeftPriority) !== "undefined" && configuration.onFinishedPriority) {
+            configuration.onFinishedPriority(state.justLeftPriority, anyDirtyRepeater());
+            delete state.justLeftPriority;
+          }
         }
 
         state.refreshingAllDirtyRepeaters = false;
