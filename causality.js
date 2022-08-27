@@ -18,6 +18,8 @@ const defaultConfiguration = {
   warnOnNestedRepeater: true,
   alwaysDependOnParentRepeater: false,
 
+  priorityLevels: 4, 
+
   objectMetaProperty: "causality",
 
   useNonObservablesAsValues: false, 
@@ -58,6 +60,7 @@ function createWorld(configuration) {
     recordingPaused : 0,
     blockInvalidation : 0,
     postponeInvalidation : 0,
+    postponeRefreshRepeaters: 0, 
   
     // Object creation
     nextObjectId: 1,
@@ -74,18 +77,8 @@ function createWorld(configuration) {
 
     // Repeaters
     inRepeater: null,
-    dirtyRepeaters: [
-      // 8 priority levels
-      {first: null, last: null}, 
-      {first: null, last: null}, 
-      {first: null, last: null}, 
-      {first: null, last: null}, 
-      {first: null, last: null}, 
-      {first: null, last: null},
-      {first: null, last: null},
-      {first: null, last: null}
-    ],
-    refreshingAllDirtyRepeaters: false,
+    dirtyRepeaters: [...Array(10).keys()].map(() => ({first: null, last: null})),
+    refreshingAllDirtyRepeaters: false
   };
 
 
@@ -101,6 +94,7 @@ function createWorld(configuration) {
     
     // Main API
     observable,
+    observableDeepCopy,
     isObservable,
     create: observable, // observable alias
     invalidateOnChange,
@@ -855,6 +849,16 @@ function createWorld(configuration) {
     return proxy;
   }
 
+  function observableDeepCopy(object) {
+    if (isObservable(object)) return object; 
+    if (typeof(object) !== "object") return object;  
+    const copy = object instanceof Array ? [] : {};
+    for (let property in object) {
+      copy[property] = observableDeepCopy(object[property]);
+    }
+    return observable(copy);
+  }
+  
 
 
   /**********************************
@@ -942,6 +946,7 @@ function createWorld(configuration) {
 
   function proceedWithPostponedInvalidations() {
     if (state.postponeInvalidation == 0) {
+      state.postponeRefreshRepeaters++;
       while (state.nextObserverToInvalidate !== null) {
         let observer = state.nextObserverToInvalidate;
         state.nextObserverToInvalidate = state.nextObserverToInvalidate.nextToNotify;
@@ -950,6 +955,8 @@ function createWorld(configuration) {
         // });
       }
       state.lastObserverToInvalidate = null;
+      state.postponeRefreshRepeaters--;
+      refreshAllDirtyRepeaters();
     }
   }
 
@@ -1210,7 +1217,11 @@ function createWorld(configuration) {
   function reBuildShapeAnalysis(repeater, shapeAnalysis) {
     let visited = {};
     
+    // console.log("reBuildShapeAnalysis");
+
     function setAsMatch(newObject, establishedObject) {
+      // console.log("setAsMatch: " + establishedObject.toString() + " <---- " + newObject.toString());
+      // console.log("----");
       establishedObject[objectMetaProperty].forwardTo = newObject;
       newObject[objectMetaProperty].copyTo = establishedObject;
       if (newObject[objectMetaProperty].pendingCreationEvent) {
@@ -1233,6 +1244,10 @@ function createWorld(configuration) {
       if (!repeater.newIdObjectShapeMap[newObjectId]) return; // Limit search! otherwise we could go off road!
       if (visited[newObjectId]) return; // Already done!
       visited[newObjectId] = 1; // Visited, but no recursive analysis
+      
+      // console.log("matchInEquivalentSlot");
+      // console.log(newObject.toString());
+      // console.log(establishedObject ? establishedObject.toString() : null);
 
       if (!establishedObject) {
         // Continue to search new data for a non finalized buildId matched object where we can once again find an established data structure.
@@ -1511,11 +1526,13 @@ function createWorld(configuration) {
   function detatchRepeater(repeater) {
     const priority = repeater.priority(); // repeater
     const list = state.dirtyRepeaters[priority];
+    if (list.last === repeater && list.first === repeater && repeater.nextDirty === null && repeater.previousDirty === null) {
+      state.justLeftPriorityLevel = priority;
+    }
     if (list.last === repeater) {
       list.last = repeater.previousDirty;
     }
     if (list.first === repeater) {
-      state.justLeftPriority = priority;
       list.first = repeater.nextDirty;
     }
     if (repeater.nextDirty) {
@@ -1553,21 +1570,23 @@ function createWorld(configuration) {
   }
 
   function refreshAllDirtyRepeaters() {
-    if (!state.refreshingAllDirtyRepeaters) {
-      if (anyDirtyRepeater()) {
-        state.refreshingAllDirtyRepeaters = true;
-        while (anyDirtyRepeater()) {
-          let repeater = firstDirtyRepeater();
-          detatchRepeater(repeater);
-          repeater.refresh();
-          if (typeof(state.justLeftPriority) !== "undefined" && configuration.onFinishedPriority) {
-            configuration.onFinishedPriority(state.justLeftPriority, anyDirtyRepeater());
-            delete state.justLeftPriority;
+    if (state.postponeRefreshRepeaters === 0) {
+      if (!state.refreshingAllDirtyRepeaters) {
+        if (anyDirtyRepeater()) {
+          state.refreshingAllDirtyRepeaters = true;
+          while (anyDirtyRepeater()) {
+            let repeater = firstDirtyRepeater();
+            repeater.refresh();
+            detatchRepeater(repeater);
+            if (typeof(state.justLeftPriorityLevel) !== "undefined" && configuration.onFinishedPriorityLevel) {
+              configuration.onFinishedPriorityLevel(state.justLeftPriorityLevel, !anyDirtyRepeater());
+              delete state.justLeftPriorityLevel;
+            }
           }
+  
+          state.refreshingAllDirtyRepeaters = false;
         }
-
-        state.refreshingAllDirtyRepeaters = false;
-      }
+      }  
     }
   }
 
