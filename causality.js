@@ -127,6 +127,7 @@ function createWorld(configuration) {
     enterContext,
     leaveContext,
     invalidateObserver, 
+    proceedWithPostponedInvalidations, 
     nextObserverId: () => { return state.observerId++ },
 
     // Libraries
