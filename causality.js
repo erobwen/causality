@@ -749,6 +749,9 @@ function createWorld(configuration) {
     if (typeof(buildId) === 'undefined') {
       buildId = null;
     }
+    if (isObservable(createdTarget)) {
+      throw new Error("Cannot observe an already observed object!");
+    }
 
     let handler;
     if (createdTarget instanceof Array) {
@@ -835,7 +838,8 @@ function createWorld(configuration) {
       } else if (repeater.options.rebuildShapeAnalysis){
         // No build identity but with shape analysis turned on. Could be a creation or recreation, so we have to postpone any event! 
         handler.meta.id = state.nextObjectId++;
-        handler.meta.pendingCreationEvent = true; 
+        handler.meta.pendingCreationEvent = true; // We will remove this if we find a match!
+        handler.meta.pendingOnEstablishCall = true; // We will remove this if we find a match! 
         if (!repeater.newIdObjectShapeMap) repeater.newIdObjectShapeMap = {};
         repeater.newIdObjectShapeMap[handler.meta.id] = proxy
       } else {
@@ -1157,6 +1161,21 @@ function createWorld(configuration) {
         removeAllSources(this);
         this.disposeChildren();
       },
+      notifyDisposeToCreatedObjects() {
+        if (this.idObjectShapeMap) {
+          for(let id in this.idObjectShapeMap) {
+            let object = this.idObjectShapeMap[id];
+  
+            // Send dispose event
+            if (typeof(object[objectMetaProperty].target.onDispose) === "function") object.onDispose();
+          }
+        } else if (this.buildIdObjectMap) {
+          for (let key in this.buildIdObjectMap) {
+            const object = this.buildIdObjectMap[key]; 
+            if (typeof(object.onDispose) === "function") object.onDispose();
+          }
+        }
+      },
       disposeChildren() {
         if (this.children) {
           this.children.forEach(child => child.dispose());
@@ -1227,8 +1246,9 @@ function createWorld(configuration) {
       newObject[objectMetaProperty].copyTo = establishedObject;
       if (newObject[objectMetaProperty].pendingCreationEvent) {
         delete newObject[objectMetaProperty].pendingCreationEvent;
-        establishedObject[objectMetaProperty].pendingCreationEvent = true;
+        establishedObject[objectMetaProperty].pendingReCreationEvent = true;
       } 
+      delete newObject[objectMetaProperty].pendingOnEstablishCall;
       delete repeater.newIdObjectShapeMap[newObject[objectMetaProperty].id];
       repeater.newIdObjectShapeMap[establishedObject[objectMetaProperty].id] = establishedObject;
     }
@@ -1352,7 +1372,9 @@ function createWorld(configuration) {
             delete object[objectMetaProperty].pendingCreationEvent;
             emitCreationEvent(object[objectMetaProperty].handler);
           }
-          if (typeof(object[objectMetaProperty].target.onEstablish) === "function") object.onEstablish();
+
+          // Send establish event
+          sendOnEstablishedEvent(object);
         }
       }
 
@@ -1380,12 +1402,12 @@ function createWorld(configuration) {
           temporaryObject[objectMetaProperty].isBeingRebuilt = false; 
           mergeInto(created, temporaryObject[objectMetaProperty].target);
         } else {
-          // Send create on build message
-          if (typeof(created.onEstablish) === "function") created.onEstablish();
+          // Send establish event
+          sendOnEstablishedEvent(created)
         }
       }
 
-      // Send on build remove messages
+      // Send dispose messages
       if (repeater.buildIdObjectMap) {
         for (let buildId in repeater.buildIdObjectMap) {
           if (typeof(repeater.newBuildIdObjectMap[buildId]) === "undefined") {
@@ -1411,23 +1433,29 @@ function createWorld(configuration) {
     if (options.onEndBuildUpdate) options.onEndBuildUpdate();
   }
 
+  function sendOnEstablishedEvent(object) {
+    const objectMeta = object[objectMetaProperty]
+    if (objectMeta.pendingOnEstablishCall) {
+      delete objectMeta.pendingOnEstablishCall;
+      if (typeof(objectMeta.target.onEstablish) === "function"){
+        object.onEstablish();  
+      }
+    } 
+  }
+
   function finishRebuildInAdvance(object) {
+    // Note: We cannot throw error if no build id, as this might be called externally with non-build id objects
+    // Note: This might be inside the first run, so we cannot assume a temporary object. 
+    // Note: We cannot make any sensible test if we are in a repeater, since we do not know the identity of the repeater anyway 
     const temporaryObject = object[objectMetaProperty].forwardTo;
-    if (!temporaryObject) return object; 
-    if (!state.inRepeater) throw Error ("Trying to finish rebuild in advance while not being in a repeater!");
-    if (!object[objectMetaProperty].buildId) throw Error("Trying to finish rebuild in advance for an object without a buildId. A build id is required for this to work.");
     if (temporaryObject !== null) {
       // Push changes to established object.
       object[objectMetaProperty].forwardTo = null;
       temporaryObject[objectMetaProperty].isBeingRebuilt = false; 
       mergeInto(object, temporaryObject[objectMetaProperty].target);
     } else {
-      // Send create on build message
-      const objectMeta = object[objectMetaProperty];
-      if (objectMeta.pendingOnEstablishCall) {
-        delete objectMeta.pendingOnEstablishCall;
-        if (typeof(object.onEstablish) === "function") object.onEstablish(); // use object not target to get correct this in function call?
-      }
+      // Send create on build message (if we were just created with key in a repeater)
+      sendOnEstablishedEvent(object);
     }
 
     return object; 
