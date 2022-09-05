@@ -106,8 +106,8 @@ function createWorld(configuration) {
     withoutReactions,
 
     // Transaction
-    postponeReactions,
-    transaction : postponeReactions,
+    postponeInvalidations,
+    transaction : postponeInvalidations,
 
     // Debugging and testing
     clearRepeaterLists,
@@ -209,7 +209,7 @@ function createWorld(configuration) {
     updateContextState();
   }
 
-  function postponeReactions(callback) {
+  function postponeInvalidations(callback) {
     state.postponeInvalidation++;
     callback();
     state.postponeInvalidation--;
@@ -1435,8 +1435,9 @@ function createWorld(configuration) {
 
   function sendOnEstablishedEvent(object) {
     const objectMeta = object[objectMetaProperty]
-    if (objectMeta.pendingOnEstablishCall) {
+    if (objectMeta.pendingOnEstablishCall || !objectMeta.established) {
       delete objectMeta.pendingOnEstablishCall;
+      objectMeta.established = true; 
       if (typeof(objectMeta.target.onEstablish) === "function"){
         object.onEstablish();  
       }
@@ -1449,12 +1450,12 @@ function createWorld(configuration) {
     // Note: We cannot make any sensible test if we are in a repeater, since we do not know the identity of the repeater anyway 
     const temporaryObject = object[objectMetaProperty].forwardTo;
     if (temporaryObject !== null) {
-      // Push changes to established object.
+      // A re-build, push changes to established object.
       object[objectMetaProperty].forwardTo = null;
       temporaryObject[objectMetaProperty].isBeingRebuilt = false; 
       mergeInto(object, temporaryObject[objectMetaProperty].target);
     } else {
-      // Send create on build message (if we were just created with key in a repeater)
+      // A new build, send create on establish message (if we were just created with key in a repeater)
       sendOnEstablishedEvent(object);
     }
 
