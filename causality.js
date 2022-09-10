@@ -1,3 +1,4 @@
+console.log("cas debug");
 /***************************************************************
  *
  *  State
@@ -101,12 +102,16 @@ let staticArrayOverrides = {
     state.observerNotificationNullified++;
     let result = this.target.pop();
     state.observerNotificationNullified--;
-    if (this._arrayObservers !== null) {
-      if(recordChanges) changes.push([this.overrides.__id,'pop']);
-      notifyChangeObservers("_arrayObservers", this._arrayObservers);
+    try {
+      if (this._arrayObservers !== null) {
+        if(recordChanges) changes.push([this.overrides.__id,'pop']);
+        notifyChangeObservers("_arrayObservers", this._arrayObservers);
+      }
     }
-    emitSpliceEvent(this, index, [result], null);
-    if (--state.inPulse === 0) postPulseCleanup();
+    finally {
+      emitSpliceEvent(this, index, [result], null);
+      if (--state.inPulse === 0) postPulseCleanup();
+    }
     return result;
   },
 
@@ -121,12 +126,16 @@ let staticArrayOverrides = {
     state.observerNotificationNullified++;
     this.target.push.apply(this.target, argumentsArray);
     state.observerNotificationNullified--;
-    if (this._arrayObservers !== null) {
-      if(recordChanges) changes.push([this.overrides.__id,'push',...argumentsArray]);
-      notifyChangeObservers("_arrayObservers", this._arrayObservers);
+    try {
+      if (this._arrayObservers !== null) {
+        if(recordChanges) changes.push([this.overrides.__id,'push',...argumentsArray]);
+        notifyChangeObservers("_arrayObservers", this._arrayObservers);
+      }
     }
-    emitSpliceEvent(this, index, null, argumentsArray);
-    if (--state.inPulse === 0) postPulseCleanup();
+    finally {
+      emitSpliceEvent(this, index, null, argumentsArray);
+      if (--state.inPulse === 0) postPulseCleanup();
+    }
     return this.target.length;
   },
 
@@ -139,12 +148,16 @@ let staticArrayOverrides = {
     state.observerNotificationNullified++;
     let result = this.target.shift();
     state.observerNotificationNullified--;
-    if (this._arrayObservers !== null) {
-      if(recordChanges) changes.push([this.overrides.__id,'shift']);
-      notifyChangeObservers("_arrayObservers", this._arrayObservers);
+    try {
+      if (this._arrayObservers !== null) {
+        if(recordChanges) changes.push([this.overrides.__id,'shift']);
+        notifyChangeObservers("_arrayObservers", this._arrayObservers);
+      }
     }
-    emitSpliceEvent(this, 0, [result], null);
-    if (--state.inPulse === 0) postPulseCleanup();
+    finally {
+      emitSpliceEvent(this, 0, [result], null);
+      if (--state.inPulse === 0) postPulseCleanup();
+    }
     return result;
 
   },
@@ -159,12 +172,16 @@ let staticArrayOverrides = {
     state.observerNotificationNullified++;
     this.target.unshift.apply(this.target, argumentsArray);
     state.observerNotificationNullified--;
-    if (this._arrayObservers !== null) {
-      if(recordChanges) changes.push([this.overrides.__id,'unshift', ...argumentsArray]);
-      notifyChangeObservers("_arrayObservers", this._arrayObservers);
+    try {
+      if (this._arrayObservers !== null) {
+        if(recordChanges) changes.push([this.overrides.__id,'unshift', ...argumentsArray]);
+        notifyChangeObservers("_arrayObservers", this._arrayObservers);
+      }
     }
-    emitSpliceEvent(this, 0, null, argumentsArray);
-    if (--state.inPulse === 0) postPulseCleanup();
+    finally {
+      emitSpliceEvent(this, 0, null, argumentsArray);
+      if (--state.inPulse === 0) postPulseCleanup();
+    }
     return this.target.length;
   },
 
@@ -184,12 +201,16 @@ let staticArrayOverrides = {
     state.observerNotificationNullified++;
     let result = this.target.splice.apply(this.target, argumentsArray);
     state.observerNotificationNullified--;
-    if (this._arrayObservers !== null) {
-      if(recordChanges) changes.push([this.overrides.__id,'splice', ...argumentsArray]);
-      notifyChangeObservers("_arrayObservers", this._arrayObservers);
+    try {
+      if (this._arrayObservers !== null) {
+        if(recordChanges) changes.push([this.overrides.__id,'splice', ...argumentsArray]);
+        notifyChangeObservers("_arrayObservers", this._arrayObservers);
+      }
     }
-    emitSpliceEvent(this, index, removed, added);
-    if (--state.inPulse === 0) postPulseCleanup();
+    finally {
+      emitSpliceEvent(this, index, removed, added);
+      if (--state.inPulse === 0) postPulseCleanup();
+    }
     return result; // equivalent to removed
   },
 
@@ -217,13 +238,16 @@ let staticArrayOverrides = {
     state.observerNotificationNullified++;
     let result = this.target.copyWithin(target, start, end);
     state.observerNotificationNullified--;
-    if (this._arrayObservers !== null) {
-      if(recordChanges) changes.push([this.overrides.__id,'copyWithin', start, end]);
-      notifyChangeObservers("_arrayObservers", this._arrayObservers);
+    try {
+      if (this._arrayObservers !== null) {
+        if(recordChanges) changes.push([this.overrides.__id,'copyWithin', start, end]);
+        notifyChangeObservers("_arrayObservers", this._arrayObservers);
+      }
+      
+    } finally {
+      emitSpliceEvent(this, target, added, removed);
+      if (--state.inPulse === 0) postPulseCleanup();
     }
-
-    emitSpliceEvent(this, target, added, removed);
-    if (--state.inPulse === 0) postPulseCleanup();
     return result;
   }
 };
@@ -242,12 +266,16 @@ let staticArrayOverrides = {
     let result = this.target[functionName]
         .apply(this.target, argumentsArray);
     state.observerNotificationNullified--;
-    if (this._arrayObservers !== null) {
-      if(recordChanges) changes.push([this.overrides.__id,functionName,...argumentsArray]);
-      notifyChangeObservers("_arrayObservers", this._arrayObservers);
+    try {
+      if (this._arrayObservers !== null) {
+        if(recordChanges) changes.push([this.overrides.__id,functionName,...argumentsArray]);
+        notifyChangeObservers("_arrayObservers", this._arrayObservers);
+      }
     }
-    emitSpliceEvent(this, 0, removed, this.target.slice(0));
-    if (--state.inPulse === 0) postPulseCleanup();
+    finally {
+      emitSpliceEvent(this, 0, removed, this.target.slice(0));
+      if (--state.inPulse === 0) postPulseCleanup();
+    }
     return result;
   };
 });
@@ -315,39 +343,43 @@ function setHandlerArray(target, key, value) {
       === 'undefined') return;
   state.inPulse++;
 
-  if (!isNaN(key)) {
-    // Number index
-    if (typeof(key) === 'string') {
-      key = parseInt(key);
-    }
-    target[key] = value;
-
-    if( target[key] === value || (
-      Number.isNaN(target[key]) && Number.isNaN(value)) ) {
-      // Write protected?
-      emitSpliceReplaceEvent(this, key, value, previousValue);
-      if (this._arrayObservers !== null) {
-        if(recordChanges) changes.push([this.overrides.__id,'set', key,value]);
-        notifyChangeObservers("_arrayObservers",
-                              this._arrayObservers);
+  try {
+    if (!isNaN(key)) {
+      // Number index
+      if (typeof(key) === 'string') {
+        key = parseInt(key);
       }
-    }
-  } else {
-    // String index
-    target[key] = value;
-    if( target[key] === value || (Number.isNaN(target[key]) &&
-                                  Number.isNaN(value)) ) {
-      // Write protected?
-      emitSetEvent(this, key, value, previousValue);
-      if (this._arrayObservers !== null) {
-        if(recordChanges) changes.push([this.overrides.__id,'set',key,value]);
-        notifyChangeObservers("_arrayObservers",
-                              this._arrayObservers);
+      target[key] = value;
+      
+      // TODO: most other handlers emit events arfter notify observer
+      if( target[key] === value || (
+        Number.isNaN(target[key]) && Number.isNaN(value)) ) {
+        // Write protected?
+        emitSpliceReplaceEvent(this, key, value, previousValue);
+        if (this._arrayObservers !== null) {
+          if(recordChanges) changes.push([this.overrides.__id,'set', key,value]);
+          notifyChangeObservers("_arrayObservers",
+                                this._arrayObservers);
+        }
+      }
+    } else {
+      // String index
+      target[key] = value;
+      if( target[key] === value || (Number.isNaN(target[key]) &&
+                                    Number.isNaN(value)) ) {
+        // Write protected?
+        emitSetEvent(this, key, value, previousValue);
+        if (this._arrayObservers !== null) {
+          if(recordChanges) changes.push([this.overrides.__id,'set',key,value]);
+          notifyChangeObservers("_arrayObservers",
+                                this._arrayObservers);
+        }
       }
     }
   }
-
-  if (--state.inPulse === 0) postPulseCleanup();
+  finally {
+    if (--state.inPulse === 0) postPulseCleanup();
+  }
 
   if( target[key] !== value && !(Number.isNaN(target[key]) &&
                                  Number.isNaN(value)) )
@@ -371,14 +403,19 @@ function deletePropertyHandlerArray(target, key) {
 
   let previousValue = target[key];
   delete target[key];
-  if(!( key in target )) { // Write protected?
-    emitDeleteEvent(this, key, previousValue);
-    if (this._arrayObservers !== null) {
-      if(recordChanges) changes.push([this.overrides.__id,'delete', key]);
-      notifyChangeObservers("_arrayObservers", this._arrayObservers);
+  // TODO: most other handlers emit events arfter notify observer
+  try {
+    if(!( key in target )) { // Write protected?
+      emitDeleteEvent(this, key, previousValue);
+      if (this._arrayObservers !== null) {
+        if(recordChanges) changes.push([this.overrides.__id,'delete', key]);
+        notifyChangeObservers("_arrayObservers", this._arrayObservers);
+      }
     }
   }
-  if (--state.inPulse === 0) postPulseCleanup();
+  finally {
+    if (--state.inPulse === 0) postPulseCleanup();
+  }
   if( key in target ) return false; // Write protected?
   return true;
 }
@@ -426,10 +463,14 @@ function definePropertyHandlerArray(target, key, oDesc) {
       === 'undefined') return;
   state.inPulse++;
 
-  if (this._arrayObservers !== null) {
-    notifyChangeObservers("_arrayObservers", this._arrayObservers);
+  try {
+    if (this._arrayObservers !== null) {
+      notifyChangeObservers("_arrayObservers", this._arrayObservers);
+    }
   }
-  if (--state.inPulse === 0) postPulseCleanup();
+  finally {
+    if (--state.inPulse === 0) postPulseCleanup();
+  }
   return target;
 }
 
@@ -529,25 +570,29 @@ function setHandlerObject(target, key, value) {
   let resultValue  = target[key];
   //console.log("result", undefinedKey, resultValue, (resultValue === value));
   
-  if( resultValue === value || (Number.isNaN(resultValue) &&
-                                Number.isNaN(value)) ) {
-    // Write protected?
-    if (typeof(this._propertyObservers) !== 'undefined' &&
-        typeof(this._propertyObservers[key]) !== 'undefined') {
-      if(recordChanges) changes.push([this.overrides.__id,'set', key,value]);
-      notifyChangeObservers("_propertyObservers." + key,
-                            this._propertyObservers[key]);
-    }
-    if (undefinedKey) {
-      if (typeof(this._enumerateObservers) !== 'undefined') {
+  try {
+    if( resultValue === value || (Number.isNaN(resultValue) &&
+                                  Number.isNaN(value)) ) {
+      // Write protected?
+      if (typeof(this._propertyObservers) !== 'undefined' &&
+          typeof(this._propertyObservers[key]) !== 'undefined') {
         if(recordChanges) changes.push([this.overrides.__id,'set', key,value]);
-        notifyChangeObservers("_enumerateObservers",
-                              this._enumerateObservers);
+        notifyChangeObservers("_propertyObservers." + key,
+                              this._propertyObservers[key]);
+      }
+      if (undefinedKey) {
+        if (typeof(this._enumerateObservers) !== 'undefined') {
+          if(recordChanges) changes.push([this.overrides.__id,'set', key,value]);
+          notifyChangeObservers("_enumerateObservers",
+                                this._enumerateObservers);
+        }
       }
     }
-    emitSetEvent(this, key, value, previousValue);
   }
-  if (--state.inPulse === 0) postPulseCleanup();
+  finally {
+    if( value !== previousValue ) emitSetEvent(this, key, value, previousValue);
+    if (--state.inPulse === 0) postPulseCleanup();
+  }
   if( resultValue !== value  && !(Number.isNaN(resultValue) &&
                                   Number.isNaN(value))) return false;
   // Write protected?
@@ -572,15 +617,20 @@ function deletePropertyHandlerObject(target, key) {
     state.inPulse++;
     let previousValue = target[key];
     delete target[key];
-    if(!( key in target )) { // Write protected?
-      emitDeleteEvent(this, key, previousValue);
-      if (typeof(this._enumerateObservers) !== 'undefined') {
-        if(recordChanges) changes.push([this.overrides.__id,'delete', key]);
-        notifyChangeObservers("_enumerateObservers",
-                              this._enumerateObservers);
+    // TODO: most other handlers emit events arfter notify observer
+    try {
+      if(!( key in target )) { // Write protected?
+        emitDeleteEvent(this, key, previousValue);
+        if (typeof(this._enumerateObservers) !== 'undefined') {
+          if(recordChanges) changes.push([this.overrides.__id,'delete', key]);
+          notifyChangeObservers("_enumerateObservers",
+                                this._enumerateObservers);
+        }
       }
     }
-    if (--state.inPulse === 0) postPulseCleanup();
+    finally {
+      if (--state.inPulse === 0) postPulseCleanup();
+    }
     if( key in target ) return false; // Write protected?
     return true;
   }
@@ -634,11 +684,15 @@ function definePropertyHandlerObject(target, key, descriptor) {
       === 'undefined') return;
   state.inPulse++;
 
-  if (typeof(this._enumerateObservers) !== 'undefined') {
-    notifyChangeObservers("_enumerateObservers",
-                          this._enumerateObservers);
+  try {
+    if (typeof(this._enumerateObservers) !== 'undefined') {
+      notifyChangeObservers("_enumerateObservers",
+                            this._enumerateObservers);
+    }
   }
-  if (--state.inPulse === 0) postPulseCleanup();
+  finally {
+    if (--state.inPulse === 0) postPulseCleanup();
+  }
   return Reflect.defineProperty(target, key, descriptor);
 }
 
@@ -936,8 +990,9 @@ function independently(action) {
     independent : true,
     remove : () => {}
   });
-  action();
-  leaveContext( activeContext );
+  try{ action() }
+  //catch( err ){ console.log("independently err", err); throw err }
+  finally{ leaveContext( activeContext ) }
 }
 
 /* exists as a fallback for async recording without active
@@ -972,8 +1027,24 @@ function postponeObserverNotification(callback) {
   state.observerNotificationPostponed++;
   callback();
   state.observerNotificationPostponed--;
+  try{ proceedWithPostponedNotifications() }
+  finally {
+    if (--state.inPulse === 0) postPulseCleanup();
+  }
+}
+
+function startTransaction(){
+  state.inPulse++;
+  state.observerNotificationPostponed++;
+}
+
+function endTransaction(){
+  state.observerNotificationPostponed--;
   proceedWithPostponedNotifications();
-  if (--state.inPulse === 0) postPulseCleanup();
+  if (--state.inPulse === 0){
+		state.inPulse = 0;
+		postPulseCleanup();
+	}
 }
 
 let contextsScheduledForPossibleDestruction = [];
@@ -1258,25 +1329,33 @@ function uponChangeDo() {
       return action();
     //console.log('enteredContext.record');//DEBUG
     const activeContext = enterContext(enteredContext.type, enteredContext);
-    const value = action();
-    leaveContext( activeContext );
-    return value;
+    try {
+      return action();
+    } finally {
+      leaveContext( activeContext );
+    }
   }
 
   //console.log("doFirst in context " + enteredContext.type, enteredContext.id||'');//DEBUG
-  let returnValue = doFirst( enteredContext );
-  //if( context ) console.log("after doFirst context " + enteredContext.type, enteredContext.id||'');//DEBUG
-  leaveContext( enteredContext );
-
-  return returnValue;
+  try {
+    let returnValue = doFirst( enteredContext );
+    //if( context ) console.log("after doFirst context " + enteredContext.type, enteredContext.id||'');//DEBUG
+    return returnValue;
+  }
+  //catch( err ){ console.log("doFirst err", err); throw err }
+  finally {
+    leaveContext( enteredContext );
+  }
 }
 
 function withoutRecording(action) {
   state.recordingPaused++;
   updateContextState();
-  action();
-  state.recordingPaused--;
-  updateContextState();
+  try { action() }
+  finally {
+    state.recordingPaused--;
+    updateContextState();
+  }
 }
 
 function emptyObserverSet(observerSet) {
@@ -1360,18 +1439,23 @@ function proceedWithPostponedNotifications() {
   //console.log("proceedWithPostponedNotifications", state.observerNotificationPostponed, "next is", nextObserverToNotifyChange?.id || "none", "last is", lastObserverToNotifyChange?.id || "none");
   if (state.observerNotificationPostponed == 0) {
     //console.log("proceedWithPostponedNotifications START");
+    let error;
     while (nextObserverToNotifyChange !== null) {
       let recorder = nextObserverToNotifyChange;
       nextObserverToNotifyChange = recorder.nextToNotify;
       
       //const repeater = recorder.parent;
       //console.log(recorder.type, recorder.id, repeater.type, repeater.id + "/" + repeater.description, "uponChangeAction");
-      recorder.uponChangeAction();
-
+      
+      try { recorder.uponChangeAction() }
+      catch( err ){
+        if( !error ) error = err;
+      }
     }
     
     lastObserverToNotifyChange = null;
     //console.log("proceedWithPostponedNotifications END\n");
+    if( error ) throw error;
   }
 }
 
@@ -1385,27 +1469,30 @@ function nullifyObserverNotification(callback) {
 // Recorders is a map from id => recorder
 function notifyChangeObservers(description, observers) {
   //console.log("notifyChangeObservers", description, observers.handler.overrides.__id, "in", context?.id||"top", ":", Object.values(observers.contents).map( context => context.parent.id + "/" + context.parent.description + "\n" + context.sourcesString() ).join("\n") );
-  if (typeof(observers.initialized) !== 'undefined') {
-    if (state.observerNotificationNullified > 0) {
-      return;
-    }
+  if (typeof(observers.initialized) === 'undefined') return;
 
-    let contents = observers.contents;
-    for (let id in contents) {
-      notifyChangeObserver(contents[id]);
-    }
+  if (state.observerNotificationNullified > 0) return;
 
-    if (typeof(observers.first) !== 'undefined') {
-      let chainedObserverChunk = observers.first;
-      while(chainedObserverChunk !== null) {
-        let contents = chainedObserverChunk.contents;
-        for (let id in contents) {
-          notifyChangeObserver(contents[id]);
-        }
-        chainedObserverChunk = chainedObserverChunk.next;
-      }
-    }
+  let error;
+  let contents = observers.contents;
+  for (let id in contents) {
+    try{ notifyChangeObserver(contents[id]) }
+    catch( err ){ if(!error) error = err }
   }
+
+  if (typeof(observers.first) === 'undefined') return;
+
+  let chainedObserverChunk = observers.first;
+  while(chainedObserverChunk !== null) {
+    let contents = chainedObserverChunk.contents;
+    for (let id in contents) {
+      try{ notifyChangeObserver(contents[id]) }
+      catch( err ){ if(!error) error = err }
+    }
+    chainedObserverChunk = chainedObserverChunk.next;
+  }
+
+  if( error ) throw error;
 }
 
 function notifyChangeObserver(observer) {
@@ -1581,6 +1668,7 @@ function refreshRepeater(repeater) {
   }
   
   const activeContext = enterContext('repeater_refreshing', repeater);
+  try {
   repeater.returnValue = uponChangeDo(
     enteredContext => repeater.repeaterAction(enteredContext,repeater),
     function () {
@@ -1655,9 +1743,14 @@ function refreshRepeater(repeater) {
       repeater.lastInvokeTime = time;
     }
   }
-  leaveContext( activeContext );
+
   repeater.lastRepeatTime = time;
 
+  }
+  //catch( err ){ console.error("repeater err", err) }
+  finally {
+    leaveContext( activeContext );
+  }
   return repeater;
 }
 
@@ -1682,18 +1775,20 @@ function repeaterDirty(repeater) { // TODO: Add update block on this stage?
 let refreshingAllDirtyRepeaters = false;
 
 function refreshAllDirtyRepeaters() {
-  if (!refreshingAllDirtyRepeaters) {
-    if (firstDirtyRepeater !== null) {
-      refreshingAllDirtyRepeaters = true;
-      while (firstDirtyRepeater !== null) {
-        let repeater = firstDirtyRepeater;
-        detatchRepeater(repeater);
-        refreshRepeater(repeater);
-      }
-
-      refreshingAllDirtyRepeaters = false;
-    }
+  if (refreshingAllDirtyRepeaters) return;
+  if (firstDirtyRepeater === null) return;
+  let error;
+  refreshingAllDirtyRepeaters = true;
+  while (firstDirtyRepeater !== null) {
+    let repeater = firstDirtyRepeater;
+    detatchRepeater(repeater);
+    try { refreshRepeater(repeater) }
+    catch( err ){ if(!error) error=err }
   }
+  
+  refreshingAllDirtyRepeaters = false;
+  //if( error ) console.error( "repeater error", error );
+  if( error ) throw error;
 }
 
 
@@ -2319,12 +2414,15 @@ function withoutSideEffects(action) {
   let restriction = {};
   sideEffectBlockStack.push({});
   writeRestriction = restriction
-  let returnValue = action();
-  // leaveContext();
-  sideEffectBlockStack.pop();
-  if (sideEffectBlockStack.length > 0) {
-    writeRestriction = sideEffectBlockStack[
-      sideEffectBlockStack.length - 1];
+  let returnValue;
+  try { returnValue = action() }
+  finally {
+    // leaveContext();
+    sideEffectBlockStack.pop();
+    if (sideEffectBlockStack.length > 0) {
+      writeRestriction = sideEffectBlockStack[
+        sideEffectBlockStack.length - 1];
+    }
   }
   return returnValue;
 }
@@ -2354,6 +2452,8 @@ export {
   addPostPulseAction,
   removeAllPostPulseActions,
   setRecordEvents,
+	startTransaction,
+	endTransaction,
   
   // Independently
   enterIndependentContext,
