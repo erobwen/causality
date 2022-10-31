@@ -1274,7 +1274,7 @@ function createWorld(configuration) {
       repeater.newIdObjectShapeMap[establishedObject[objectMetaProperty].id] = establishedObject;
     }
 
-    function matchInEquivalentSlot(establishedObject, newObject) {      
+    function matchInEquivalentSlot(establishedObject, newObject) {
       if (establishedObject !== newObject) { // Could be the same if buildId was used
         const newObjectObservable = isObservable(newObject);
         const establishedObjectObservable = isObservable(establishedObject); 
@@ -1283,7 +1283,7 @@ function createWorld(configuration) {
           // Two observed objects
           if (!repeater.newIdObjectShapeMap[newObject[objectMetaProperty].id]) return; // Limit search! otherwise we could go off road!
           if (establishedObject[objectMetaProperty].forwardTo === newObject) return; // Already set as match during shape analysis! 
-          
+          if (newObject[objectMetaProperty].buildId || establishedObject[objectMetaProperty].buildId) return;
           if (shapeAnalysis.allowMatch && shapeAnalysis.allowMatch(establishedObject, newObject)) {
             setAsMatch(establishedObject, newObject);
             // console.log({...establishedObject[objectMetaProperty].target});
@@ -1291,7 +1291,8 @@ function createWorld(configuration) {
             // console.log(establishedObject[objectMetaProperty].target === newObject[objectMetaProperty].target);
             matchChildrenInEquivalentSlot(establishedObject[objectMetaProperty].target, newObject[objectMetaProperty].target);
           }
-        } else {
+        } else { //if (!newObjectObservable && !establishedObjectObservable) 
+          // Could run off-road?
           // Two unobserved objects
           matchChildrenInEquivalentSlot(establishedObject, newObject)
         }

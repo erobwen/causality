@@ -271,12 +271,14 @@ describe("Re build shape analysis", function(){
           allowMatch: (newFlow, establishedFlow) => {
             return newFlow.constructor.name === establishedFlow.constructor.name 
           },
-          slotsIterator: function*(optionalEstablishedFlow, newFlow) {
+          slotsIterator: function*(optionalEstablishedFlow, newFlow, hasKey) {
             for (let property in newFlow) {
-              yield [
-                optionalEstablishedFlow ? optionalEstablishedFlow[property] : null,
-                newFlow[property]
-              ]
+              if (!hasKey(newFlow[property])) {
+                yield [
+                  optionalEstablishedFlow ? optionalEstablishedFlow[property] : null,
+                  newFlow[property]
+                ]
+              }
             }
           }
         }
