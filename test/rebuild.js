@@ -199,16 +199,16 @@ describe("Re build shape analysis", function(){
       { 
         rebuildShapeAnalysis: {
           shapeRoot: () => result,
-          canMatch: (newFlow, establishedFlow) => {
+          allowMatch: (newFlow, establishedFlow) => {
             return isObservable(newFlow) && isObservable(establishedFlow) &&
               newFlow.constructor.name === establishedFlow.constructor.name 
           },
-          slotsIterator: function*(newFlow, optionalEstablishedFlow) {
+          slotsIterator: function*(optionalEstablishedFlow, newFlow) {
             for (let property in newFlow) {
-              yield {
-                newSlot: newFlow[property],
-                establishedSlot: optionalEstablishedFlow ? optionalEstablishedFlow[property] : null
-              }
+              yield [
+                optionalEstablishedFlow ? optionalEstablishedFlow[property] : null,
+                newFlow[property]
+              ]
             }
           }
         }
@@ -238,7 +238,6 @@ describe("Re build shape analysis", function(){
 
 
   it("Test rebuild with hybrid analysis", function(){ 
-
     const state = observable({value: 1});
     disposed.length = 0;
     established.length = 0;
@@ -269,15 +268,15 @@ describe("Re build shape analysis", function(){
       { 
         rebuildShapeAnalysis: {
           shapeRoot: () => result,
-          canMatch: (newFlow, establishedFlow) => {
+          allowMatch: (newFlow, establishedFlow) => {
             return newFlow.constructor.name === establishedFlow.constructor.name 
           },
-          slotsIterator: function*(newFlow, optionalEstablishedFlow) {
+          slotsIterator: function*(optionalEstablishedFlow, newFlow) {
             for (let property in newFlow) {
-              yield {
-                newSlot: newFlow[property],
-                establishedSlot: optionalEstablishedFlow ? optionalEstablishedFlow[property] : null
-              }
+              yield [
+                optionalEstablishedFlow ? optionalEstablishedFlow[property] : null,
+                newFlow[property]
+              ]
             }
           }
         }

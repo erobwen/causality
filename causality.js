@@ -94,12 +94,12 @@ function createWorld(configuration) {
     
     // Main API
     observable,
-    observableDeepCopy,
+    deeplyObservable,
     isObservable,
     create: observable, // observable alias
     invalidateOnChange,
     repeat,
-    finalize: finishRebuildInAdvance,
+    finalize,
 
     // Modifiers
     withoutRecording,
@@ -232,6 +232,14 @@ function createWorld(configuration) {
   function updateContextState() {
     state.inActiveRecording = state.context !== null && state.context.isRecording && state.recordingPaused === 0;
     state.inRepeater = (state.context && state.context.type === "repeater") ? state.context: null;
+    if (configuration.priorityLevels > 1) {
+      let scan = state.context;
+      state.activePriorityLevels = {};
+      while(scan) {
+        if (typeof(scan.priority) === "function") state.activePriorityLevels[scan.priority()] = true;
+        scan = scan.parent;
+      }
+    }
   }
 
   // function stackDescription() {
@@ -260,6 +268,10 @@ function createWorld(configuration) {
       throw new Error("Context missmatch");
     }
     updateContextState();
+    const priority = typeof(activeContext.priority) === "function" ? activeContext.priority() : 0;
+    if (!anyActiveRepeaterOfPriority(priority) && !anyDirtyRepeaterOfPriority(priority) && typeof(configuration.onFinishedPriorityLevel) === "function") {
+      configuration.onFinishedPriorityLevel(priority, !anyDirtyRepeater());
+    }
   }
 
 
@@ -854,14 +866,22 @@ function createWorld(configuration) {
     return proxy;
   }
 
-  function observableDeepCopy(object) {
+  function deeplyObservable(object, copy) {
+    // console.log("deeplyObservable");
+    // console.log(object);
     if (isObservable(object)) return object; 
-    if (typeof(object) !== "object") return object;  
-    const copy = object instanceof Array ? [] : {};
-    for (let property in object) {
-      copy[property] = observableDeepCopy(object[property]);
+    if (typeof(object) !== "object") return object;
+    let target; 
+    if (copy) {
+      const objectCopy = object instanceof Array ? [] : {};
+      for (let property in object) {
+        objectCopy[property] = deeplyObservable(object[property], copy);
+      }
+      target = objectCopy; 
+    } else {
+      target = object; 
     }
-    return observable(copy);
+    return observable(target);
   }
   
 
@@ -953,8 +973,12 @@ function createWorld(configuration) {
     if (state.postponeInvalidation == 0) {
       state.postponeRefreshRepeaters++;
       while (state.nextObserverToInvalidate !== null) {
-        let observer = state.nextObserverToInvalidate;
-        state.nextObserverToInvalidate = state.nextObserverToInvalidate.nextToNotify;
+        let observer = state.nextObserverToInvalidate; state.nextObserverToInvalidate = null; 
+        const nextToNotify = observer.nextToNotify; 
+        if (nextToNotify) {
+          observer.nextToNotify = null;
+          state.nextObserverToInvalidate = nextToNotify;
+        }
         // blockSideEffects(function() {
         observer.invalidateAction();
         // });
@@ -1234,14 +1258,11 @@ function createWorld(configuration) {
     }
   }
 
-  function reBuildShapeAnalysis(repeater, shapeAnalysis) {
-    let visited = {};
+  function reBuildShapeAnalysis(repeater) {
+    const shapeAnalysis = repeater.options.rebuildShapeAnalysis
     
-    // console.log("reBuildShapeAnalysis");
-
-    function setAsMatch(newObject, establishedObject) {
-      // console.log("setAsMatch: " + establishedObject.toString() + " <---- " + newObject.toString());
-      // console.log("----");
+    function setAsMatch(establishedObject, newObject) {
+      //console.log("setAsMatch: " + establishedObject.toString() + " <---- " + newObject.toString());
       establishedObject[objectMetaProperty].forwardTo = newObject;
       newObject[objectMetaProperty].copyTo = establishedObject;
       if (newObject[objectMetaProperty].pendingCreationEvent) {
@@ -1253,62 +1274,36 @@ function createWorld(configuration) {
       repeater.newIdObjectShapeMap[establishedObject[objectMetaProperty].id] = establishedObject;
     }
 
-    function canMatchAny(entity) {
-      return isObservable(entity) && !entity[objectMetaProperty].buildId;
-    }
-
-    function matchInEquivalentSlot(newObject, establishedObject) {
-      if (!isObservable(newObject)) return; 
-      // if (newObject.buildId)
-      const newObjectId = newObject[objectMetaProperty].id;
-      
-      if (!repeater.newIdObjectShapeMap[newObjectId]) return; // Limit search! otherwise we could go off road!
-      if (visited[newObjectId]) return; // Already done!
-      visited[newObjectId] = 1; // Visited, but no recursive analysis
-      
-      // console.log("matchInEquivalentSlot");
-      // console.log(newObject.toString());
-      // console.log(establishedObject ? establishedObject.toString() : null);
-
-      if (!establishedObject) {
-        // Continue to search new data for a non finalized buildId matched object where we can once again find an established data structure.
-        for (let slots of shapeAnalysis.slotsIterator(newObject[objectMetaProperty].target, null, canMatchAny)) {
-          matchInEquivalentSlot(slots.newSlot, null);
-        }
-      } else if (newObject !== establishedObject) {
-        // Different in same slot
-        if (!isObservable(newObject)
-          || newObject[objectMetaProperty].buildId
-          || !isObservable(establishedObject)
-          || establishedObject[objectMetaProperty].buildId) {
-          return; 
-        }
-        
-        if (!shapeAnalysis.canMatch(newObject, establishedObject)) return;
-        setAsMatch(newObject, establishedObject);
-
-        for (let slots of shapeAnalysis.slotsIterator(newObject[objectMetaProperty].target, establishedObject[objectMetaProperty].target, canMatchAny)) {
-          matchInEquivalentSlot(slots.newSlot, slots.establishedSlot);
-        }
-      } else {
-        // Same in same slot, or no established, a buildId must have been used.
-        const temporaryObject = newObject[objectMetaProperty].forwardTo; 
-        if (temporaryObject) {
-          // Not finalized, there is still an established state to compare to
-          for (let slots of shapeAnalysis.slotsIterator(temporaryObject[objectMetaProperty].target, newObject[objectMetaProperty].target, canMatchAny)) {
-            matchInEquivalentSlot(slots.newSlot, slots.establishedSlot);
+    function matchInEquivalentSlot(establishedObject, newObject) {      
+      if (establishedObject !== newObject) { // Could be the same if buildId was used
+        const newObjectObservable = isObservable(newObject);
+        const establishedObjectObservable = isObservable(establishedObject); 
+        if (newObjectObservable !== establishedObjectObservable) return;
+        if (newObjectObservable && establishedObjectObservable) {
+          // Two observed objects
+          if (!repeater.newIdObjectShapeMap[newObject[objectMetaProperty].id]) return; // Limit search! otherwise we could go off road!
+          if (establishedObject[objectMetaProperty].forwardTo === newObject) return; // Already set as match during shape analysis! 
+          
+          if (shapeAnalysis.allowMatch && shapeAnalysis.allowMatch(establishedObject, newObject)) {
+            setAsMatch(establishedObject, newObject);
+            // console.log({...establishedObject[objectMetaProperty].target});
+            // console.log({...newObject[objectMetaProperty].target});
+            // console.log(establishedObject[objectMetaProperty].target === newObject[objectMetaProperty].target);
+            matchChildrenInEquivalentSlot(establishedObject[objectMetaProperty].target, newObject[objectMetaProperty].target);
           }
         } else {
-          // Is finalized already, no established state available.
-          for (let slots of shapeAnalysis.slotsIterator(newObject[objectMetaProperty].target, null, canMatchAny)) {
-            matchInEquivalentSlot(slots.newSlot, null);
-          }
+          // Two unobserved objects
+          matchChildrenInEquivalentSlot(establishedObject, newObject)
         }
       }
     }
-    
-    const shapeRoot = shapeAnalysis.shapeRoot();
-    matchInEquivalentSlot(shapeRoot, repeater.establishedShapeRoot);
+
+    function matchChildrenInEquivalentSlot(establishedObjectTarget, newObjectTarget) {
+      for (let [establishedSlot, newSlot] of shapeAnalysis.slotsIterator(establishedObjectTarget, newObjectTarget, object => (isObservable(object) && object[objectMetaProperty].buildId))) {
+        matchInEquivalentSlot(establishedSlot, newSlot);
+      }
+    }
+    return {setAsMatch, matchChildrenInEquivalentSlot, matchInEquivalentSlot};
   }
 
   function finishRebuilding(repeater) {
@@ -1316,11 +1311,11 @@ function createWorld(configuration) {
     
     const options = repeater.options;
     if (options.onStartBuildUpdate) options.onStartBuildUpdate();
-    
+
     function translateReference(reference) {
       if (isObservable(reference)) {
-        if (reference.causality.copyTo) {
-          return reference.causality.copyTo;
+        if (reference[objectMetaProperty].copyTo) {
+          return reference[objectMetaProperty].copyTo;
         }
       }
       return reference;
@@ -1328,7 +1323,29 @@ function createWorld(configuration) {
 
     // Do shape analysis to find additional matches. 
     if (repeater.options.rebuildShapeAnalysis) {
-      reBuildShapeAnalysis(repeater, repeater.options.rebuildShapeAnalysis);
+      const {matchChildrenInEquivalentSlot, matchInEquivalentSlot} = reBuildShapeAnalysis(repeater);
+      const shapeAnalysis = repeater.options.rebuildShapeAnalysis;
+      
+      // console.group("reBuildShapeAnalysis");
+      matchInEquivalentSlot(repeater.establishedShapeRoot, shapeAnalysis.shapeRoot());
+      for(let id in  repeater.newIdObjectShapeMap) {
+        const newObject = repeater.newIdObjectShapeMap[id];
+        const temporaryObject = newObject[objectMetaProperty].forwardTo;
+        if (temporaryObject) {
+          matchChildrenInEquivalentSlot(newObject[objectMetaProperty].target, temporaryObject[objectMetaProperty].target);
+        }
+      }
+      // console.groupEnd();
+
+
+      // Debug printout
+      // console.log("Reference translatinos: ")
+      // for(let id in  repeater.newIdObjectShapeMap) {
+      //   const newObject = repeater.newIdObjectShapeMap[id];
+      //   if (newObject[objectMetaProperty].forwardTo){
+      //     // console.log(newObject[objectMetaProperty].forwardTo.toString() + "==>" + newObject.toString());
+      //   }
+      // }
 
       // Translate references
       for(let id in repeater.newIdObjectShapeMap) {
@@ -1444,16 +1461,28 @@ function createWorld(configuration) {
     } 
   }
 
-  function finishRebuildInAdvance(object) {
+  function finalize(object) {
     // Note: We cannot throw error if no build id, as this might be called externally with non-build id objects
     // Note: This might be inside the first run, so we cannot assume a temporary object. 
     // Note: We cannot make any sensible test if we are in a repeater, since we do not know the identity of the repeater anyway 
     const temporaryObject = object[objectMetaProperty].forwardTo;
     if (temporaryObject !== null) {
+      
+      if (state.inRepeater) {
+        // console.group("reBuildShapeAnalysis");
+        const repeater = state.context;
+        const {matchChildrenInEquivalentSlot} = reBuildShapeAnalysis(repeater);
+        matchChildrenInEquivalentSlot(object[objectMetaProperty].target, temporaryObject[objectMetaProperty].target);
+        // console.groupEnd();
+      }
+
       // A re-build, push changes to established object.
       object[objectMetaProperty].forwardTo = null;
       temporaryObject[objectMetaProperty].isBeingRebuilt = false; 
       mergeInto(object, temporaryObject[objectMetaProperty].target);
+
+      
+
     } else {
       // A new build, send create on establish message (if we were just created with key in a repeater)
       sendOnEstablishedEvent(object);
@@ -1553,6 +1582,15 @@ function createWorld(configuration) {
     state.dirtyRepeaters.map(list => {list.first = null; list.last = null;});
   }
 
+  function anyActiveRepeaterOfPriority(priority) {
+    return state.activePriorityLevels[priority];
+  }
+
+  function anyDirtyRepeaterOfPriority(priority) {
+    const list = state.dirtyRepeaters[priority];
+    return !!list.first;
+  }
+
   function detatchRepeater(repeater) {
     const priority = repeater.priority(); // repeater
     const list = state.dirtyRepeaters[priority];
@@ -1608,7 +1646,7 @@ function createWorld(configuration) {
             let repeater = firstDirtyRepeater();
             repeater.refresh();
             detatchRepeater(repeater);
-            if (typeof(state.justLeftPriorityLevel) !== "undefined" && configuration.onFinishedPriorityLevel) {
+            if (typeof(state.justLeftPriorityLevel) !== "undefined" && typeof(configuration.onFinishedPriorityLevel) === "function" && !anyActiveRepeaterOfPriority(state.justLeftPriorityLevel)) {
               configuration.onFinishedPriorityLevel(state.justLeftPriorityLevel, !anyDirtyRepeater());
               delete state.justLeftPriorityLevel;
             }
