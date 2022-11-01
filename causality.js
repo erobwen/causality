@@ -132,7 +132,11 @@ function createWorld(configuration) {
     nextObserverId: () => { return state.observerId++ },
 
     // Libraries
-    caching: createCachingFunction(observable)
+    caching: createCachingFunction(observable),
+
+    // Priority levels 
+    enterPriorityLevel,
+    exitPriorityLevel,
   }; 
 
 
