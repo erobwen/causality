@@ -77,8 +77,9 @@ function createWorld(configuration) {
 
     // Repeaters
     inRepeater: null,
-    dirtyRepeaters: [...Array(10).keys()].map(() => ({first: null, last: null})),
-    refreshingAllDirtyRepeaters: false
+    dirtyRepeaters: [...Array(configuration.priorityLevels).keys()].map(() => ({first: null, last: null})),
+    refreshingAllDirtyRepeaters: false,
+    workOnPriorityLevel: [...Array(configuration.priorityLevels).keys()].map(() => 0),
   };
 
 
@@ -222,6 +223,33 @@ function createWorld(configuration) {
     state.blockInvalidation--;
   }
 
+  /**********************************
+   *
+   *   Priority Levels
+   *
+   **********************************/
+
+  function enterPriorityLevel(level) {
+    if (typeof(level) !== "number") {
+      const context = level; 
+      level = (typeof(context.priority) === "function") ? context.priority() : 0;
+    }
+    state.workOnPriorityLevel[level]++
+  } 
+
+  function exitPriorityLevel(level) {
+    if (typeof(level) !== "number") {
+      const context = level; 
+      level = (typeof(context.priority) === "function") ? context.priority() : 0;
+    }
+    state.workOnPriorityLevel[level]--
+    if (state.workOnPriorityLevel[level] === 0) {
+      if (typeof(configuration.onFinishedPriorityLevel) === "function") {
+        configuration.onFinishedPriorityLevel(level, !anyDirtyRepeater());
+      }
+    }
+  } 
+
 
   /**********************************
    *
@@ -232,14 +260,6 @@ function createWorld(configuration) {
   function updateContextState() {
     state.inActiveRecording = state.context !== null && state.context.isRecording && state.recordingPaused === 0;
     state.inRepeater = (state.context && state.context.type === "repeater") ? state.context: null;
-    if (configuration.priorityLevels > 1) {
-      let scan = state.context;
-      state.activePriorityLevels = {};
-      while(scan) {
-        if (typeof(scan.priority) === "function") state.activePriorityLevels[scan.priority()] = true;
-        scan = scan.parent;
-      }
-    }
   }
 
   // function stackDescription() {
@@ -257,6 +277,7 @@ function createWorld(configuration) {
     enteredContext.parent = state.context;
     state.context = enteredContext;
     updateContextState();
+    enterPriorityLevel(enteredContext);
     return enteredContext;
   }
 
@@ -268,10 +289,7 @@ function createWorld(configuration) {
       throw new Error("Context missmatch");
     }
     updateContextState();
-    const priority = typeof(activeContext.priority) === "function" ? activeContext.priority() : 0;
-    if (!anyActiveRepeaterOfPriority(priority) && !anyDirtyRepeaterOfPriority(priority) && typeof(configuration.onFinishedPriorityLevel) === "function") {
-      configuration.onFinishedPriorityLevel(priority, !anyDirtyRepeater());
-    }
+    exitPriorityLevel(activeContext);
   }
 
 
@@ -981,6 +999,7 @@ function createWorld(configuration) {
         }
         // blockSideEffects(function() {
         observer.invalidateAction();
+        exitPriorityLevel(observer);
         // });
       }
       state.lastObserverToInvalidate = null;
@@ -1018,6 +1037,7 @@ function createWorld(configuration) {
       observer.dispose(); // Cannot be any more dirty than it already is!
 
       if (state.postponeInvalidation > 0) {
+        enterPriorityLevel(observer);
         if (state.lastObserverToInvalidate !== null) {
           state.lastObserverToInvalidate.nextToNotify = observer;
         } else {
@@ -1560,12 +1580,14 @@ function createWorld(configuration) {
 
   function repeaterDirty(repeater) { // TODO: Add update block on this stage?
     repeater.dispose();
+    const priority = repeater.priority();
+    enterPriorityLevel(priority);
     // disposeChildContexts(repeater);
     // disposeSingleChildContext(repeater);
+    
+    const priorityList = state.dirtyRepeaters;
 
-    const priorityList = state.dirtyRepeaters; 
-    const index = repeater.priority(); 
-    const list = priorityList[index];
+    const list = priorityList[priority];
     if (list.last === null) {
       list.last = repeater;
       list.first = repeater;
@@ -1583,21 +1605,9 @@ function createWorld(configuration) {
     state.dirtyRepeaters.map(list => {list.first = null; list.last = null;});
   }
 
-  function anyActiveRepeaterOfPriority(priority) {
-    return state.activePriorityLevels[priority];
-  }
-
-  function anyDirtyRepeaterOfPriority(priority) {
-    const list = state.dirtyRepeaters[priority];
-    return !!list.first;
-  }
-
   function detatchRepeater(repeater) {
     const priority = repeater.priority(); // repeater
     const list = state.dirtyRepeaters[priority];
-    if (list.last === repeater && list.first === repeater && repeater.nextDirty === null && repeater.previousDirty === null) {
-      state.justLeftPriorityLevel = priority;
-    }
     if (list.last === repeater) {
       list.last = repeater.previousDirty;
     }
@@ -1647,10 +1657,7 @@ function createWorld(configuration) {
             let repeater = firstDirtyRepeater();
             repeater.refresh();
             detatchRepeater(repeater);
-            if (typeof(state.justLeftPriorityLevel) !== "undefined" && typeof(configuration.onFinishedPriorityLevel) === "function" && !anyActiveRepeaterOfPriority(state.justLeftPriorityLevel)) {
-              configuration.onFinishedPriorityLevel(state.justLeftPriorityLevel, !anyDirtyRepeater());
-              delete state.justLeftPriorityLevel;
-            }
+            exitPriorityLevel(repeater.priority());
           }
   
           state.refreshingAllDirtyRepeaters = false;
