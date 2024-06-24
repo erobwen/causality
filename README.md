@@ -75,7 +75,7 @@ If you find it too cumbersome to write "observable" upon every object creation, 
 
 To access the inner workings of a causality object, you can access it by the causality property. For example write object.causality.id to get a system wide unique id for that particular object. 
 
-## repeat
+## repeat (MobX autorun)
 
 Repeat is typically used to enforce some certain data constraint. Such as reactive validation of a form, or calculation of some. In its basic form, it is simply a function that is reevaluated every time any of the data it read changes. For example:
 
@@ -85,7 +85,7 @@ This will cause x.value to be assigned to y.value + z.value any time either y.va
 
 It will however not detect changes in local variables, so for example if local or global variable y is assigned in this example, there will be no reevaluation of x.value. In practice however, this is in general not a limitation as application code typically reacts to changes to a specific model, rather than changes in local variables.
 
-## Using repeat with rebuilding keys
+### Using repeat with rebuilding keys
 repeat is equipped with some special features when it comes to creating data structures. Assume that you have an algorithm that constructs a data structure. For example a balanced index structure of some sort. However, when the input data is changed and the algorithm needs to repeat once more, you do not want a completely new output data structure.  Instead, you want to execute the algorithm once more, and at the end of it, compare the difference to the result of the last run, and update the previous result in a minimal way. This is something that is supported with causality! 
 
 React users might notice that this is actually a generalization of how React works with the synthetic dom. But instead of being limited to just dom structures, causality can do this trick for any data structure!
@@ -99,8 +99,24 @@ For example:
     })
     
 Note that the only difference is that we added a unique build id for each created object in the data structure. This way causality will know what previously created object correspond to the objects created at each repetition.
-   
-## Non recorded action with repeat
+
+### Using repeat with priority
+
+When building a framework, such as a front end framework, it becomes apparent that some repeats should have higher priority than others. For example, if we have a rendering pipeline, that starts with model, view model and then ends with view. It would be highly innefficient if for every change in the model, we would update the view. Because say perhaps that there are 3 changes on the model level, that causes 9 changes in the view model level, that again causes 18 changes on the view itself. We want to finish all changes on the model level, before we start to work on the view model level, and we want to finish all changes on the view model, before we start to update the view. To do this, we need to prioritize repeaters. 
+
+You want the update to propagate through your dependency network breadth first for minimal re-work.
+
+For example: 
+
+    repeat(() => updateViewModel(), {
+        priority: 1
+    })
+
+To do this, causality has a limited number of priority levels to divide repeaters into. When you execute a repeat operation, you can set the priority of it. The implementation works with a short array, so you should not have more than 8 different priority levels in your application. 
+
+Also, in addition to using priority levels. causality internally uses a queue for repeater updates, and this by itself is a heuristic that makes it more likley for changes to propagate breadth first. But depending on your dependencies, reevaluation at some stage could potentially occur, so priority levels helps to enforce some degree of breadth first.  
+
+### Separate cause and effect (MobX reaction)
 A repeater can mix cause and effect, and there are some preventive measures in place to prevent a repeater from activating itself. So, in many cases it is safe to use a repeater with a single action (comparable to autorun in MobX). However, there could be situations where you would like to distinguish more between cause and effect. To do that, a second argument for the repeater is an action that is not recorded. 
 
     repeater([description for debug], recordedAction, nonRecordedAction, options)
@@ -199,7 +215,7 @@ Since version 2.0 a few features were removed, as they seemed too esoteric to be
 The 3.0 version uses a getWorld function that can create multiple instances of causality.  
 
 ```js
-import getWorld from "/vendor/causalityjs/causality.js";
+import getWorld from "causalityjs";
 const myCausalityWorld = getWorld({name: "myCausalityWorld", ...moreOptions});
 const { repeat, invalidateOnChange, observable } = myCausalityWorld;
 ```
