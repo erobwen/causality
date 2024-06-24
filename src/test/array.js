@@ -1,7 +1,7 @@
-'use strict';
-require = require("esm")(module);
-const {observable} = require("../causality.js").getWorld();
-const assert = require('assert');
+import { getWorld } from "../causality.js";
+import assert from "assert";
+const { observable } = getWorld()
+
 //const log = console.log.bind(console);
 
 // Tests based on mobx test/array.js
