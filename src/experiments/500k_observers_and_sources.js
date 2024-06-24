@@ -1,5 +1,5 @@
-require('../causality').install();
-// require('../causality2').install();
+import { getWorld } from "../causality.js";
+const { repeatOnChange, clearRepeaterLists } = getWorld()
 
 var x;
 var start, end, time;

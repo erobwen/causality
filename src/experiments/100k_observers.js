@@ -1,7 +1,8 @@
-require('../causality').install();
-var mobx = require('mobx');
-const log = console.log.bind(console);
+import mobx from "mobx"; 
+import { getWorld } from "../causality.js";
+const { observable } = getWorld()
 
+const log = console.log.bind(console);
 log("100k observers performance");
 var amount = 100000;
 // var amount = 10;

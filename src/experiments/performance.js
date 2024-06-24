@@ -1,7 +1,7 @@
-require = require("esm")(module);
-const {observable, repeat} = require("../causality.js").getWorld();
+import mobx from "mobx"; 
+import { getWorld } from "../causality.js";
+const { observable, repeat } = getWorld()
 
-var mobx = require('mobx');
 const log = console.log.bind(console);
 
 log("Performance");

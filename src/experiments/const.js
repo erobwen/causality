@@ -1,6 +1,3 @@
-
-
-
 function plainFoobar(x, y, z) {
 	return x+y+x;
 }
