@@ -7,6 +7,10 @@
   "scripts": {
     "test": "mocha"
   },
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es6"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/erobwen/causality.git"

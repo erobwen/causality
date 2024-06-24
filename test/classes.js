@@ -46,6 +46,7 @@ describe("Classes", function () {
     assert.equal(z, 35);
   });
 
+  // Do we really want to observe function names?  
   it('changed object functions do trigger', function(){
     x.dostuff = function(){ return 55 };
     assert.equal(z, 57);

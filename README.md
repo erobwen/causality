@@ -3,14 +3,14 @@
 
 ![Alt text](/docs/logotype.png?raw=true "Causality Logotype")
 
-Simple, scalable state management and reactive programming, using ES6 proxies.
+Reactive programming for simple, scalable state management, using ES6 proxies.
 
 
 # Installation
 
 Installation: npm install causalityjs --save
 
-# Getting Started
+# Usage
 
 It is possible to create several instances of causality, called worlds, each with its separate config and dependencies. As the name implies, you typically just create one single causality world for your app to use. But you can sometimes benefit from created several isolated worlds where causality isolates observation and event propagation within each world.
 
@@ -115,27 +115,20 @@ There is a famous quote from programmer Jeff Atwood (author of blog Coding Horro
 
 *There are two hard things in computer science: cache invalidation, naming things, and off-by-one errors.*
 
-Well, at least cache invalidation just got much more simple thanks to invalidateOnChange. While you could use a repeat to invalidate a cache, invalidateOnChange is a more basic primitive that is optimized for this specific purpose (it is used by repeat internally). For example, if a cache is filled up using lazy evaluation, it is convenient to just clear the cache without any direct reevaluation. 
+Well, at least cache invalidation just got much more simple thanks to invalidateOnChange. While you could use a repeat to invalidate a cache, invalidateOnChange is a more basic primitive that is optimized for this specific purpose. For example, if a cache is filled up using lazy evaluation, it is convenient to just clear the cache without any direct reevaluation. 
 
 Here is an example:
 
-    let x = observable({value: null, isValid: false});
-
-    getX() {
-        if (!x.isValid) {
-            invalidateOnChange(
-                function() {
-                    x.value = y.value + z.value; x.isValid = true;
-                },
-                function() {
-                    x.isValid = false;
-                }
-            );
+    invalidateOnChange(
+        function() {
+            x.value = y.value + z.value; xIsValid = true;
+        },
+        function() {
+            xIsValid = false;
         }
-        return x.value; 
-    }
+    );
 
-In this case, if y.value is changed for instance, it will only mean that the second function is run, setting x.isValid to false. invalidateOnChange is in particularly useful when integrating causality with other frameworks. For example, rendering code could be run using invalidateOnChange, and the second function could simply invalidate a certain view-component. 
+In this case, if y.value is changed for instance, it will only mean that the second function is run, setting xIsValid to false. invalidateOnChange is in particularly useful when integrating causality with other frameworks. For example, rendering code could be run using invalidateOnChange, and the second function could simply invalidate a certain view-component. 
 
 ## withoutRecording and withoutReactions
 
@@ -171,17 +164,18 @@ Somtimes you just need to observe objects, and record events. For this purpose y
  
 Activating sendEventsToObjects will also cause causality to try to send events directly to your observable objects. If your objects implement the following callbacks, causality will then try to call them.  
 
- - onChange (or you should just reactivley listen to changes, using repeat etc.)
- - onEstablish
- - onDispose
+ - onChange
+ - onBuildCreate
+ - onBuildRemove
 
 onChange will receive a message, containing information about any change that happened to the object.
 
-The onEstablish and onDispose events will be sent specifically when doing data structure rebuilding. They correspond to the React concepts of componentDidMount and componentWillUnmount but for a generalized data structure re building framework.
+The onBuildCreate and onBuildRemove events will be sent specifically when doing data structure rebuilding. They correspond to the React concepts of componentDidMount and componentWillUnmount but for a generalized data structure re building framework.
 
 ## causality.forwardTo
 
 The re building mechanism internally uses a forwarding mechanism that can be used directly. To use it, simply type myObject.causality.forwardTo = otherObject. This will cause myObject have the identity of myObject, but the state of otherObject. Quite useful for some very special scenarios. Note that the forwarding disregards the meta data of the object that is reached by myObject.causality. As a consequence of this, object.causality.id cannot be relied upon when forwarding is used, such as in a rebuilding scenario. Also, forwarding takes place before any onReadGlobal and onWriteGlobal event can be fired, those events will be fired, but for the object that the object was forwarding to.
+
 
 ## transaction
 
